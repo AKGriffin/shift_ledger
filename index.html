@@ -7,7 +7,96 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Shift Ledger</h1>
+    <main>
+        <h1>Shift Ledger</h1>
+
+    <section class="form-section">
+        <h2>New Shift</h2>
+        <form id="new-shift-form" action="">
+            <div>
+                <label for="shift-date">Date</label>
+                <input type="date" id="shift-date" name="shift-date" required>
+            </div>
+
+            <div>
+                <label for="meal-period">Meal Period</label>
+                <select name="meal-period" id="meal-period">
+                    <option value="">Select Meal Period</option>
+                    <option value="Lunch">Lunch</option>
+                    <option value="Dinner">Dinner</option>
+                    <option value="Double">Double</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="job-title">Job Title</label>
+                <select name="job-title" id="job-title" required>
+                    <option value="">Select Job</option>
+                    <option value="Server">Server</option>
+                    <option value="Expo">Expo</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="clock-in-time">Clock In</label>
+                <input type="time" name="clock-in-time" id="clock-in-time">
+            </div>
+
+             <div>
+                <label for="clock-out-time">Clock Out</label>
+                <input type="time" name="clock-out-time" id="clock-out-time">
+            </div>
+
+            <div>
+                <label for="food-sales-amount">Food Sales</label>
+                <input type="number" name="food-sales-amount" id="food-sales-amount">
+            </div>
+
+            <div>
+                <label for="baw-sales-amount">Beer and Wine Sales</label>
+                <input type="number" name="baw-sales-amount" id="baw-sales-amount">
+            </div>
+
+            <div>
+                <label for="liquor-sales-amount">Liquor Sales</label>
+                <input type="number" name="liquor-sales-amount" id="liquor-sales-amount">
+            </div>
+
+            <div>
+                <label for="na-bev-sales-amount">NA Beverage Sales</label>
+                <input type="number" name="na-bev-sales-amount" id="na-bev-sales-amount">
+            </div>
+
+            <div>
+                <label for="additional-sales-amount">Additional Sales</label>
+                <input type="number" name="additional-sales-amount" id="additional-sales-amount">
+            </div>
+
+            <div>
+                <label for="cc-tips-amount">CC Tips</label>
+                <input type="number" name="cc-tips-amount" id="cc-tips-amount">
+            </div>
+
+            <div>
+                <label for="cash-tips-amount">Cash Tips</label>
+                <input type="number" name="cash-tips-amount" id="cash-tips-amount">
+            </div>
+
+            <div>
+                <label for="tips-paid-out-amount">Tips Paid Out</label>
+                <input type="number" name="tips-paid-out-amount" id="tips-paid-out-amount">
+            </div>
+
+            <div>
+                <label for="tip-out-received-amount">Tip Out Received</label>
+                <input type="number" name="tip-out-received-amount" id="tip-out-received-amount">
+            </div>
+
+            <button type="submit">Save Shift</button>
+        </form>
+    </section>    
+    </main>
+
     <script src="script.js"></script>
 </body>
 </html>
