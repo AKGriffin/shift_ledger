@@ -10,132 +10,132 @@
     <main>
         <h1>Shift Ledger</h1>
 
-    <section class="form-section">
-        <h2>New Shift</h2>
-        <form id="new-shift-form" action="">
-            <div>
-                <label for="shift-date">Date</label>
-                <input type="date" id="shift-date" name="shift-date" required>
-            </div>
+        
+        <section class="form-section">
+            <h2>New Shift</h2>
+            <form id="new-shift-form">
+                <div>
+                    <label for="shift-date">Date</label>
+                    <input type="date" id="shift-date" name="shift-date" required>
+                </div>
 
-            <div>
-                <label for="meal-period">Meal Period</label>
-                <select name="meal-period" id="meal-period">
-                    <option value="">Select Meal Period</option>
-                    <option value="Lunch">Lunch</option>
-                    <option value="Dinner">Dinner</option>
-                    <option value="Double">Double</option>
-                </select>
-            </div>
+                <div>
+                    <label for="meal-period">Meal Period</label>
+                    <select name="meal-period" id="meal-period" required>
+                        <option value="">Select Meal Period</option>
+                        <option value="Lunch">Lunch</option>
+                        <option value="Dinner">Dinner</option>
+                        <option value="Double">Double</option>
+                    </select>
+                </div>
 
-            <div>
-                <label for="job-title">Job Title</label>
-                <select name="job-title" id="job-title" required>
-                    <option value="">Select Job</option>
-                    <option value="Server">Server</option>
-                    <option value="Expo">Expo</option>
-                </select>
-            </div>
+                <div>
+                    <label for="job-title">Job Title</label>
+                    <select name="job-title" id="job-title" required>
+                        <option value="">Select Job</option>
+                        <option value="Server">Server</option>
+                        <option value="Expo">Expo</option>
+                    </select>
+                </div>
 
-            <div>
-                <label for="clock-in-time">Clock In</label>
-                <input type="time" name="clock-in-time" id="clock-in-time">
-            </div>
+                <div>
+                    <label for="clock-in-time">Clock In</label>
+                    <input type="time" name="clock-in-time" id="clock-in-time" required>
+                </div>
 
-             <div>
-                <label for="clock-out-time">Clock Out</label>
-                <input type="time" name="clock-out-time" id="clock-out-time">
-            </div>
+                 <div>
+                    <label for="clock-out-time">Clock Out</label>
+                    <input type="time" name="clock-out-time" id="clock-out-time" required>
+                </div>
 
-            <div>
-                <label for="food-sales-amount">Food Sales</label>
-                <input type="number" name="food-sales-amount" id="food-sales-amount">
-            </div>
+                <div>
+                    <label for="food-sales-amount">Food Sales</label>
+                    <input type="number" name="food-sales-amount" id="food-sales-amount" step="0.01" min="0" value="0.00">
+                </div>
 
-            <div>
-                <label for="baw-sales-amount">Beer and Wine Sales</label>
-                <input type="number" name="baw-sales-amount" id="baw-sales-amount">
-            </div>
+                <div>
+                    <label for="baw-sales-amount">Beer & Wine Sales</label>
+                    <input type="number" name="baw-sales-amount" id="baw-sales-amount" step="0.01" min="0" value="0.00">
+                </div>
 
-            <div>
-                <label for="liquor-sales-amount">Liquor Sales</label>
-                <input type="number" name="liquor-sales-amount" id="liquor-sales-amount">
-            </div>
+                <div>
+                    <label for="liquor-sales-amount">Liquor Sales</label>
+                    <input type="number" name="liquor-sales-amount" id="liquor-sales-amount" step="0.01" min="0" value="0.00">
+                </div>
 
-            <div>
-                <label for="na-bev-sales-amount">NA Beverage Sales</label>
-                <input type="number" name="na-bev-sales-amount" id="na-bev-sales-amount">
-            </div>
+                <div>
+                    <label for="na-bev-sales-amount">NA Beverage Sales</label>
+                    <input type="number" name="na-bev-sales-amount" id="na-bev-sales-amount" step="0.01" min="0" value="0.00">
+                </div>
 
-            <div>
-                <label for="additional-sales-amount">Additional Sales</label>
-                <input type="number" name="additional-sales-amount" id="additional-sales-amount">
-            </div>
+                <div>
+                    <label for="additional-sales-amount">Additional Sales</label>
+                    <input type="number" name="additional-sales-amount" id="additional-sales-amount" step="0.01" min="0" value="0.00">
+                </div>
 
-            <div>
-                <label for="cc-tips-amount">CC Tips</label>
-                <input type="number" name="cc-tips-amount" id="cc-tips-amount">
-            </div>
+                <div>
+                    <label for="cc-tips-amount">CC Tips</label>
+                    <input type="number" name="cc-tips-amount" id="cc-tips-amount" step="0.01" min="0" value="0.00">
+                </div>
 
-            <div>
-                <label for="cash-tips-amount">Cash Tips</label>
-                <input type="number" name="cash-tips-amount" id="cash-tips-amount">
-            </div>
+                <div>
+                    <label for="cash-tips-amount">Cash Tips</label>
+                    <input type="number" name="cash-tips-amount" id="cash-tips-amount" step="0.01" min="0" value="0.00">
+                </div>
 
-            <div>
-                <label for="tips-paid-out-amount">Tips Paid Out</label>
-                <input type="number" name="tips-paid-out-amount" id="tips-paid-out-amount">
-            </div>
+                <div>
+                    <label for="tips-paid-out-amount">Tips Paid Out (Tip Out)</label>
+                    <input type="number" name="tips-paid-out-amount" id="tips-paid-out-amount" step="0.01" min="0" value="0.00">
+                </div>
 
-            <div>
-                <label for="tip-out-received-amount">Tip Out Received</label>
-                <input type="number" name="tip-out-received-amount" id="tip-out-received-amount">
-            </div>
+                <div>
+                    <label for="tip-out-received-amount">Tip Out Received</label>
+                    <input type="number" name="tip-out-received-amount" id="tip-out-received-amount" step="0.01" min="0" value="0.00">
+                </div>
 
-            <button type="submit">Save Shift</button>
-        </form>
-    </section>    
+                <button type="submit">Save Shift</button>
+            </form>
+        </section>    
 
-    <section class="history-section">
-        <h2>Previous Shifts</h2>
-        <div id="previous-shifts-list">
-            <article class="shift-card">
-                <h1><span>2026-09-30</span> - <span>dinner</span></h1>
+        
+        <section class="history-section">
+            <h2>Previous Shifts</h2>
+            <div id="previous-shifts-list">
+                <!-- Template example of a rendered shift card -->
+                <article class="shift-card">
+                    <h3><span class="card-date">2026-09-30</span> - <span class="card-meal">Dinner</span></h3>
 
-                <p><strong>Job</strong>: <span></span></p>
-                <p><strong>Clock In</strong>: <span></span></p>
-                <p><strong>Clock Out</strong>: <span></span></p>
-                <p><strong>Hours Worked</strong>: <span></span></p>
+                    <p><strong>Job</strong>: <span class="card-job">Server</span></p>
+                    <p><strong>Clock In</strong>: <span class="card-in">4:00 PM</span></p>
+                    <p><strong>Clock Out</strong>: <span class="card-out">10:30 PM</span></p>
+                    <p><strong>Hours Worked</strong>: <span class="card-hours">6.5</span></p>
 
-                <section>
-                    <h2>Sales</h2>
-
-                    <p><strong>Food Sales</strong>: <span></span></p>
-                    <p><strong>Beer and Wine Sales</strong>: <span></span></p>
-                    <p><strong>Liquor Sales</strong>: <span></span></p>
-                    <p><strong>NA Beverage Sales</strong>: <span></span></p>
-                    <p><strong>Additional Sales</strong>: <span></span></p>
-                    <p><strong>Total Sales</strong>: <span></span></p>
-                </section>
-                
-                <section>
-                    <h2>Tips</h2>
-
-                    <p><strong>CC Tips</strong>: <span></span></p>
-                    <p><strong>Cash Tips</strong>: <span></span></p>
-
-                    <section>
-                        <h3>Tip Out</h3>
-
-                        <p><strong>Tips Paid Out</strong>: <span></span></p>
-                        <p><strong>Tip Out Received</strong>: <span></span></p>
+                    <section class="card-sales-breakdown">
+                        <h4>Sales</h4>
+                        <p><strong>Food Sales</strong>: $<span class="card-food">0.00</span></p>
+                        <p><strong>Beer and Wine Sales</strong>: $<span class="card-baw">0.00</span></p>
+                        <p><strong>Liquor Sales</strong>: $<span class="card-liquor">0.00</span></p>
+                        <p><strong>NA Beverage Sales</strong>: $<span class="card-na">0.00</span></p>
+                        <p><strong>Additional Sales</strong>: $<span class="card-additional">0.00</span></p>
+                        <p><strong>Total Sales</strong>: $<span class="card-total-sales">0.00</span></p>
                     </section>
+                    
+                    <section class="card-tips-breakdown">
+                        <h4>Tips</h4>
+                        <p><strong>CC Tips</strong>: $<span class="card-cc-tips">0.00</span></p>
+                        <p><strong>Cash Tips</strong>: $<span class="card-cash-tips">0.00</span></p>
 
-                    <p><strong>Total Tips</strong>: <span></span></p>
-                </section>
-            </article>
-        </div>
-    </section>
+                        <section class="card-tipout-breakdown">
+                            <h5>Tip Out</h5>
+                            <p><strong>Tips Paid Out</strong>: $<span class="card-paid-out">0.00</span></p>
+                            <p><strong>Tip Out Received</strong>: $<span class="card-received">0.00</span></p>
+                        </section>
+
+                        <p><strong>Net Total Tips</strong>: $<span class="card-total-tips">0.00</span></p>
+                    </section>
+                </article>
+            </div>
+        </section>
     </main>
 
     <script src="script.js"></script>
