@@ -5,3 +5,9 @@ body {
 h1 {
     text-align: center;
 }
+
+#new-shift-section,
+#previous-shifts-section,
+#settings-section {
+    display: none;
+}

@@ -1,143 +1,226 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shift Ledger</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-    <main>
+    <header class="app-header">
         <h1>Shift Ledger</h1>
 
-        
-        <section class="form-section">
+        <nav aria-label="Main Navigation">
+            <button id="menu-new-shift" class="menu-button">New Shift</button>
+            <button id="menu-previous-shifts" class="menu-button">Previous Shifts</button>
+            <button id="menu-settings" class="menu-button">Settings</button>
+        </nav>
+    </header>
+
+    <main>
+        <section id="new-shift-section" class="new-shift-section">
             <h2>New Shift</h2>
             <form id="new-shift-form">
-                <div>
-                    <label for="shift-date">Date</label>
-                    <input type="date" id="shift-date" name="shift-date" required>
-                </div>
 
-                <div>
-                    <label for="meal-period">Meal Period</label>
-                    <select name="meal-period" id="meal-period" required>
-                        <option value="">Select Meal Period</option>
-                        <option value="Lunch">Lunch</option>
-                        <option value="Dinner">Dinner</option>
-                        <option value="Double">Double</option>
-                    </select>
-                </div>
+                <fieldset>
+                    <legend>General Info</legend>
+                    <div class="form-pair">
+                        <label for="form-shift-date">Date</label>
+                        <input type="date" id="form-shift-date" name="shift-date" required>
+                    </div>
 
-                <div>
-                    <label for="job-title">Job Title</label>
-                    <select name="job-title" id="job-title" required>
-                        <option value="">Select Job</option>
-                        <option value="Server">Server</option>
-                        <option value="Expo">Expo</option>
-                    </select>
-                </div>
+                    <div class="form-pair">
+                        <label for="form-meal-period">Meal Period</label>
+                        <select name="meal-period" id="form-meal-period" required>
+                            <option value="">Select</option>
+                            <option value="Lunch">Lunch</option>
+                            <option value="Dinner">Dinner</option>
+                            <option value="Double">Double</option>
+                        </select>
+                    </div>
 
-                <div>
-                    <label for="clock-in-time">Clock In</label>
-                    <input type="time" name="clock-in-time" id="clock-in-time" required>
-                </div>
+                    <div class="form-pair">
+                        <label for="form-job-title">Job</label>
+                        <select name="job-title" id="form-job-title" required>
+                            <option value="">Select</option>
+                            <option value="Server">Server</option>
+                            <option value="Expo">Expo</option>
+                        </select>
+                    </div>
+                </fieldset>
 
-                 <div>
-                    <label for="clock-out-time">Clock Out</label>
-                    <input type="time" name="clock-out-time" id="clock-out-time" required>
-                </div>
+                <fieldset>
+                    <legend>Time Tracking</legend>
+                    <div class="form-pair">
+                        <label for="form-clock-in-time">Clock In</label>
+                        <input type="time" name="clock-in-time" id="form-clock-in-time" required>
+                    </div>
 
-                <div>
-                    <label for="food-sales-amount">Food Sales</label>
-                    <input type="number" name="food-sales-amount" id="food-sales-amount" step="0.01" min="0" value="0.00">
-                </div>
+                    <div class="form-pair">
+                        <label for="form-clock-out-time">Clock Out</label>
+                        <input type="time" name="clock-out-time" id="form-clock-out-time" required>
+                    </div>
 
-                <div>
-                    <label for="baw-sales-amount">Beer & Wine Sales</label>
-                    <input type="number" name="baw-sales-amount" id="baw-sales-amount" step="0.01" min="0" value="0.00">
-                </div>
+                    <div class="form-pair">
+                        <label for="form-break-start-time">Break Start</label>
+                        <input type="time" name="break-start-time" id="form-break-start-time">
+                    </div>
 
-                <div>
-                    <label for="liquor-sales-amount">Liquor Sales</label>
-                    <input type="number" name="liquor-sales-amount" id="liquor-sales-amount" step="0.01" min="0" value="0.00">
-                </div>
+                    <div class="form-pair">
+                        <label for="form-break-end-time">Break End</label>
+                        <input type="time" name="break-end-time" id="form-break-end-time">
+                    </div>
+                </fieldset>
 
-                <div>
-                    <label for="na-bev-sales-amount">NA Beverage Sales</label>
-                    <input type="number" name="na-bev-sales-amount" id="na-bev-sales-amount" step="0.01" min="0" value="0.00">
-                </div>
+                <fieldset>
+                    <legend>Sales Breakdown</legend>
+                    <div class="form-pair">
+                        <label for="form-food-sales-amount">Food</label>
+                        <input type="number" name="food-sales-amount" id="form-food-sales-amount" step="0.01" min="0"
+                            placeholder="0.00">
+                    </div>
 
-                <div>
-                    <label for="additional-sales-amount">Additional Sales</label>
-                    <input type="number" name="additional-sales-amount" id="additional-sales-amount" step="0.01" min="0" value="0.00">
-                </div>
+                    <div class="form-pair">
+                        <label for="form-baw-sales-amount">Beer & Wine</label>
+                        <input type="number" name="baw-sales-amount" id="form-baw-sales-amount" step="0.01" min="0"
+                            placeholder="0.00">
+                    </div>
 
-                <div>
-                    <label for="cc-tips-amount">CC Tips</label>
-                    <input type="number" name="cc-tips-amount" id="cc-tips-amount" step="0.01" min="0" value="0.00">
-                </div>
+                    <div class="form-pair">
+                        <label for="form-liquor-sales-amount">Liquor</label>
+                        <input type="number" name="liquor-sales-amount" id="form-liquor-sales-amount" step="0.01"
+                            min="0" placeholder="0.00">
+                    </div>
 
-                <div>
-                    <label for="cash-tips-amount">Cash Tips</label>
-                    <input type="number" name="cash-tips-amount" id="cash-tips-amount" step="0.01" min="0" value="0.00">
-                </div>
+                    <div class="form-pair">
+                        <label for="form-na-bev-sales-amount">NA Beverage</label>
+                        <input type="number" name="na-bev-sales-amount" id="form-na-bev-sales-amount" step="0.01"
+                            min="0" placeholder="0.00">
+                    </div>
 
-                <div>
-                    <label for="tips-paid-out-amount">Tips Paid Out (Tip Out)</label>
-                    <input type="number" name="tips-paid-out-amount" id="tips-paid-out-amount" step="0.01" min="0" value="0.00">
-                </div>
+                    <div class="form-pair">
+                        <label for="form-additional-sales-amount">Additional</label>
+                        <input type="number" name="additional-sales-amount" id="form-additional-sales-amount"
+                            step="0.01" min="0" placeholder="0.00">
+                    </div>
+                </fieldset>
 
-                <div>
-                    <label for="tip-out-received-amount">Tip Out Received</label>
-                    <input type="number" name="tip-out-received-amount" id="tip-out-received-amount" step="0.01" min="0" value="0.00">
+                <fieldset>
+                    <legend>Tips & Tip Outs</legend>
+                    <div class="form-pair">
+                        <label for="form-cc-tips-amount">CC Tips</label>
+                        <input type="number" name="cc-tips-amount" id="form-cc-tips-amount" step="0.01" min="0"
+                            placeholder="0.00">
+                    </div>
+
+                    <div class="form-pair">
+                        <label for="form-cash-tips-amount">Cash Tips</label>
+                        <input type="number" name="cash-tips-amount" id="form-cash-tips-amount" step="0.01" min="0"
+                            placeholder="0.00">
+                    </div>
+
+                    <div class="form-pair">
+                        <label for="form-tips-paid-out-amount">Tips Paid Out (Tip Out)</label>
+                        <input type="number" name="tips-paid-out-amount" id="form-tips-paid-out-amount" step="0.01"
+                            min="0" placeholder="0.00">
+                    </div>
+
+                    <div class="form-pair">
+                        <label for="form-tip-out-received-amount">Tip Out Received</label>
+                        <input type="number" name="tip-out-received-amount" id="form-tip-out-received-amount"
+                            step="0.01" min="0" placeholder="0.00">
+                    </div>
+                </fieldset>
+
+                <div class="form-pair">
+                    <label for="form-shift-notes">Shift Notes</label>
+                    <textarea name="shift-notes" id="form-shift-notes"></textarea>
                 </div>
 
                 <button type="submit">Save Shift</button>
             </form>
-        </section>    
 
-        
-        <section class="history-section">
+            <section class="review-new-shift-section">
+                <article>
+                    <h3>Review Info</h3>
+                    <p><strong>Date</strong>: <span id="review-date"></span></p>
+                    <p><strong>Meal Period</strong>: <span id="review-meal"></span></p>
+                    <p><strong>Job</strong>: <span id="review-job"></span></p>
+                    <p><strong>Clock In</strong>: <span id="review-clock-in"></span></p>
+                    <p><strong>Clock Out</strong>: <span id="review-clock-out"></span></p>
+                    <p><strong>Break Start</strong>: <span id="review-break-start"></span></p>
+                    <p><strong>Break End</strong>: <span id="review-break-end"></span></p>
+                    <p><strong>Food</strong>: <span id="review-food-sales"></span></p>
+                    <p><strong>Beer and Wine</strong>: <span id="review-baw-sales"></span></p>
+                    <p><strong>Liquor</strong>: <span id="review-liquor-sales"></span></p>
+                    <p><strong>NA Beverage</strong>: <span id="review-na-bev-sales"></span></p>
+                    <p><strong>Additional</strong>: <span id="review-additional-sales"></span></p>
+                    <p><strong>CC Tips</strong>: <span id="review-cc-tips"></span></p>
+                    <p><strong>Cash Tips</strong>: <span id="review-cash-tips"></span></p>
+                    <p><strong>Tips Paid Out</strong>: <span id="review-tip-out-paid"></span></p>
+                    <p><strong>Tip Out Received</strong>: <span id="review-tip-out-received"></span></p>
+                    <p><strong>Notes</strong>: <span id="review-notes"></span></p>
+                </article>
+            </section>
+        </section>
+        <section id="previous-shifts-section" class="history-section">
             <h2>Previous Shifts</h2>
             <div id="previous-shifts-list">
-                <!-- Template example of a rendered shift card -->
-                <article class="shift-card">
-                    <h3><span class="card-date">2026-09-30</span> - <span class="card-meal">Dinner</span></h3>
+                <template id="shift-card-template">
+                    <article class="shift-card">
+                        <h3><span class="card-date"></span> <span class="card-meal"></span></h3>
+                        <p><strong>Job</strong>: <span class="card-job"></span></p>
+                        <p><strong>Clock In</strong>: <span class="card-in"></span></p>
+                        <p><strong>Clock Out</strong>: <span class="card-out"></span></p>
+                        <p><strong>Break Start</strong>: <span class="card-break-start"></span></p>
+                        <p><strong>Break End</strong>: <span class="card-break-end"></span></p>
+                        <p><strong>Hours Worked</strong>: <span class="card-hours"></span></p>
 
-                    <p><strong>Job</strong>: <span class="card-job">Server</span></p>
-                    <p><strong>Clock In</strong>: <span class="card-in">4:00 PM</span></p>
-                    <p><strong>Clock Out</strong>: <span class="card-out">10:30 PM</span></p>
-                    <p><strong>Hours Worked</strong>: <span class="card-hours">6.5</span></p>
+                        <div class="card-sales-breakdown">
+                            <h4>Sales</h4>
+                            <p><strong>Total Sales</strong>: $<span class="card-total-sales"></span></p>
+                            <div>
+                                <h5>Sales Breakdown</h5>
+                                <p><strong>Food Sales</strong>: $<span class="card-food"></span></p>
+                                <p><strong>Beer and Wine Sales</strong>: $<span class="card-baw"></span></p>
+                                <p><strong>Liquor Sales</strong>: $<span class="card-liquor"></span></p>
+                                <p><strong>NA Beverage Sales</strong>: $<span class="card-na"></span></p>
+                                <p><strong>Additional Sales</strong>: $<span class="card-additional"></span></p>
+                            </div>
+                        </div>
 
-                    <section class="card-sales-breakdown">
-                        <h4>Sales</h4>
-                        <p><strong>Food Sales</strong>: $<span class="card-food">0.00</span></p>
-                        <p><strong>Beer and Wine Sales</strong>: $<span class="card-baw">0.00</span></p>
-                        <p><strong>Liquor Sales</strong>: $<span class="card-liquor">0.00</span></p>
-                        <p><strong>NA Beverage Sales</strong>: $<span class="card-na">0.00</span></p>
-                        <p><strong>Additional Sales</strong>: $<span class="card-additional">0.00</span></p>
-                        <p><strong>Total Sales</strong>: $<span class="card-total-sales">0.00</span></p>
-                    </section>
-                    
-                    <section class="card-tips-breakdown">
-                        <h4>Tips</h4>
-                        <p><strong>CC Tips</strong>: $<span class="card-cc-tips">0.00</span></p>
-                        <p><strong>Cash Tips</strong>: $<span class="card-cash-tips">0.00</span></p>
+                        <div class="card-tips-breakdown">
+                            <h4>Tips</h4>
+                            <p><strong>Net Tips</strong>: $<span class="card-total-tips"></span></p>
+                            <div>
+                                <h5>Breakdown</h5>
+                                <p><strong>CC Tips</strong>: $<span class="card-cc-tips"></span></p>
+                                <p><strong>Cash Tips</strong>: $<span class="card-cash-tips"></span></p>
+                            </div>
+                            <div class="card-tipout-breakdown">
+                                <h5>Tip Out</h5>
+                                <p><strong>Tips Paid Out</strong>: $<span class="card-paid-out"></span></p>
+                                <p><strong>Tip Out Received</strong>: $<span class="card-received"></span></p>
+                            </div>
+                        </div>
 
-                        <section class="card-tipout-breakdown">
-                            <h5>Tip Out</h5>
-                            <p><strong>Tips Paid Out</strong>: $<span class="card-paid-out">0.00</span></p>
-                            <p><strong>Tip Out Received</strong>: $<span class="card-received">0.00</span></p>
-                        </section>
-
-                        <p><strong>Net Total Tips</strong>: $<span class="card-total-tips">0.00</span></p>
-                    </section>
-                </article>
+                        <footer>
+                            <button type="button" class="btn-edit">Edit</button>
+                            <button type="button" class="btn-delete">Delete</button>
+                        </footer>
+                    </article>
+                </template>
             </div>
+        </section>
+
+        <section id="settings-section">
+            <h2>Settings</h2>
         </section>
     </main>
 
     <script src="script.js"></script>
 </body>
+
 </html>
