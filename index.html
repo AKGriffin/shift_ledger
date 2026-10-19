@@ -9,26 +9,39 @@
 </head>
 
 <body>
-    <header class="app-header">
+    <header id="app-header" class="app-header">
+
         <h1>Shift Ledger</h1>
 
         <nav aria-label="Main Navigation">
-            <button id="menu-new-shift" class="menu-button">New Shift</button>
-            <button id="menu-previous-shifts" class="menu-button">Previous Shifts</button>
-            <button id="menu-settings" class="menu-button">Settings</button>
+            <div id="nav-buttons-menu-options">
+                <button type="button" id="button-menu" hidden>Menu</button>
+                <button type="button" id="button-menu-back" hidden>Back</button>
+                <button type="button" id="button-menu-close" hidden>Close</button>
+            </div>
+            <div id="nav-buttons-navigation">
+                <button id="menu-new-shift" class="menu-button">New Shift</button>
+                <button id="menu-previous-shifts" class="menu-button">Previous Shifts</button>
+                <!-- <button id="menu-settings" class="menu-button">Settings</button> -->
+            </div>
         </nav>
+
+
     </header>
 
+    <p id="app-status" role="alert" aria-live="assertive" hidden></p>
+
     <main>
-        <section id="new-shift-section" class="new-shift-section">
+
+        <section id="section-new-shift" class="new-shift-section" hidden>
             <h2>New Shift</h2>
-            <form id="new-shift-form">
+            <form id="form-new-shift">
 
                 <fieldset>
                     <legend>General Info</legend>
                     <div class="form-pair">
-                        <label for="form-shift-date">Date</label>
-                        <input type="date" id="form-shift-date" name="shift-date" required>
+                        <label for="form-date">Date</label>
+                        <input type="date" id="form-date" name="shift-date" required>
                     </div>
 
                     <div class="form-pair">
@@ -42,8 +55,8 @@
                     </div>
 
                     <div class="form-pair">
-                        <label for="form-job-title">Job</label>
-                        <select name="job-title" id="form-job-title" required>
+                        <label for="form-job">Job</label>
+                        <select name="form-job" id="form-job" required>
                             <option value="">Select</option>
                             <option value="Server">Server</option>
                             <option value="Expo">Expo</option>
@@ -122,8 +135,8 @@
                     </div>
 
                     <div class="form-pair">
-                        <label for="form-tips-paid-out-amount">Tips Paid Out (Tip Out)</label>
-                        <input type="number" name="tips-paid-out-amount" id="form-tips-paid-out-amount" step="0.01"
+                        <label for="form-tip-out-paid-amount">Tips Paid Out (Tip Out)</label>
+                        <input type="number" name="tip-out-paid-amount" id="form-tip-out-paid-amount" step="0.01"
                             min="0" placeholder="0.00">
                     </div>
 
@@ -139,14 +152,17 @@
                     <textarea name="shift-notes" id="form-shift-notes"></textarea>
                 </div>
 
-                <button type="submit">Save Shift</button>
+                <button type="submit" id="form-save">Save Shift</button>
+                <button type="button" id="form-clear" disabled>Clear</button>
+                <button type="button" id="form-cancel">Cancel</button>
             </form>
 
-            <section class="review-new-shift-section">
+            <section id="section-review-new-shift" hidden>
                 <article>
                     <h3>Review Info</h3>
+
                     <p><strong>Date</strong>: <span id="review-date"></span></p>
-                    <p><strong>Meal Period</strong>: <span id="review-meal"></span></p>
+                    <p><strong>Meal Period</strong>: <span id="review-meal-period"></span></p>
                     <p><strong>Job</strong>: <span id="review-job"></span></p>
                     <p><strong>Clock In</strong>: <span id="review-clock-in"></span></p>
                     <p><strong>Clock Out</strong>: <span id="review-clock-out"></span></p>
@@ -163,10 +179,44 @@
                     <p><strong>Tip Out Received</strong>: <span id="review-tip-out-received"></span></p>
                     <p><strong>Notes</strong>: <span id="review-notes"></span></p>
                 </article>
+
+                <button type="button" id="review-button-edit">Edit</button>
+                <button type="button" id="review-button-confirm">Confirm</button>
+                <button type="button" id="review-button-cancel">Cancel</button>
             </section>
         </section>
-        <section id="previous-shifts-section" class="history-section">
+        <section id="section-previous-shifts" class="history-section" hidden>
             <h2>Previous Shifts</h2>
+
+            <!-- <div>
+                <button type="button" id="previous-shifts-sort">sort</button>
+                <button type="button" id="previous-shifts-filter">filter</button>
+            </div> -->
+
+            <!-- <dialog id="dialog-sort" aria-labelledby="dialog-sort-title" aria-describedby="dialog-sort-description">
+                <h3 id="dialog-sort-title">Sort Previous Shifts</h3>
+                <p id="dialog-sort-description">Select a sorting option:</p>
+                <button type="button" id="sort-button-date-asc">Date (Ascending)</button>
+                <button type="button" id="sort-button-date-desc">Date (Descending)</button>
+                <button type="button" id="sort-button-meal-period-asc">Meal Period (Ascending)</button>
+                <button type="button" id="sort-button-meal-period-desc">Meal Period (Descending)</button>
+                <button type="button" id="sort-button-job-asc">Job (Ascending)</button>
+                <button type="button" id="sort-button-job-desc">Job (Descending)</button>
+                <button type="button" id="sort-button-cancel">Cancel</button>
+            </dialog> -->
+
+            <!-- <dialog id="dialog-filter" aria-labelledby="dialog-filter-title"
+                aria-describedby="dialog-filter-description">
+                <h3 id="dialog-filter-title">Filter Previous Shifts</h3>
+                <p id="dialog-filter-description">Select a filtering option:</p>
+                <button type="button" id="filter-button-meal-period">Meal Period</button>
+                <button type="button" id="filter-button-job">Job</button>
+                <button type="button" id="filter-button-clear">Clear Filters</button>
+                <button type="button" id="filter-button-cancel">Cancel</button>
+            </dialog> -->
+
+            <p id="previous-shifts-text"></p>
+
             <div id="previous-shifts-list">
                 <template id="shift-card-template">
                     <article class="shift-card">
@@ -215,9 +265,116 @@
             </div>
         </section>
 
-        <section id="settings-section">
+        <!-- <section id="section-settings" hidden>
             <h2>Settings</h2>
-        </section>
+
+            <div id="settings-nav-option">
+                <button type="button" id="settings-button-back">Back</button>
+                <button type="button" id="settings-button-close">Close</button>
+            </div>
+
+
+            <section id="section-settings-options">
+                <button type="button" id="settings-button-manage-data">Manage Data</button>
+            </section>
+
+            <section id="section-edit-settings" hidden>
+                <button type="button" id="edit-settings-button-save" disabled>Save Settings</button>
+                <button type="button" id="edit-settings-button-clear" hidden>Clear Changes</button>
+                <button type="button" id="edit-settings-button-default" disabled>Default</button>
+                <button type="button" id="edit-settings-button-cancel" hidden>Cancel</button>
+                <button type="button" id="edit-settings-button-close">Close </button>
+            </section>
+
+            <section id="section-manage-data" hidden>
+                <button type="button" id="manage-data-button-import-data">Import Saved Data</button>
+                <button type="button" id="manage-data-button-export-data">Export Saved Data</button>
+                <button type="button" id="manage-data-button-clear-data">Clear All Saved Data</button>
+
+                <dialog id="dialog-import-data" aria-labelledby="dialog-import-data-title"
+                    aria-describedby="dialog-import-data-description">
+                    <h3 id="dialog-import-data-title">Import Saved Data</h3>
+
+                    <section>
+                        <p>How would you like to import saved data?</p>
+
+                        <button type="button" id="dialog-import-button-paste-text">Copy and Paste</button>
+                        <button type="button" id="dialog-import-button-upload-file">Upload File</button>
+                        <button type="button" id="dialog-import-button-cancel">Cancel</button>
+                    </section>
+
+                    <section id="dialog-import-copy-text" hidden>
+                        <p>Paste the JSON data below:</p>
+                        <div>
+                            <textarea id="dialog-import-textarea-paste" placeholder="Paste JSON data here...">
+
+                            </textarea>
+                            <button type="button" id="dialog-import-button-clear-paste" disabled>Clear</button>
+                        </div>
+                        <button type="button" id="dialog-import-button-confirm-paste">Confirm</button>
+                        <button type="button" id="dialog-import-button-cancel-paste">Cancel</button>
+                    </section>
+
+                    <section id="dialog-import-upload-file" hidden>
+                        <p>Select a JSON file to import:</p>
+                        <div>
+                            <input type="file" id="import-file-input" accept=".json">
+                            <button type="button" id="dialog-import-button-clear-file" disabled>Clear</button>
+                        </div>
+                        <button type="button" id="dialog-import-button-confirm-file">Confirm</button>
+                        <button type="button" id="dialog-import-button-cancel-file">Cancel</button>
+                    </section>
+
+                    <section id="dialog-import-confirmation" hidden>
+                        <p>Are you sure you want to import saved data? This will overwrite any existing data.</p>
+                        <button type="button" id="dialog-import-button-confirm">Confirm</button>
+                        <button type="button" id="dialog-import-button-back">Back</button>
+                        <button type="button" id="dialog-import-button-cancel">Cancel</button>
+                    </section>
+                </dialog>
+
+                <dialog id="dialog-export-data" aria-labelledby="dialog-export-data-title"
+                    aria-describedby="dialog-export-data-description">
+                    <h3 id="dialog-export-data-title">Export Saved Data</h3>
+
+                    <section id="dialog-export-options">
+                        <p>Choose the file format</p>
+
+                        <button>JSON</button>
+                        <button>CSV</button>
+                    </section>
+
+                    <section id="dialog-export-confirmation">
+                        <p>Confirmation text</p>
+                        <div>
+                            <div>
+                                <label for=""></label>
+                                <input type="text" name="" id="" placeholder="your-data.csv">
+                            </div>
+                            <button>clear</button>
+                        </div>
+                    </section>
+
+                    <div>
+                        <p id="dialog-export-data-description">Are you sure you want to export saved data? This will
+                            download a JSON file containing all saved shifts.</p>
+                        <button type="button" id="dialog-export-button-confirm">Confirm</button>
+                        <button type="button" id="dialog-export-button-back">Back</button>
+                        <button type="button" id="dialog-export-button-cancel">Cancel</button>
+                    </div>
+
+                </dialog>
+
+                <dialog id="dialog-manage-data" aria-labelledby="dialog-manage-data-title"
+                    aria-describedby="dialog-manage-data-description">
+                    <h3 id="dialog-manage-data-title">Manage Data</h3>
+                    <p id="dialog-manage-data-description">Are you sure you want to clear all saved data? This action
+                        cannot be undone.</p>
+                    <button type="button" id="dialog-manage-data-confirm">Confirm</button>
+                    <button type="button" id="dialog-manage-data-cancel">Cancel</button>
+                </dialog>
+            </section>
+        </section> -->
     </main>
 
     <script src="script.js"></script>

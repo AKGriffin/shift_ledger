@@ -2,12 +2,4 @@ body {
     font-family: sans-serif;
 }
 
-h1 {
-    text-align: center;
-}
-
-#new-shift-section,
-#previous-shifts-section,
-#settings-section {
-    display: none;
-}
+;
