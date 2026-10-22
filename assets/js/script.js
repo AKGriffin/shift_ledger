@@ -55,7 +55,8 @@ const statEls = {
 
 const recentShiftsEl = document.getElementById("recent-shifts");
 const template = document.getElementById("shift-card-template");
-const themeSetting = document.getElementById("setting-theme");
+const styleSetting = document.getElementById("setting-style");
+const modeSetting = document.getElementById("setting-mode");
 const weekStartSetting = document.getElementById("setting-week-start");
 const currencySetting = document.getElementById("setting-currency");
 const mobileLayout = window.matchMedia("(max-width: 720px)");
@@ -102,7 +103,8 @@ function bindEvents() {
     document.getElementById("clear-filters").addEventListener("click", clearHistoryFilters);
     document.getElementById("export-csv").addEventListener("click", exportFilteredShifts);
     shiftList.addEventListener("click", handleListAction);
-    themeSetting.addEventListener("change", () => updateSetting("theme", themeSetting.value));
+    styleSetting.addEventListener("change", () => updateSetting("visualStyle", styleSetting.value));
+    modeSetting.addEventListener("change", () => updateSetting("colorMode", modeSetting.value));
     weekStartSetting.addEventListener("change", () => updateSetting("weekStartsOn", weekStartSetting.value));
     currencySetting.addEventListener("change", () => updateSetting("currency", currencySetting.value));
     document.getElementById("export-backup").addEventListener("click", exportBackup);
@@ -113,7 +115,7 @@ function bindEvents() {
     document.getElementById("clear-all-data").addEventListener("click", clearAllShifts);
     mobileLayout.addEventListener("change", handleLayoutChange);
     systemTheme.addEventListener("change", () => {
-        if (state.settings.theme === "system") {
+        if (state.settings.colorMode === "system") {
             applyTheme();
         }
     });
@@ -152,7 +154,8 @@ function handleLayoutChange(event) {
 }
 
 function initializeSettings() {
-    themeSetting.value = state.settings.theme;
+    styleSetting.value = state.settings.visualStyle;
+    modeSetting.value = state.settings.colorMode;
     weekStartSetting.value = state.settings.weekStartsOn;
     currencySetting.value = state.settings.currency;
     applyTheme();
@@ -172,7 +175,7 @@ function updateSetting(name, value) {
         return;
     }
 
-    if (name === "theme") {
+    if (name === "visualStyle" || name === "colorMode") {
         applyTheme();
     } else if (name === "weekStartsOn") {
         renderPeriodSummaries();
@@ -183,26 +186,31 @@ function updateSetting(name, value) {
 }
 
 function applyTheme() {
-    if (state.settings.theme === "system") {
+    document.documentElement.dataset.style = state.settings.visualStyle;
+    if (state.settings.colorMode === "system") {
         document.documentElement.removeAttribute("data-theme");
     } else {
-        document.documentElement.dataset.theme = state.settings.theme;
+        document.documentElement.dataset.theme = state.settings.colorMode;
     }
 
-    const dark = state.settings.theme === "dark"
-        || (state.settings.theme === "system" && systemTheme.matches);
+    const dark = state.settings.colorMode === "dark"
+        || (state.settings.colorMode === "system" && systemTheme.matches);
     const themeColors = {
-        dark: "#111827",
-        material: "#6750a4",
-        "neo-brutalist": "#f4c542",
+        minimalist: dark ? "#111827" : "#2a6df6",
+        material: dark ? "#d0bcff" : "#6750a4",
+        "neo-brutalist": dark ? "#ffb4a9" : "#efbd26",
     };
-    document.querySelector('meta[name="theme-color"]').content = dark
-        ? themeColors.dark
-        : themeColors[state.settings.theme] || "#2a6df6";
+    document.querySelector('meta[name="theme-color"]').content =
+        themeColors[state.settings.visualStyle] || themeColors.minimalist;
 }
 
 function loadSettings() {
-    const defaults = { theme: "system", weekStartsOn: "monday", currency: "USD" };
+    const defaults = {
+        visualStyle: "minimalist",
+        colorMode: "system",
+        weekStartsOn: "monday",
+        currency: "USD",
+    };
 
     try {
         const stored = JSON.parse(localStorage.getItem(SETTINGS_KEY));
@@ -210,10 +218,24 @@ function loadSettings() {
             return defaults;
         }
 
+        const legacyTheme = ["system", "light", "dark", "material", "neo-brutalist"].includes(stored.theme)
+            ? stored.theme
+            : null;
+        const legacyStyle = legacyTheme === "material" || legacyTheme === "neo-brutalist"
+            ? legacyTheme
+            : "minimalist";
+        const legacyMode = legacyTheme === "light" || legacyTheme === "dark"
+            ? legacyTheme
+            : legacyTheme === "system" ? "system"
+                : legacyTheme ? "light" : defaults.colorMode;
+
         return {
-            theme: ["system", "light", "dark", "material", "neo-brutalist"].includes(stored.theme)
-                ? stored.theme
-                : defaults.theme,
+            visualStyle: ["minimalist", "material", "neo-brutalist"].includes(stored.visualStyle)
+                ? stored.visualStyle
+                : legacyStyle,
+            colorMode: ["system", "light", "dark"].includes(stored.colorMode)
+                ? stored.colorMode
+                : legacyMode,
             weekStartsOn: ["monday", "sunday"].includes(stored.weekStartsOn)
                 ? stored.weekStartsOn
                 : defaults.weekStartsOn,

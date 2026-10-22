@@ -124,20 +124,56 @@ test("app workflow validates, saves, edits, filters, and deletes shifts", async 
         expect(element(".card-job").textContent).toBe("Expo");
 
         element('.main-nav [data-view="settings"]').click();
-        element("#setting-theme").value = "material";
-        element("#setting-theme").dispatchEvent(new frame.contentWindow.Event("change", { bubbles: true }));
-        expect(app.documentElement.dataset.theme).toBe("material");
-        expect(frame.contentWindow.getComputedStyle(app.documentElement).getPropertyValue("--primary").trim())
-            .toBe("#6750a4");
+        element("#setting-mode").value = "light";
+        element("#setting-mode").dispatchEvent(new frame.contentWindow.Event("change", { bubbles: true }));
+        element("#setting-style").value = "material";
+        element("#setting-style").dispatchEvent(new frame.contentWindow.Event("change", { bubbles: true }));
+        expect(app.documentElement.dataset.style).toBe("material");
+        expect(app.documentElement.dataset.theme).toBe("light");
+        expect(frame.contentWindow.getComputedStyle(app.documentElement).getPropertyValue("--bg").trim())
+            .toBe("#e9e2d6");
+        expect(frame.contentWindow.getComputedStyle(element(".panel")).borderRadius).toBe("5px");
         expect(app.querySelector('meta[name="theme-color"]').content).toBe("#6750a4");
-        expect(JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY)).theme).toBe("material");
+        expect(JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY)).visualStyle).toBe("material");
 
-        element("#setting-theme").value = "neo-brutalist";
-        element("#setting-theme").dispatchEvent(new frame.contentWindow.Event("change", { bubbles: true }));
-        expect(app.documentElement.dataset.theme).toBe("neo-brutalist");
+        element("#setting-mode").value = "dark";
+        element("#setting-mode").dispatchEvent(new frame.contentWindow.Event("change", { bubbles: true }));
+        expect(app.documentElement.dataset.theme).toBe("dark");
+        expect(frame.contentWindow.getComputedStyle(app.documentElement).getPropertyValue("--bg").trim())
+            .toBe("#24211e");
+        expect(app.querySelector('meta[name="theme-color"]').content).toBe("#d0bcff");
+        expect(JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY)).colorMode).toBe("dark");
+
+        element("#setting-style").value = "neo-brutalist";
+        element("#setting-style").dispatchEvent(new frame.contentWindow.Event("change", { bubbles: true }));
+        expect(app.documentElement.dataset.style).toBe("neo-brutalist");
         expect(frame.contentWindow.getComputedStyle(element(".panel")).borderRadius).toBe("4px");
-        expect(app.querySelector('meta[name="theme-color"]').content).toBe("#f4c542");
-        expect(JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY)).theme).toBe("neo-brutalist");
+        expect(frame.contentWindow.getComputedStyle(app.documentElement).getPropertyValue("--bg").trim())
+            .toBe("#171717");
+
+        element("#setting-mode").value = "light";
+        element("#setting-mode").dispatchEvent(new frame.contentWindow.Event("change", { bubbles: true }));
+        expect(app.documentElement.dataset.theme).toBe("light");
+        expect(frame.contentWindow.getComputedStyle(app.documentElement).getPropertyValue("--bg").trim())
+            .toBe("#fff4c2");
+        expect(app.querySelector('meta[name="theme-color"]').content).toBe("#efbd26");
+
+        element("#setting-style").value = "minimalist";
+        element("#setting-style").dispatchEvent(new frame.contentWindow.Event("change", { bubbles: true }));
+        element("#setting-mode").value = "dark";
+        element("#setting-mode").dispatchEvent(new frame.contentWindow.Event("change", { bubbles: true }));
+        expect(app.documentElement.dataset.style).toBe("minimalist");
+        expect(app.documentElement.dataset.theme).toBe("dark");
+        expect(frame.contentWindow.getComputedStyle(app.documentElement).getPropertyValue("--bg").trim())
+            .toBe("#111827");
+
+        element("#setting-mode").value = "system";
+        element("#setting-mode").dispatchEvent(new frame.contentWindow.Event("change", { bubbles: true }));
+        expect(app.documentElement.hasAttribute("data-theme")).toBe(false);
+        expect(JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY)).colorMode).toBe("system");
+
+        element("#setting-style").value = "material";
+        element("#setting-style").dispatchEvent(new frame.contentWindow.Event("change", { bubbles: true }));
 
         element("#setting-currency").value = "GBP";
         element("#setting-currency").dispatchEvent(new frame.contentWindow.Event("change", { bubbles: true }));
@@ -149,6 +185,28 @@ test("app workflow validates, saves, edits, filters, and deletes shifts", async 
         expect(element("#summary-total-shifts").textContent).toBe("1");
         expect(element("#summary-total-sales").textContent).toBe("£125.50");
         expect(savedShifts()).toHaveLength(1);
+
+        localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify({
+            theme: "neo-brutalist",
+            weekStartsOn: "sunday",
+            currency: "CAD",
+        }));
+        const migrationFrame = app.createElement("iframe");
+        const migrated = new Promise((resolve, reject) => {
+            const timeout = window.setTimeout(() => reject(new Error("Legacy settings test frame did not load.")), 10000);
+            migrationFrame.addEventListener("load", () => {
+                window.clearTimeout(timeout);
+                resolve();
+            }, { once: true });
+        });
+        migrationFrame.src = "../index.html";
+        document.body.appendChild(migrationFrame);
+        await migrated;
+        expect(migrationFrame.contentDocument.documentElement.dataset.style).toBe("neo-brutalist");
+        expect(migrationFrame.contentDocument.documentElement.dataset.theme).toBe("light");
+        expect(migrationFrame.contentDocument.getElementById("setting-week-start").value).toBe("sunday");
+        expect(migrationFrame.contentDocument.getElementById("setting-currency").value).toBe("CAD");
+        migrationFrame.remove();
     } finally {
         frame.remove();
         if (previousShifts === null) {

@@ -19,7 +19,7 @@ The service worker caches the app shell and static assets. When deploying an upd
 - Review all-time, current-week, and current-month totals
 - Filter shift history by date range and job; sort by date, sales, or tips
 - Export the currently filtered shifts as a CSV file
-- Choose system, light, dark, Material, or neo-brutalist themes; set the week start day and currency
+- Choose a Minimalist, Material, or neo-brutalist visual style independently from system, light, or dark mode; set the week start day and currency
 - Import or download a complete JSON data backup
 
 ## Tests
