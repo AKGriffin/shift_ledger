@@ -45,6 +45,29 @@
                     </article>
                 </div>
 
+                <section class="period-grid" aria-label="Period summaries">
+                    <article class="period-card">
+                        <div class="period-heading">
+                            <div>
+                                <p class="eyebrow">Monday to Sunday</p>
+                                <h2>This week</h2>
+                            </div>
+                            <span id="week-date-range" class="period-range"></span>
+                        </div>
+                        <div id="week-summary" class="period-metrics"></div>
+                    </article>
+                    <article class="period-card">
+                        <div class="period-heading">
+                            <div>
+                                <p class="eyebrow">Calendar month</p>
+                                <h2>This month</h2>
+                            </div>
+                            <span id="month-date-range" class="period-range"></span>
+                        </div>
+                        <div id="month-summary" class="period-metrics"></div>
+                    </article>
+                </section>
+
                 <section class="panel">
                     <div class="panel-header">
                         <h2>Recent activity</h2>
@@ -178,6 +201,14 @@
                         <h2>Previous shifts</h2>
                         <div class="toolbar">
                             <label class="field inline-field">
+                                <span>From</span>
+                                <input type="date" id="filter-date-from">
+                            </label>
+                            <label class="field inline-field">
+                                <span>To</span>
+                                <input type="date" id="filter-date-to">
+                            </label>
+                            <label class="field inline-field">
                                 <span>Sort</span>
                                 <select id="sort-by">
                                     <option value="date-desc">Newest first</option>
@@ -194,9 +225,12 @@
                                     <option value="Expo">Expo</option>
                                 </select>
                             </label>
+                            <button type="button" id="clear-filters" class="ghost-button">Clear filters</button>
+                            <button type="button" id="export-csv" class="primary-button">Export CSV</button>
                         </div>
                     </div>
 
+                    <p id="history-status" class="history-status" role="status" aria-live="polite"></p>
                     <div id="shift-list" class="shift-list"></div>
                 </div>
             </section>

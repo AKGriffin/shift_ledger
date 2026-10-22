@@ -197,6 +197,64 @@ main {
     background: linear-gradient(135deg, rgba(124, 90, 241, 0.12), rgba(124, 90, 241, 0.04));
 }
 
+.period-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    margin-bottom: 28px;
+}
+
+.period-card {
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: var(--panel);
+    box-shadow: var(--shadow);
+}
+
+.period-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.period-heading .eyebrow {
+    margin-bottom: 5px;
+}
+
+.period-heading h2 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.period-range {
+    color: var(--muted);
+    font-size: 0.82rem;
+    text-align: right;
+}
+
+.period-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.period-metric {
+    display: grid;
+    gap: 5px;
+}
+
+.period-metric span {
+    color: var(--muted);
+    font-size: 0.78rem;
+}
+
+.period-metric strong {
+    font-size: 1.05rem;
+}
+
 .recent-list {
     display: grid;
     gap: 12px;
@@ -328,7 +386,17 @@ textarea {
 }
 
 .inline-field {
-    min-width: 200px;
+    min-width: 150px;
+}
+
+.history-status {
+    margin: -4px 0 14px;
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+.history-status:empty {
+    display: none;
 }
 
 .shift-list {
@@ -424,6 +492,10 @@ textarea {
 
     .summary-grid {
         grid-template-columns: repeat(2, minmax(140px, 1fr));
+    }
+
+    .period-grid {
+        grid-template-columns: 1fr;
     }
 
     .main-nav {

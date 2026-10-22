@@ -15,6 +15,13 @@ const cancelFormButton = document.getElementById("cancel-form");
 const shiftList = document.getElementById("shift-list");
 const sortBySelect = document.getElementById("sort-by");
 const filterJobSelect = document.getElementById("filter-job");
+const filterDateFrom = document.getElementById("filter-date-from");
+const filterDateTo = document.getElementById("filter-date-to");
+const historyStatus = document.getElementById("history-status");
+const weekSummary = document.getElementById("week-summary");
+const monthSummary = document.getElementById("month-summary");
+const weekDateRange = document.getElementById("week-date-range");
+const monthDateRange = document.getElementById("month-date-range");
 
 const fields = {
     date: document.getElementById("shift-date"),
@@ -66,6 +73,10 @@ function bindEvents() {
     });
     sortBySelect.addEventListener("change", renderPreviousShifts);
     filterJobSelect.addEventListener("change", renderPreviousShifts);
+    filterDateFrom.addEventListener("change", renderPreviousShifts);
+    filterDateTo.addEventListener("change", renderPreviousShifts);
+    document.getElementById("clear-filters").addEventListener("click", clearHistoryFilters);
+    document.getElementById("export-csv").addEventListener("click", exportFilteredShifts);
     shiftList.addEventListener("click", handleListAction);
 }
 
@@ -254,63 +265,62 @@ function renderDashboard() {
     statEls.totalSales.textContent = formatCurrency(totalSales);
     statEls.totalTips.textContent = formatCurrency(totalTips);
 
+    renderPeriodSummaries();
+
     const recent = [...state.shifts].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 3);
 
     if (recent.length === 0) {
-        recentShiftsEl.innerHTML = "<p class=\"empty-state\">No shifts logged yet. Add your first shift to get started.</p>";
+        recentShiftsEl.replaceChildren(createEmptyState("No shifts logged yet. Add your first shift to get started."));
         return;
     }
 
-    recentShiftsEl.innerHTML = recent.map((shift) => {
-        const shiftDate = formatDate(shift.date);
-        return `
-            <div class="recent-item">
-                <div>
-                    <strong>${shiftDate}</strong>
-                    <span>${shift.job} • ${shift.mealPeriod}</span>
-                </div>
-                <div class="recent-metrics">
-                    <span>${formatCurrency(getSalesTotal(shift))}</span>
-                    <span>${formatCurrency(getNetTips(shift))}</span>
-                </div>
-            </div>
-        `;
-    }).join("");
+    const fragment = document.createDocumentFragment();
+    recent.forEach((shift) => {
+        const item = document.createElement("div");
+        item.className = "recent-item";
+
+        const details = document.createElement("div");
+        const date = document.createElement("strong");
+        date.textContent = formatDate(shift.date);
+        const description = document.createElement("span");
+        description.textContent = `${shift.job} · ${shift.mealPeriod}`;
+        details.append(date, description);
+
+        const metrics = document.createElement("div");
+        metrics.className = "recent-metrics";
+        const sales = document.createElement("span");
+        sales.textContent = formatCurrency(getSalesTotal(shift));
+        const tips = document.createElement("span");
+        tips.textContent = formatCurrency(getNetTips(shift));
+        metrics.append(sales, tips);
+
+        item.append(details, metrics);
+        fragment.appendChild(item);
+    });
+    recentShiftsEl.replaceChildren(fragment);
 }
 
 function renderPreviousShifts() {
-    const sortMode = sortBySelect.value;
-    const jobFilter = filterJobSelect.value;
+    const fromDate = filterDateFrom.value;
+    const toDate = filterDateTo.value;
+    const filtered = getFilteredShifts();
 
-    const filtered = state.shifts.filter((shift) => {
-        if (jobFilter === "all") {
-            return true;
-        }
-        return shift.job === jobFilter;
-    });
+    if (fromDate && toDate && fromDate > toDate) {
+        historyStatus.textContent = "The start date must be on or before the end date.";
+        shiftList.replaceChildren();
+        return;
+    }
 
-    const sorted = [...filtered].sort((a, b) => {
-        switch (sortMode) {
-            case "date-asc":
-                return a.date.localeCompare(b.date);
-            case "sales-desc":
-                return getSalesTotal(b) - getSalesTotal(a);
-            case "tips-desc":
-                return getNetTips(b) - getNetTips(a);
-            case "date-desc":
-            default:
-                return b.date.localeCompare(a.date);
-        }
-    });
+    historyStatus.textContent = filtered.length === 1 ? "1 shift" : `${filtered.length} shifts`;
 
-    if (sorted.length === 0) {
-        shiftList.innerHTML = "<p class=\"empty-state\">No shifts match the current filters.</p>";
+    if (filtered.length === 0) {
+        shiftList.replaceChildren(createEmptyState("No shifts match the current filters."));
         return;
     }
 
     const fragment = document.createDocumentFragment();
 
-    sorted.forEach((shift) => {
+    filtered.forEach((shift) => {
         const cardNode = template.content.cloneNode(true);
         const card = cardNode.querySelector(".shift-card");
         card.dataset.shiftId = String(shift.id);
@@ -330,8 +340,165 @@ function renderPreviousShifts() {
         fragment.appendChild(cardNode);
     });
 
-    shiftList.innerHTML = "";
-    shiftList.appendChild(fragment);
+    shiftList.replaceChildren(fragment);
+}
+
+function renderPeriodSummaries() {
+    const today = new Date();
+    const weekStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const dayFromMonday = (weekStart.getDay() + 6) % 7;
+    weekStart.setDate(weekStart.getDate() - dayFromMonday);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    const weekFrom = toLocalDateString(weekStart);
+    const weekTo = toLocalDateString(weekEnd);
+    const monthFrom = toLocalDateString(monthStart);
+    const monthTo = toLocalDateString(monthEnd);
+
+    weekDateRange.textContent = `${formatDate(weekFrom)} – ${formatDate(weekTo)}`;
+    monthDateRange.textContent = `${formatDate(monthFrom)} – ${formatDate(monthTo)}`;
+    renderPeriodSummary(weekSummary, weekFrom, weekTo);
+    renderPeriodSummary(monthSummary, monthFrom, monthTo);
+}
+
+function renderPeriodSummary(container, fromDate, toDate) {
+    const shifts = state.shifts.filter((shift) => shift.date >= fromDate && shift.date <= toDate);
+    const hours = shifts.reduce((sum, shift) => sum + getDurationMinutes(shift), 0);
+    const sales = shifts.reduce((sum, shift) => sum + getSalesTotal(shift), 0);
+    const tips = shifts.reduce((sum, shift) => sum + getNetTips(shift), 0);
+    const values = [
+        ["Shifts", String(shifts.length)],
+        ["Hours", formatDuration(hours)],
+        ["Sales", formatCurrency(sales)],
+        ["Net tips", formatCurrency(tips)],
+    ];
+    const fragment = document.createDocumentFragment();
+
+    values.forEach(([label, value]) => {
+        const metric = document.createElement("div");
+        metric.className = "period-metric";
+        const metricLabel = document.createElement("span");
+        metricLabel.textContent = label;
+        const metricValue = document.createElement("strong");
+        metricValue.textContent = value;
+        metric.append(metricLabel, metricValue);
+        fragment.appendChild(metric);
+    });
+
+    container.replaceChildren(fragment);
+}
+
+function getFilteredShifts() {
+    const fromDate = filterDateFrom.value;
+    const toDate = filterDateTo.value;
+    const jobFilter = filterJobSelect.value;
+    const sortMode = sortBySelect.value;
+
+    return state.shifts
+        .filter((shift) => (!fromDate || shift.date >= fromDate)
+            && (!toDate || shift.date <= toDate)
+            && (jobFilter === "all" || shift.job === jobFilter))
+        .sort((a, b) => {
+            switch (sortMode) {
+                case "date-asc":
+                    return a.date.localeCompare(b.date);
+                case "sales-desc":
+                    return getSalesTotal(b) - getSalesTotal(a);
+                case "tips-desc":
+                    return getNetTips(b) - getNetTips(a);
+                case "date-desc":
+                default:
+                    return b.date.localeCompare(a.date);
+            }
+        });
+}
+
+function clearHistoryFilters() {
+    filterDateFrom.value = "";
+    filterDateTo.value = "";
+    filterJobSelect.value = "all";
+    sortBySelect.value = "date-desc";
+    renderPreviousShifts();
+}
+
+function exportFilteredShifts() {
+    if (filterDateFrom.value && filterDateTo.value && filterDateFrom.value > filterDateTo.value) {
+        setStatus("Choose a valid date range before exporting.", true);
+        return;
+    }
+
+    const shifts = getFilteredShifts();
+    if (shifts.length === 0) {
+        setStatus("There are no shifts in the current filter to export.", true);
+        return;
+    }
+
+    const headers = [
+        "Date", "Meal period", "Job", "Clock in", "Clock out", "Break start", "Break end",
+        "Hours worked", "Food sales", "Beer and wine sales", "Liquor sales", "NA beverage sales",
+        "Additional sales", "Total sales", "CC tips", "Cash tips", "Tips paid out",
+        "Tip out received", "Net tips", "Notes",
+    ];
+    const rows = shifts.map((shift) => [
+        shift.date,
+        shift.mealPeriod,
+        shift.job,
+        shift.clockIn,
+        shift.clockOut,
+        shift.breakStart,
+        shift.breakEnd,
+        (getDurationMinutes(shift) / 60).toFixed(2),
+        shift.foodSales,
+        shift.bawSales,
+        shift.liquorSales,
+        shift.naBevSales,
+        shift.additionalSales,
+        getSalesTotal(shift),
+        shift.ccTips,
+        shift.cashTips,
+        shift.tipsPaidOut,
+        shift.tipOutReceived,
+        getNetTips(shift),
+        shift.notes,
+    ]);
+    const csv = [headers, ...rows]
+        .map((row) => row.map(escapeCsvValue).join(","))
+        .join("\r\n");
+    const file = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(file);
+    const downloadLink = document.createElement("a");
+    downloadLink.href = url;
+    downloadLink.download = `shift-ledger-${toLocalDateString(new Date())}.csv`;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    downloadLink.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setStatus(`${shifts.length} ${shifts.length === 1 ? "shift" : "shifts"} exported to CSV.`);
+}
+
+function escapeCsvValue(value) {
+    let text = value === null || value === undefined ? "" : String(value);
+    if (/^[\s]*[=+\-@]/.test(text)) {
+        text = `'${text}`;
+    }
+    return `"${text.replace(/"/g, '""')}"`;
+}
+
+function createEmptyState(message) {
+    const emptyState = document.createElement("p");
+    emptyState.className = "empty-state";
+    emptyState.textContent = message;
+    return emptyState;
+}
+
+function toLocalDateString(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
 }
 
 function getSalesTotal(shift) {
