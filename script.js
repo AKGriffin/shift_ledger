@@ -1,509 +1,454 @@
-// DOM references
+﻿const STORAGE_KEY = "shift-ledger-shifts-v1";
 
-const buttonMenuNewShift = document.getElementById("menu-new-shift");
-const buttonMenuPreviousShifts = document.getElementById("menu-previous-shifts");
-const buttonMenuSettings = document.getElementById("menu-settings");
-const buttonMenu = document.getElementById("button-menu");
-const buttonMenuClose = document.getElementById("button-menu-close");
-
-const buttonSettingsClose = document.getElementById("settings-button-close");
-const buttonSettingsSave = document.getElementById("settings-button-save");
-const buttonSettingsDefault = document.getElementById("settings-button-default");
-const buttonSettingsClear = document.getElementById("settings-button-clear");
-const buttonSettingsManageData = document.getElementById("settings-button-manage-data");
-
-const buttonReviewEdit = document.getElementById("review-button-edit");
-const buttonReviewConfirm = document.getElementById("review-button-confirm");
-const buttonReviewCancel = document.getElementById("review-button-cancel");
-
-// const buttonManageDataImport = document.getElementById("manage-data-button-import-data");
-// const buttonImportData = document.getElementById("settings-button-import-data");
-// const buttonExportData = document.getElementById("settings-button-export-data");
-// const buttonClearData = document.getElementById("settings-button-clear-data");
-// const buttonImportPasteText = document.getElementById("dialog-import-button-paste-text");
-// const buttonImportUploadFile = document.getElementById("dialog-import-button-upload-file");
-// const buttonImportCancel = document.getElementById("dialog-import-button-cancel");
-// const buttonImportConfirm = document.getElementById("dialog-import-confirm");
-// const buttonImportBack = document.getElementById("dialog-import-back");
-// const buttonImportTextConfirm = document.getElementById("dialog-import-text-confirm");
-// const buttonImportTextCancel = document.getElementById("dialog-import-text-cancel");
-// const buttonImportTextClear = document.getElementById("dialog-import-button-clear-paste");
-// const buttonImportFileConfirm = document.getElementById("dialog-import-button-confirm-file");
-// const buttonImportFileCancel = document.getElementById("dialog-import-button-cancel-file");
-// const buttonImportFileClear = document.getElementById("dialog-import-button-clear-file");
-
-// const textAreaImportPaste = document.getElementById("dialog-import-textarea-paste");
-
-// const buttonExportConfirm = document.getElementById("dialog-export-button-confirm");
-// const buttonExportCancel = document.getElementById("dialog-export-button-cancel");
-
-const previousShiftsText = document.getElementById("previous-shifts-text");
-const appHeader = document.getElementById("app-header");
-const sectionNewShift = document.getElementById("section-new-shift");
-const sectionPreviousShifts = document.getElementById("section-previous-shifts");
-const sectionSettings = document.getElementById("section-settings");
-const sectionReviewNewShift = document.getElementById("section-review-new-shift");
-const sectionManageData = document.getElementById("section-manage-data");
-
-// const dialogImportData = document.getElementById("dialog-import-data");
-
-const buttonSaveShift = document.getElementById("form-save");
-const buttonCancelShift = document.getElementById("form-cancel");
-const buttonClearShift = document.getElementById("form-clear");
-
-const reviewNewShiftSection = document.getElementById("section-review-new-shift");
-
-const newShiftForm = document.getElementById("form-new-shift");
-const newShiftDateInput = document.getElementById("form-date");
-const newShiftMealPeriodInput = document.getElementById("form-meal-period");
-const newShiftJobInput = document.getElementById("form-job");
-const newShiftClockInInput = document.getElementById("form-clock-in-time");
-const newShiftClockOutInput = document.getElementById("form-clock-out-time");
-const newShiftBreakStartInput = document.getElementById("form-break-start-time");
-const newShiftBreakEndInput = document.getElementById("form-break-end-time");
-const newShiftFoodSalesInput = document.getElementById("form-food-sales-amount");
-const newShiftBawSalesInput = document.getElementById("form-baw-sales-amount");
-const newShiftLiquorSalesInput = document.getElementById("form-liquor-sales-amount");
-const newShiftNaBevSalesInput = document.getElementById("form-na-bev-sales-amount");
-const newShiftAdditionalSalesInput = document.getElementById("form-additional-sales-amount");
-const newShiftCcTipsInput = document.getElementById("form-cc-tips-amount");
-const newShiftCashTipsInput = document.getElementById("form-cash-tips-amount");
-const newShiftTipsPaidOutInput = document.getElementById("form-tip-out-paid-amount");
-const newShiftTipOutReceivedInput = document.getElementById("form-tip-out-received-amount");
-const newShiftNotesInput = document.getElementById("form-shift-notes");
-
-const reviewDate = document.getElementById("review-date");
-const reviewMealPeriod = document.getElementById("review-meal-period");
-const reviewJob = document.getElementById("review-job");
-const reviewClockIn = document.getElementById("review-clock-in");
-const reviewClockOut = document.getElementById("review-clock-out");
-const reviewBreakStart = document.getElementById("review-break-start");
-const reviewBreakEnd = document.getElementById("review-break-end");
-const reviewFoodSales = document.getElementById("review-food-sales");
-const reviewBawSales = document.getElementById("review-baw-sales");
-const reviewLiquorSales = document.getElementById("review-liquor-sales");
-const reviewNaBevSales = document.getElementById("review-na-bev-sales");
-const reviewAdditionalSales = document.getElementById("review-additional-sales");
-const reviewCcTips = document.getElementById("review-cc-tips");
-const reviewCashTips = document.getElementById("review-cash-tips");
-const reviewTipsPaidOut = document.getElementById("review-tip-out-paid");
-const reviewTipOutReceived = document.getElementById("review-tip-out-received");
-const reviewNotes = document.getElementById("review-notes");
-
-// Application state
-let shifts = [];
-
-let newShiftData = {
-    date: "",
-    mealPeriod: "",
-    job: "",
-    clockIn: "",
-    clockOut: "",
-    breakStart: "",
-    breakEnd: "",
-    foodSales: 0,
-    bawSales: 0,
-    liquorSales: 0,
-    naBevSales: 0,
-    additionalSales: 0,
-    ccTips: 0,
-    cashTips: 0,
-    tipsPaidOut: 0,
-    tipOutReceived: 0,
-    notes: ""
+const state = {
+    shifts: loadShifts(),
+    currentView: "dashboard",
+    editingShiftId: null,
 };
 
-let currentView = "header";
-let pausedView = null;
+const navButtons = document.querySelectorAll("[data-view]");
+const formStatus = document.getElementById("form-status");
+const form = document.getElementById("shift-form");
+const formTitle = document.getElementById("form-title");
+const clearFormButton = document.getElementById("clear-form");
+const cancelFormButton = document.getElementById("cancel-form");
+const shiftList = document.getElementById("shift-list");
+const sortBySelect = document.getElementById("sort-by");
+const filterJobSelect = document.getElementById("filter-job");
 
-// New shift form functions
-function clearNewShiftForm() {
-    newShiftDateInput.value = "";
-    newShiftMealPeriodInput.value = "";
-    newShiftJobInput.value = "";
-    newShiftClockInInput.value = "";
-    newShiftClockOutInput.value = "";
-    newShiftBreakStartInput.value = "";
-    newShiftBreakEndInput.value = "";
-    newShiftFoodSalesInput.value = "";
-    newShiftBawSalesInput.value = "";
-    newShiftLiquorSalesInput.value = "";
-    newShiftNaBevSalesInput.value = "";
-    newShiftAdditionalSalesInput.value = "";
-    newShiftCcTipsInput.value = "";
-    newShiftCashTipsInput.value = "";
-    newShiftTipsPaidOutInput.value = "";
-    newShiftTipOutReceivedInput.value = "";
-    newShiftNotesInput.value = "";
-}
-
-function clearNewShiftData() {
-    newShiftData = {
-        date: "",
-        mealPeriod: "",
-        job: "",
-        clockIn: "",
-        clockOut: "",
-        breakStart: "",
-        breakEnd: "",
-        foodSales: 0,
-        bawSales: 0,
-        liquorSales: 0,
-        naBevSales: 0,
-        additionalSales: 0,
-        ccTips: 0,
-        cashTips: 0,
-        tipsPaidOut: 0,
-        tipOutReceived: 0,
-        notes: ""
-    };
-}
-
-function updateNewShiftData() {
-    newShiftData.date = newShiftDateInput.value;
-    newShiftData.mealPeriod = newShiftMealPeriodInput.value;
-    newShiftData.job = newShiftJobInput.value;
-    newShiftData.clockIn = newShiftClockInInput.value;
-    newShiftData.clockOut = newShiftClockOutInput.value;
-    newShiftData.breakStart = newShiftBreakStartInput.value;
-    newShiftData.breakEnd = newShiftBreakEndInput.value;
-    newShiftData.foodSales = parseFloat(newShiftFoodSalesInput.value) || 0;
-    newShiftData.bawSales = parseFloat(newShiftBawSalesInput.value) || 0;
-    newShiftData.liquorSales = parseFloat(newShiftLiquorSalesInput.value) || 0;
-    newShiftData.naBevSales = parseFloat(newShiftNaBevSalesInput.value) || 0;
-    newShiftData.additionalSales = parseFloat(newShiftAdditionalSalesInput.value) || 0;
-    newShiftData.ccTips = parseFloat(newShiftCcTipsInput.value) || 0;
-    newShiftData.cashTips = parseFloat(newShiftCashTipsInput.value) || 0;
-    newShiftData.tipsPaidOut = parseFloat(newShiftTipsPaidOutInput.value) || 0;
-    newShiftData.tipOutReceived = parseFloat(newShiftTipOutReceivedInput.value) || 0;
-    newShiftData.notes = newShiftNotesInput.value;
-}
-
-// Navigation functions
-function showView(view) {
-    currentView = view;
-
-    disableMenuButtons(pausedView);
-
-    appHeader.hidden = currentView !== "menu" && currentView !== "appHeader";
-
-    sectionNewShift.hidden = currentView !== "newShift" && currentView !== "reviewNewShift";
-    newShiftForm.hidden = currentView !== "newShift";
-    reviewNewShiftSection.hidden = currentView !== "reviewNewShift";
-
-    sectionPreviousShifts.hidden = currentView !== "previousShifts";
-
-    // sectionSettings.hidden = currentView !== "settings" && currentView !== "manageData";
-    // sectionManageData.hidden = currentView !== "manageData";
-
-
-    buttonMenu.hidden = currentView === "menu" || currentView === "appHeader" || currentView === "settings";
-    buttonMenuClose.hidden = currentView !== "menu";
-}
-
-function disableMenuButtons(view) {
-    enableMenuButtons();
-
-    buttonMenuNewShift.disabled = view === "newShift";
-    buttonMenuPreviousShifts.disabled = view === "previousShifts";
-    // buttonMenuSettings.disabled = view === "settings";
+const fields = {
+    date: document.getElementById("shift-date"),
+    mealPeriod: document.getElementById("shift-meal-period"),
+    job: document.getElementById("shift-job"),
+    clockIn: document.getElementById("shift-clock-in"),
+    clockOut: document.getElementById("shift-clock-out"),
+    breakStart: document.getElementById("shift-break-start"),
+    breakEnd: document.getElementById("shift-break-end"),
+    foodSales: document.getElementById("shift-food-sales"),
+    bawSales: document.getElementById("shift-baw-sales"),
+    liquorSales: document.getElementById("shift-liquor-sales"),
+    naSales: document.getElementById("shift-na-sales"),
+    additionalSales: document.getElementById("shift-additional-sales"),
+    ccTips: document.getElementById("shift-cc-tips"),
+    cashTips: document.getElementById("shift-cash-tips"),
+    tipOutPaid: document.getElementById("shift-tip-out-paid"),
+    tipOutReceived: document.getElementById("shift-tip-out-received"),
+    notes: document.getElementById("shift-notes"),
 };
 
-function enableMenuButtons() {
-    buttonMenuNewShift.disabled = false;
-    buttonMenuPreviousShifts.disabled = false;
-    // buttonMenuSettings.disabled = false;
-}
-
-// Event handlers
-
-function populateReviewSection() {
-    clearReviewSection();
-
-    reviewDate.textContent = newShiftData.date;
-    reviewMealPeriod.textContent = newShiftData.mealPeriod;
-    reviewJob.textContent = newShiftData.job;
-    reviewClockIn.textContent = newShiftData.clockIn;
-    reviewClockOut.textContent = newShiftData.clockOut;
-    reviewBreakStart.textContent = newShiftData.breakStart;
-    reviewBreakEnd.textContent = newShiftData.breakEnd;
-    reviewFoodSales.textContent = newShiftData.foodSales.toFixed(2);
-    reviewBawSales.textContent = newShiftData.bawSales.toFixed(2);
-    reviewLiquorSales.textContent = newShiftData.liquorSales.toFixed(2);
-    reviewNaBevSales.textContent = newShiftData.naBevSales.toFixed(2);
-    reviewAdditionalSales.textContent = newShiftData.additionalSales.toFixed(2);
-    reviewCcTips.textContent = newShiftData.ccTips.toFixed(2);
-    reviewCashTips.textContent = newShiftData.cashTips.toFixed(2);
-    reviewTipsPaidOut.textContent = newShiftData.tipsPaidOut.toFixed(2);
-    reviewTipOutReceived.textContent = newShiftData.tipOutReceived.toFixed(2);
-    reviewNotes.textContent = newShiftData.notes;
+const statEls = {
+    totalShifts: document.getElementById("summary-total-shifts"),
+    totalHours: document.getElementById("summary-total-hours"),
+    totalSales: document.getElementById("summary-total-sales"),
+    totalTips: document.getElementById("summary-total-tips"),
 };
 
-function clearReviewSection() {
-    reviewDate.textContent = "";
-    reviewMealPeriod.textContent = "";
-    reviewJob.textContent = "";
-    reviewClockIn.textContent = "";
-    reviewClockOut.textContent = "";
-    reviewBreakStart.textContent = "";
-    reviewBreakEnd.textContent = "";
-    reviewFoodSales.textContent = "";
-    reviewBawSales.textContent = "";
-    reviewLiquorSales.textContent = "";
-    reviewNaBevSales.textContent = "";
-    reviewAdditionalSales.textContent = "";
-    reviewCcTips.textContent = "";
-    reviewCashTips.textContent = "";
-    reviewTipsPaidOut.textContent = "";
-    reviewTipOutReceived.textContent = "";
-    reviewNotes.textContent = "";
-};
+const recentShiftsEl = document.getElementById("recent-shifts");
+const template = document.getElementById("shift-card-template");
 
-function handleNewShiftFormInput() {
-    updateNewShiftData();
+bindEvents();
+renderDashboard();
+renderPreviousShifts();
+showView("dashboard");
 
-    buttonClearShift.disabled = !isNewShiftFormFilled();
-}
-
-function isNewShiftFormFilled() {
-    return newShiftDateInput.value.trim() !== "" ||
-        newShiftMealPeriodInput.value.trim() !== "" ||
-        newShiftJobInput.value.trim() !== "" ||
-        newShiftClockInInput.value.trim() !== "" ||
-        newShiftClockOutInput.value.trim() !== "" ||
-        newShiftBreakStartInput.value.trim() !== "" ||
-        newShiftBreakEndInput.value.trim() !== "" ||
-        newShiftFoodSalesInput.value.trim() !== "" ||
-        newShiftBawSalesInput.value.trim() !== "" ||
-        newShiftLiquorSalesInput.value.trim() !== "" ||
-        newShiftNaBevSalesInput.value.trim() !== "" ||
-        newShiftAdditionalSalesInput.value.trim() !== "" ||
-        newShiftCcTipsInput.value.trim() !== "" ||
-        newShiftCashTipsInput.value.trim() !== "" ||
-        newShiftTipsPaidOutInput.value.trim() !== "" ||
-        newShiftTipOutReceivedInput.value.trim() !== "" ||
-        newShiftNotesInput.value.trim() !== "";
-};
-
-function populatePreviousShiftsSection() {
-    previousShiftsText.textContent = "";
-
-    if (shifts.length === 0) {
-        previousShiftsText.textContent = "No previous shifts recorded.";
-    } else {
-        shifts.forEach(shift => {
-            let shiftData = JSON.stringify(shift, null, 2);
-            let PRE = document.createElement("pre");
-            PRE.textContent = shiftData;
-            previousShiftsText.appendChild(PRE);
+function bindEvents() {
+    navButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+            showView(button.dataset.view);
         });
-    };
-};
+    });
 
-function handleNewShiftFormSubmit(event) {
+    form.addEventListener("submit", handleFormSubmit);
+    clearFormButton.addEventListener("click", resetForm);
+    cancelFormButton.addEventListener("click", () => {
+        resetForm();
+        showView("dashboard");
+    });
+    sortBySelect.addEventListener("change", renderPreviousShifts);
+    filterJobSelect.addEventListener("change", renderPreviousShifts);
+    shiftList.addEventListener("click", handleListAction);
+}
+
+function showView(viewName) {
+    state.currentView = viewName;
+
+    document.querySelectorAll(".view").forEach((section) => {
+        const visible = section.id === viewName;
+        section.classList.toggle("is-visible", visible);
+        section.classList.toggle("is-hidden", !visible);
+        section.hidden = !visible;
+    });
+}
+
+function handleListAction(event) {
+    const button = event.target.closest("button");
+    if (!button) {
+        return;
+    }
+
+    const card = button.closest(".shift-card");
+    const shiftId = Number(card.dataset.shiftId);
+    const shift = state.shifts.find((entry) => entry.id === shiftId);
+
+    if (!shift) {
+        return;
+    }
+
+    if (button.classList.contains("delete-shift")) {
+        state.shifts = state.shifts.filter((entry) => entry.id !== shiftId);
+        persistShifts();
+        renderDashboard();
+        renderPreviousShifts();
+        setStatus("Shift deleted.");
+        return;
+    }
+
+    if (button.classList.contains("edit-shift")) {
+        populateForm(shift);
+        formTitle.textContent = "Edit Shift";
+        showView("new-shift");
+    }
+}
+
+function createShiftId() {
+    return Date.now() + Math.random();
+}
+
+function setStatus(message, isError = false) {
+    formStatus.textContent = message;
+    formStatus.classList.toggle("error", isError);
+    formStatus.hidden = !message;
+}
+
+function resetForm(shouldClearStatus = true) {
+    form.reset();
+    state.editingShiftId = null;
+    formTitle.textContent = "New Shift";
+    Object.values(fields).forEach((field) => {
+        if (field.tagName === "INPUT" || field.tagName === "TEXTAREA") {
+            field.value = field.defaultValue || "";
+        }
+    });
+
+    if (shouldClearStatus) {
+        setStatus("");
+    }
+}
+
+function populateForm(shift) {
+    state.editingShiftId = shift.id;
+    fields.date.value = shift.date || "";
+    fields.mealPeriod.value = shift.mealPeriod || "";
+    fields.job.value = shift.job || "";
+    fields.clockIn.value = shift.clockIn || "";
+    fields.clockOut.value = shift.clockOut || "";
+    fields.breakStart.value = shift.breakStart || "";
+    fields.breakEnd.value = shift.breakEnd || "";
+    fields.foodSales.value = Number(shift.foodSales || 0).toFixed(2);
+    fields.bawSales.value = Number(shift.bawSales || 0).toFixed(2);
+    fields.liquorSales.value = Number(shift.liquorSales || 0).toFixed(2);
+    fields.naSales.value = Number(shift.naBevSales || 0).toFixed(2);
+    fields.additionalSales.value = Number(shift.additionalSales || 0).toFixed(2);
+    fields.ccTips.value = Number(shift.ccTips || 0).toFixed(2);
+    fields.cashTips.value = Number(shift.cashTips || 0).toFixed(2);
+    fields.tipOutPaid.value = Number(shift.tipsPaidOut || 0).toFixed(2);
+    fields.tipOutReceived.value = Number(shift.tipOutReceived || 0).toFixed(2);
+    fields.notes.value = shift.notes || "";
+}
+
+function handleFormSubmit(event) {
     event.preventDefault();
 
-    updateNewShiftData();
-    populateReviewSection();
+    try {
+        const shift = readFormValues();
+        validateShift(shift);
 
-    showView("reviewNewShift");
-}
-
-function handleNewShiftReviewSubmit(event) {
-    event.preventDefault();
-
-    console.log("New Shift Data Submitted:", newShiftData);
-
-    newShiftForm.hidden = true;
-    reviewNewShiftSection.hidden = true;
-
-    clearNewShiftForm();
-    clearNewShiftData();
-    clearReviewSection();
-
-    showView("appHeader");
-}
-
-function handleCancelShift() {
-    newShiftForm.reset();
-    clearNewShiftData();
-    clearReviewSection();
-    clearPausedView();
-
-    showView("appHeader");
-
-    console.log("New Shift form cleared.");
-}
-
-function handleClearShift() {
-    newShiftForm.reset();
-    clearNewShiftData();
-    clearReviewSection();
-    handleNewShiftFormInput();
-
-    console.log("New Shift form cleared.");
-}
-
-function handleOpenMenu() {
-    pausedView = currentView;
-
-    showView("menu");
-    console.log("Menu displayed.");
-};
-
-function handlePausedView() {
-    if (pausedView) {
-        showView(pausedView);
-        pausedView = null;
-    } else {
-        showView("appHeader");
-    }
-};
-
-// function handleSettingsOpen() {
-//     showView("settings");
-//     console.log("Settings section opened.");
-// }
-
-// function handleSettingsClose() {
-//     showView(pausedView || "appHeader");
-//     console.log("Settings section closed.");
-// };
-
-// function handleManageDataOpen() {
-//     showView("manageData");
-//     console.log("Manage Data section open")
-// }
-
-// function handleImportDataOpen() {
-//     dialogImportData.showModal();
-// }
-
-function handleViewPreviousShifts() {
-    populatePreviousShiftsSection();
-    showView("previousShifts");
-    console.log("Previous Shifts section displayed.");
-}
-
-function handleViewNewShift() {
-    showView("newShift");
-    console.log("New Shift section displayed.");
-}
-
-function handleReviewEdit() {
-    showView("newShift");
-    console.log("Editing New Shift Data.");
-}
-
-
-function updateShifts(arr, shift) {
-    arr.push(...shift);
-    saveShiftsToLocalStorage();
-    return true
-}
-
-function handleReviewConfirm() {
-    updateShifts(shifts, [newShiftData]);
-    console.log("New Shift Data Confirmed:", shifts);
-
-    newShiftForm.reset();
-
-    clearNewShiftData();
-    clearReviewSection();
-    clearPausedView();
-
-    showView("appHeader");
-}
-
-function handleReviewCancel() {
-
-    newShiftForm.reset();
-    clearNewShiftData();
-    clearReviewSection();
-    clearPausedView();
-    showView("appHeader");
-}
-
-function clearPausedView() {
-    pausedView = null;
-};
-
-// Local Storage functions
-
-function saveShiftsToLocalStorage() {
-    localStorage.setItem("shifts", JSON.stringify(shifts));
-    console.log("Shifts saved to local storage.");
-}
-
-function loadShiftsFromLocalStorage() {
-    const storedShifts = localStorage.getItem("shifts");
-    if (storedShifts) {
-        shifts = JSON.parse(storedShifts);
-        console.log("Shifts loaded from local storage:", shifts);
-    } else {
-        console.log("No shifts found in local storage.");
-    }
-};
-
-function clearShiftsFromLocalStorage() {
-    localStorage.removeItem("shifts");
-    shifts = [];
-    console.log("Shifts cleared from local storage.");
-};
-
-function handleImportPasteData() {
-    const pastedData = textAreaImportPaste.textContent;
-
-    if (pastedData) {
-        try {
-            const parsedData = JSON.parse(pastedData);
-            if (Array.isArray(parsedData)) {
-                shifts = parsedData;
-                saveShiftsToLocalStorage();
-                console.log("Data imported successfully:", shifts);
-                alert("Data imported successfully.");
-            } else {
-                throw new Error("Invalid data format.");
+        if (state.editingShiftId !== null) {
+            const index = state.shifts.findIndex((entry) => entry.id === state.editingShiftId);
+            if (index >= 0) {
+                state.shifts[index] = shift;
             }
-        } catch (error) {
-            console.error("Error importing data:", error);
-            alert("Failed to import data. Please ensure the format is correct.");
+        } else {
+            state.shifts.push(shift);
+        }
+
+        persistShifts();
+        renderDashboard();
+        renderPreviousShifts();
+        const successMessage = state.editingShiftId !== null ? "Shift updated." : "Shift saved.";
+        resetForm(false);
+        setStatus(successMessage);
+        showView("dashboard");
+    } catch (error) {
+        setStatus(error.message, true);
+    }
+}
+
+function readFormValues() {
+    const baseline = {
+        id: state.editingShiftId ?? createShiftId(),
+        date: fields.date.value.trim(),
+        mealPeriod: fields.mealPeriod.value,
+        job: fields.job.value,
+        clockIn: fields.clockIn.value,
+        clockOut: fields.clockOut.value,
+        breakStart: fields.breakStart.value,
+        breakEnd: fields.breakEnd.value,
+        foodSales: toNumber(fields.foodSales.value),
+        bawSales: toNumber(fields.bawSales.value),
+        liquorSales: toNumber(fields.liquorSales.value),
+        naBevSales: toNumber(fields.naSales.value),
+        additionalSales: toNumber(fields.additionalSales.value),
+        ccTips: toNumber(fields.ccTips.value),
+        cashTips: toNumber(fields.cashTips.value),
+        tipsPaidOut: toNumber(fields.tipOutPaid.value),
+        tipOutReceived: toNumber(fields.tipOutReceived.value),
+        notes: fields.notes.value.trim(),
+    };
+
+    return baseline;
+}
+
+function validateShift(shift) {
+    const issues = [];
+
+    if (!shift.date) issues.push("Date is required.");
+    if (!shift.mealPeriod) issues.push("Meal period is required.");
+    if (!shift.job) issues.push("Job is required.");
+    if (!shift.clockIn || !shift.clockOut) issues.push("Clock in and clock out are required.");
+
+    if (shift.clockIn && shift.clockOut && toMinutes(shift.clockOut) <= toMinutes(shift.clockIn)) {
+        issues.push("Clock out must be later than clock in.");
+    }
+
+    if (shift.breakStart && !shift.breakEnd) issues.push("Break end is required when a break starts.");
+    if (shift.breakEnd && !shift.breakStart) issues.push("Break start is required when a break ends.");
+
+    if (shift.breakStart && shift.breakEnd) {
+        const breakStartMinutes = toMinutes(shift.breakStart);
+        const breakEndMinutes = toMinutes(shift.breakEnd);
+
+        if (breakEndMinutes <= breakStartMinutes) {
+            issues.push("Break end must be later than break start.");
+        }
+
+        const shiftMinutes = Math.max(0, toMinutes(shift.clockOut) - toMinutes(shift.clockIn));
+        if (breakEndMinutes - breakStartMinutes > shiftMinutes) {
+            issues.push("Break length cannot exceed the total shift length.");
         }
     }
-};
 
-function handleExportData() {
-    const exportedData = JSON.stringify(shifts, null, 2);
-    prompt("Copy the exported data below:", exportedData);
-    console.log("Data exported:", exportedData);
-};
+    if (issues.length > 0) {
+        throw new Error(issues.join(" "));
+    }
+}
 
+function renderDashboard() {
+    const totalShifts = state.shifts.length;
+    const totalHours = state.shifts.reduce((sum, shift) => sum + getDurationMinutes(shift), 0);
+    const totalSales = state.shifts.reduce((sum, shift) => sum + getSalesTotal(shift), 0);
+    const totalTips = state.shifts.reduce((sum, shift) => sum + getNetTips(shift), 0);
 
-// Event listeners
-buttonMenuNewShift.addEventListener("click", handleViewNewShift);
-buttonMenuPreviousShifts.addEventListener("click", handleViewPreviousShifts);
-// buttonMenuSettings.addEventListener("click", handleSettingsOpen);
-buttonMenu.addEventListener("click", handleOpenMenu);
-buttonMenuClose.addEventListener("click", handlePausedView);
+    statEls.totalShifts.textContent = String(totalShifts);
+    statEls.totalHours.textContent = formatDuration(totalHours);
+    statEls.totalSales.textContent = formatCurrency(totalSales);
+    statEls.totalTips.textContent = formatCurrency(totalTips);
 
-// buttonSettingsClose.addEventListener("click", handleSettingsClose);
+    const recent = [...state.shifts].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 3);
 
-buttonCancelShift.addEventListener("click", handleCancelShift);
-buttonClearShift.addEventListener("click", handleClearShift);
-newShiftForm.addEventListener("submit", handleNewShiftFormSubmit);
-newShiftForm.addEventListener("input", handleNewShiftFormInput);
+    if (recent.length === 0) {
+        recentShiftsEl.innerHTML = "<p class=\"empty-state\">No shifts logged yet. Add your first shift to get started.</p>";
+        return;
+    }
 
-buttonReviewEdit.addEventListener("click", handleReviewEdit);
-buttonReviewConfirm.addEventListener("click", handleReviewConfirm);
-buttonReviewCancel.addEventListener("click", handleReviewCancel);
+    recentShiftsEl.innerHTML = recent.map((shift) => {
+        const shiftDate = formatDate(shift.date);
+        return `
+            <div class="recent-item">
+                <div>
+                    <strong>${shiftDate}</strong>
+                    <span>${shift.job} • ${shift.mealPeriod}</span>
+                </div>
+                <div class="recent-metrics">
+                    <span>${formatCurrency(getSalesTotal(shift))}</span>
+                    <span>${formatCurrency(getNetTips(shift))}</span>
+                </div>
+            </div>
+        `;
+    }).join("");
+}
 
-// buttonSettingsManageData.addEventListener("click", handleManageDataOpen);
-// buttonManageDataImport.addEventListener("click", handleImportDataOpen);
-// buttonImportData.addEventListener("click", handleImportData);
-// buttonExportData.addEventListener("click", handleExportData);
-// buttonClearData.addEventListener("click", clearShiftsFromLocalStorage);
+function renderPreviousShifts() {
+    const sortMode = sortBySelect.value;
+    const jobFilter = filterJobSelect.value;
 
-// Initialization
-loadShiftsFromLocalStorage();
-showView("appHeader");
-console.log("Script loaded successfully.");
+    const filtered = state.shifts.filter((shift) => {
+        if (jobFilter === "all") {
+            return true;
+        }
+        return shift.job === jobFilter;
+    });
+
+    const sorted = [...filtered].sort((a, b) => {
+        switch (sortMode) {
+            case "date-asc":
+                return a.date.localeCompare(b.date);
+            case "sales-desc":
+                return getSalesTotal(b) - getSalesTotal(a);
+            case "tips-desc":
+                return getNetTips(b) - getNetTips(a);
+            case "date-desc":
+            default:
+                return b.date.localeCompare(a.date);
+        }
+    });
+
+    if (sorted.length === 0) {
+        shiftList.innerHTML = "<p class=\"empty-state\">No shifts match the current filters.</p>";
+        return;
+    }
+
+    const fragment = document.createDocumentFragment();
+
+    sorted.forEach((shift) => {
+        const cardNode = template.content.cloneNode(true);
+        const card = cardNode.querySelector(".shift-card");
+        card.dataset.shiftId = String(shift.id);
+        card.querySelector(".card-date").textContent = formatDate(shift.date);
+        card.querySelector(".card-title").textContent = `${shift.job} shift`;
+        card.querySelector(".card-meal").textContent = shift.mealPeriod;
+        card.querySelector(".card-job").textContent = shift.job;
+        card.querySelector(".card-hours").textContent = formatDuration(getDurationMinutes(shift));
+        card.querySelector(".card-sales").textContent = formatCurrency(getSalesTotal(shift));
+        card.querySelector(".card-tips").textContent = formatCurrency(getNetTips(shift));
+        card.querySelector(".card-clock-in").textContent = formatTime(shift.clockIn);
+        card.querySelector(".card-clock-out").textContent = formatTime(shift.clockOut);
+        card.querySelector(".card-break").textContent = shift.breakStart && shift.breakEnd
+            ? `${formatTime(shift.breakStart)} - ${formatTime(shift.breakEnd)}`
+            : "None";
+        card.querySelector(".card-notes").textContent = shift.notes ? shift.notes : "No notes recorded.";
+        fragment.appendChild(cardNode);
+    });
+
+    shiftList.innerHTML = "";
+    shiftList.appendChild(fragment);
+}
+
+function getSalesTotal(shift) {
+    return round(
+        (Number(shift.foodSales) || 0)
+        + (Number(shift.bawSales) || 0)
+        + (Number(shift.liquorSales) || 0)
+        + (Number(shift.naBevSales) || 0)
+        + (Number(shift.additionalSales) || 0)
+    );
+}
+
+function getNetTips(shift) {
+    return round(
+        (Number(shift.ccTips) || 0)
+        + (Number(shift.cashTips) || 0)
+        + (Number(shift.tipOutReceived) || 0)
+        - (Number(shift.tipsPaidOut) || 0)
+    );
+}
+
+function getDurationMinutes(shift) {
+    if (!shift.clockIn || !shift.clockOut) {
+        return 0;
+    }
+
+    const startMinutes = toMinutes(shift.clockIn);
+    const endMinutes = toMinutes(shift.clockOut);
+    let breakMinutes = 0;
+
+    if (shift.breakStart && shift.breakEnd) {
+        breakMinutes = Math.max(0, toMinutes(shift.breakEnd) - toMinutes(shift.breakStart));
+    }
+
+    return Math.max(0, endMinutes - startMinutes - breakMinutes);
+}
+
+function persistShifts() {
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state.shifts));
+    } catch (error) {
+        console.error("Unable to save shifts:", error);
+        setStatus("Unable to save locally. Your browser storage may be full.", true);
+    }
+}
+
+function loadShifts() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+            return [];
+        }
+
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+        console.error("Unable to read stored shifts:", error);
+        return [];
+    }
+}
+
+function toMinutes(timeValue) {
+    if (!timeValue) {
+        return 0;
+    }
+
+    const [hours, minutes] = timeValue.split(":").map(Number);
+    return (hours || 0) * 60 + (minutes || 0);
+}
+
+function formatDuration(totalMinutes) {
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${hours}h ${minutes}m`;
+}
+
+function formatCurrency(amount) {
+    return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        minimumFractionDigits: 2,
+    }).format(Number(amount) || 0);
+}
+
+function formatDate(dateString) {
+    if (!dateString) {
+        return "No date";
+    }
+
+    const date = new Date(`${dateString}T00:00:00`);
+    return Number.isNaN(date.getTime()) ? dateString : date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+    });
+}
+
+function formatTime(value) {
+    if (!value) {
+        return "—";
+    }
+
+    const [hours, minutes] = value.split(":").map(Number);
+    const date = new Date();
+    date.setHours(hours || 0, minutes || 0, 0, 0);
+
+    return date.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+    });
+}
+
+function toNumber(value) {
+    const parsed = Number.parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function round(value) {
+    return Number(value.toFixed(2));
+}
