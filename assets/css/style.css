@@ -26,6 +26,40 @@
     --shadow: 0 16px 40px rgba(0, 0, 0, 0.22);
 }
 
+:root[data-theme="material"] {
+    color-scheme: light;
+    --bg: #f7f2fa;
+    --panel: #fffbfe;
+    --panel-alt: #f0eaf4;
+    --border: #e7e0ec;
+    --text: #1d1b20;
+    --muted: #625d67;
+    --primary: #6750a4;
+    --primary-dark: #4f378b;
+    --success: #386a20;
+    --gold: #9a6700;
+    --purple: #6750a4;
+    --danger: #ba1a1a;
+    --shadow: 0 2px 8px rgba(29, 27, 32, 0.1);
+}
+
+:root[data-theme="neo-brutalist"] {
+    color-scheme: light;
+    --bg: #fff4c2;
+    --panel: #fffdf5;
+    --panel-alt: #ffe47a;
+    --border: #171717;
+    --text: #171717;
+    --muted: #45413a;
+    --primary: #ff6b4a;
+    --primary-dark: #171717;
+    --success: #176b42;
+    --gold: #efbd26;
+    --purple: #c6a7ff;
+    --danger: #b42318;
+    --shadow: 5px 5px 0 #171717;
+}
+
 @media (prefers-color-scheme: dark) {
     :root:not([data-theme]) {
         color-scheme: dark;
@@ -906,4 +940,95 @@ textarea {
     .card-metrics {
         grid-template-columns: 1fr;
     }
+}
+
+:root[data-theme="material"] body {
+    background: var(--bg);
+}
+
+:root[data-theme="material"] .panel,
+:root[data-theme="material"] .sidebar,
+:root[data-theme="material"] .stat-card,
+:root[data-theme="material"] .period-card {
+    border-radius: 24px;
+}
+
+:root[data-theme="material"] .primary-button {
+    border-radius: 999px;
+    background: var(--primary);
+    box-shadow: 0 2px 6px rgba(29, 27, 32, 0.18);
+}
+
+:root[data-theme="material"] .nav-button[aria-current="page"] {
+    border-color: transparent;
+    background: #e9ddff;
+    color: #4f378b;
+}
+
+:root[data-theme="material"] .field input:focus,
+:root[data-theme="material"] .field select:focus,
+:root[data-theme="material"] .field textarea:focus {
+    outline-color: rgba(103, 80, 164, 0.24);
+}
+
+:root[data-theme="neo-brutalist"] body {
+    background: var(--bg);
+    font-family: "Arial", "Helvetica Neue", sans-serif;
+}
+
+:root[data-theme="neo-brutalist"] .panel,
+:root[data-theme="neo-brutalist"] .sidebar,
+:root[data-theme="neo-brutalist"] .stat-card,
+:root[data-theme="neo-brutalist"] .period-card,
+:root[data-theme="neo-brutalist"] .shift-card,
+:root[data-theme="neo-brutalist"] .mobile-menu-button,
+:root[data-theme="neo-brutalist"] fieldset {
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    box-shadow: var(--shadow);
+}
+
+:root[data-theme="neo-brutalist"] .nav-button,
+:root[data-theme="neo-brutalist"] .primary-button,
+:root[data-theme="neo-brutalist"] .secondary-button,
+:root[data-theme="neo-brutalist"] .ghost-button,
+:root[data-theme="neo-brutalist"] .danger-button,
+:root[data-theme="neo-brutalist"] .field input,
+:root[data-theme="neo-brutalist"] .field select,
+:root[data-theme="neo-brutalist"] .field textarea {
+    border: 2px solid var(--border);
+    border-radius: 4px;
+}
+
+:root[data-theme="neo-brutalist"] .primary-button {
+    background: var(--primary);
+    color: var(--text);
+    box-shadow: 3px 3px 0 var(--border);
+}
+
+:root[data-theme="neo-brutalist"] .nav-button[aria-current="page"] {
+    border-color: var(--border);
+    background: var(--gold);
+    color: var(--text);
+}
+
+:root[data-theme="neo-brutalist"] .accent-blue,
+:root[data-theme="neo-brutalist"] .accent-green,
+:root[data-theme="neo-brutalist"] .accent-gold,
+:root[data-theme="neo-brutalist"] .accent-purple {
+    background: var(--panel-alt);
+}
+
+:root[data-theme="neo-brutalist"] .stat-card span,
+:root[data-theme="neo-brutalist"] .summary-heading,
+:root[data-theme="neo-brutalist"] .panel h2,
+:root[data-theme="neo-brutalist"] .dashboard-heading h1 {
+    font-weight: 800;
+}
+
+:root[data-theme="neo-brutalist"] .field input:focus,
+:root[data-theme="neo-brutalist"] .field select:focus,
+:root[data-theme="neo-brutalist"] .field textarea:focus {
+    outline: 3px solid var(--primary);
+    outline-offset: 2px;
 }

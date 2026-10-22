@@ -191,7 +191,14 @@ function applyTheme() {
 
     const dark = state.settings.theme === "dark"
         || (state.settings.theme === "system" && systemTheme.matches);
-    document.querySelector('meta[name="theme-color"]').content = dark ? "#111827" : "#2a6df6";
+    const themeColors = {
+        dark: "#111827",
+        material: "#6750a4",
+        "neo-brutalist": "#f4c542",
+    };
+    document.querySelector('meta[name="theme-color"]').content = dark
+        ? themeColors.dark
+        : themeColors[state.settings.theme] || "#2a6df6";
 }
 
 function loadSettings() {
@@ -204,7 +211,9 @@ function loadSettings() {
         }
 
         return {
-            theme: ["system", "light", "dark"].includes(stored.theme) ? stored.theme : defaults.theme,
+            theme: ["system", "light", "dark", "material", "neo-brutalist"].includes(stored.theme)
+                ? stored.theme
+                : defaults.theme,
             weekStartsOn: ["monday", "sunday"].includes(stored.weekStartsOn)
                 ? stored.weekStartsOn
                 : defaults.weekStartsOn,

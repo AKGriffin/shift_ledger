@@ -124,6 +124,21 @@ test("app workflow validates, saves, edits, filters, and deletes shifts", async 
         expect(element(".card-job").textContent).toBe("Expo");
 
         element('.main-nav [data-view="settings"]').click();
+        element("#setting-theme").value = "material";
+        element("#setting-theme").dispatchEvent(new frame.contentWindow.Event("change", { bubbles: true }));
+        expect(app.documentElement.dataset.theme).toBe("material");
+        expect(frame.contentWindow.getComputedStyle(app.documentElement).getPropertyValue("--primary").trim())
+            .toBe("#6750a4");
+        expect(app.querySelector('meta[name="theme-color"]').content).toBe("#6750a4");
+        expect(JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY)).theme).toBe("material");
+
+        element("#setting-theme").value = "neo-brutalist";
+        element("#setting-theme").dispatchEvent(new frame.contentWindow.Event("change", { bubbles: true }));
+        expect(app.documentElement.dataset.theme).toBe("neo-brutalist");
+        expect(frame.contentWindow.getComputedStyle(element(".panel")).borderRadius).toBe("4px");
+        expect(app.querySelector('meta[name="theme-color"]').content).toBe("#f4c542");
+        expect(JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY)).theme).toBe("neo-brutalist");
+
         element("#setting-currency").value = "GBP";
         element("#setting-currency").dispatchEvent(new frame.contentWindow.Event("change", { bubbles: true }));
         expect(element("#summary-total-sales").textContent).toBe("£325.50");
