@@ -1,4 +1,5 @@
 ﻿const STORAGE_KEY = "shift-ledger-shifts-v1";
+const { getDurationMinutes, getNetTips, getSalesTotal } = window.ShiftMath;
 
 const state = {
     shifts: loadShifts(),
@@ -501,41 +502,6 @@ function toLocalDateString(date) {
     return `${year}-${month}-${day}`;
 }
 
-function getSalesTotal(shift) {
-    return round(
-        (Number(shift.foodSales) || 0)
-        + (Number(shift.bawSales) || 0)
-        + (Number(shift.liquorSales) || 0)
-        + (Number(shift.naBevSales) || 0)
-        + (Number(shift.additionalSales) || 0)
-    );
-}
-
-function getNetTips(shift) {
-    return round(
-        (Number(shift.ccTips) || 0)
-        + (Number(shift.cashTips) || 0)
-        + (Number(shift.tipOutReceived) || 0)
-        - (Number(shift.tipsPaidOut) || 0)
-    );
-}
-
-function getDurationMinutes(shift) {
-    if (!shift.clockIn || !shift.clockOut) {
-        return 0;
-    }
-
-    const startMinutes = toMinutes(shift.clockIn);
-    const endMinutes = toMinutes(shift.clockOut);
-    let breakMinutes = 0;
-
-    if (shift.breakStart && shift.breakEnd) {
-        breakMinutes = Math.max(0, toMinutes(shift.breakEnd) - toMinutes(shift.breakStart));
-    }
-
-    return Math.max(0, endMinutes - startMinutes - breakMinutes);
-}
-
 function persistShifts() {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state.shifts));
@@ -558,15 +524,6 @@ function loadShifts() {
         console.error("Unable to read stored shifts:", error);
         return [];
     }
-}
-
-function toMinutes(timeValue) {
-    if (!timeValue) {
-        return 0;
-    }
-
-    const [hours, minutes] = timeValue.split(":").map(Number);
-    return (hours || 0) * 60 + (minutes || 0);
 }
 
 function formatDuration(totalMinutes) {
@@ -614,8 +571,4 @@ function formatTime(value) {
 function toNumber(value) {
     const parsed = Number.parseFloat(value);
     return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function round(value) {
-    return Number(value.toFixed(2));
 }
