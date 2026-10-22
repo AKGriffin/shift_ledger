@@ -23,6 +23,10 @@ The service worker caches the app shell and static assets. When deploying an upd
 - Review appearance and data preferences in responsive settings cards, with a work-setup roadmap for future restaurant, role, and shift-template management
 - Import or download a complete JSON data backup
 
+## Project direction
+
+See [ROADMAP.md](./ROADMAP.md) for planned improvements and the longer-term direction for workplaces, roles, and shift templates. Use GitHub Issues to track detailed bug reports and implementation work.
+
 ## Tests
 
 Serve the project directory with a static web server, then open `/tests/` in the browser. The browser test page checks shared shift calculations and runs an end-to-end app workflow for validation, saving, editing, filtering, settings, and deleting shifts. It reports the pass/fail summary on the page and in the console. App workflow tests use a hidden iframe and restore the browser's existing shift data and settings afterward.
@@ -39,6 +43,7 @@ CSV exports include the values currently shown by the filters. Keep exported fil
 .
 ├── index.html
 ├── manifest.webmanifest
+├── ROADMAP.md
 ├── sw.js
 ├── assets/
 │   ├── css/
