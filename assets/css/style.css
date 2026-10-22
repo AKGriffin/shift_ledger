@@ -47,6 +47,7 @@
 body {
     margin: 0;
     min-height: 100vh;
+    overflow-x: clip;
     font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(180deg, var(--panel-alt) 0%, var(--bg) 100%);
     color: var(--text);
@@ -323,15 +324,21 @@ main {
     font-size: 1.5rem;
 }
 
+.summary-heading {
+    margin: 0 0 12px;
+    font-size: 1rem;
+}
+
 .summary-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: clamp(12px, 1.5vw, 20px);
     margin-bottom: 28px;
 }
 
 .stat-card {
     min-width: 0;
+    overflow: hidden;
     padding: clamp(16px, 1.8vw, 22px);
     border-radius: 18px;
     border: 1px solid var(--border);
@@ -692,12 +699,14 @@ textarea {
         width: 224px;
     }
 
-    .summary-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
     .period-grid {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (min-width: 1360px) {
+    .summary-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 }
 
@@ -882,7 +891,7 @@ textarea {
 
 @media (max-width: 420px) {
     .summary-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .period-metrics {
