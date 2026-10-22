@@ -64,23 +64,25 @@ button {
 }
 
 .app-shell {
-    display: grid;
-    grid-template-columns: 240px minmax(0, 1fr);
-    gap: 26px;
+    width: 100%;
     max-width: 1440px;
     min-height: 100vh;
     margin: 0 auto;
-    padding: 24px;
+    padding: 24px 32px 48px 296px;
 }
 
 .sidebar {
-    position: sticky;
-    top: 24px;
+    position: fixed;
+    z-index: 5;
+    top: 20px;
+    bottom: 20px;
+    left: max(20px, calc((100vw - 1440px) / 2 + 20px));
     display: flex;
     flex-direction: column;
     gap: 30px;
-    height: calc(100vh - 48px);
-    min-height: 420px;
+    width: 240px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
     padding: 22px 16px;
     border: 1px solid var(--border);
     border-radius: 18px;
@@ -147,7 +149,10 @@ h1 {
 }
 
 .app-content {
+    width: 100%;
+    max-width: 1120px;
     min-width: 0;
+    margin: 0 auto;
     padding: 14px 0 32px;
 }
 
@@ -201,6 +206,7 @@ h1 {
 
 main {
     margin-top: 0;
+    min-width: 0;
 }
 
 .back-to-menu,
@@ -226,6 +232,7 @@ main {
 }
 
 .panel {
+    min-width: 0;
     background: var(--panel);
     border: 1px solid var(--border);
     border-radius: 20px;
@@ -283,6 +290,29 @@ main {
     margin-bottom: 20px;
 }
 
+.dashboard-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 26px;
+}
+
+.dashboard-heading > div {
+    min-width: 0;
+}
+
+.dashboard-heading h1 {
+    margin: 0;
+    font-size: clamp(1.8rem, 3vw, 2.5rem);
+}
+
+.dashboard-heading p:last-child {
+    margin: 8px 0 0;
+    color: var(--muted);
+    line-height: 1.5;
+}
+
 .panel-header-stack {
     align-items: flex-end;
     flex-wrap: wrap;
@@ -295,13 +325,14 @@ main {
 
 .summary-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(180px, 1fr));
-    gap: 18px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: clamp(12px, 1.5vw, 20px);
     margin-bottom: 28px;
 }
 
 .stat-card {
-    padding: 20px 18px;
+    min-width: 0;
+    padding: clamp(16px, 1.8vw, 22px);
     border-radius: 18px;
     border: 1px solid var(--border);
     background: var(--panel);
@@ -320,7 +351,8 @@ main {
 
 .stat-card strong {
     display: block;
-    font-size: clamp(1.3rem, 2vw, 2rem);
+    overflow-wrap: anywhere;
+    font-size: clamp(1.35rem, 2vw, 1.9rem);
 }
 
 .accent-blue {
@@ -342,11 +374,12 @@ main {
 .period-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 18px;
+    gap: clamp(12px, 1.5vw, 20px);
     margin-bottom: 28px;
 }
 
 .period-card {
+    min-width: 0;
     padding: 20px;
     border: 1px solid var(--border);
     border-radius: 18px;
@@ -362,6 +395,10 @@ main {
     margin-bottom: 18px;
 }
 
+.period-heading > div {
+    min-width: 0;
+}
+
 .period-heading .eyebrow {
     margin-bottom: 5px;
 }
@@ -372,9 +409,11 @@ main {
 }
 
 .period-range {
+    min-width: 0;
     color: var(--muted);
     font-size: 0.82rem;
     text-align: right;
+    overflow-wrap: anywhere;
 }
 
 .period-metrics {
@@ -411,6 +450,15 @@ main {
     border: 1px solid var(--border);
     border-radius: 12px;
     background: var(--panel-alt);
+}
+
+.recent-item > div:first-child {
+    min-width: 0;
+}
+
+.recent-item strong,
+.recent-item span {
+    overflow-wrap: anywhere;
 }
 
 .recent-item strong,
@@ -523,12 +571,13 @@ textarea {
 
 .toolbar {
     display: flex;
+    min-width: 0;
     flex-wrap: wrap;
     gap: 12px;
 }
 
 .inline-field {
-    min-width: 150px;
+    min-width: min(150px, 100%);
 }
 
 .history-status {
@@ -543,12 +592,13 @@ textarea {
 
 .shift-list {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
     gap: 18px;
     margin-top: 18px;
 }
 
 .shift-card {
+    min-width: 0;
     display: grid;
     gap: 14px;
     padding: 18px;
@@ -598,6 +648,13 @@ textarea {
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.card-meta p,
+.card-metrics p,
+.card-breakdown p {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
 .card-breakdown {
     padding-top: 8px;
     border-top: 1px solid var(--border);
@@ -625,15 +682,33 @@ textarea {
     text-align: center;
 }
 
-@media (max-width: 1080px) {
+@media (max-width: 1100px) and (min-width: 721px) {
+    .app-shell {
+        padding-right: 24px;
+        padding-left: 280px;
+    }
+
+    .sidebar {
+        width: 224px;
+    }
+
     .summary-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .period-grid {
+        grid-template-columns: 1fr;
     }
 }
 
 @media (max-width: 720px) {
+    body {
+        overflow-x: hidden;
+    }
+
     .app-shell {
         display: block;
+        width: 100%;
         min-height: 100vh;
         padding: 0;
     }
@@ -643,6 +718,8 @@ textarea {
     }
 
     .app-content {
+        width: 100%;
+        max-width: none;
         padding: 0 16px 32px;
     }
 
@@ -661,6 +738,17 @@ textarea {
         justify-items: start;
         gap: 14px;
         margin-bottom: 32px;
+    }
+
+    .dashboard-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 16px;
+        margin: 8px 0 22px;
+    }
+
+    .dashboard-heading .primary-button {
+        width: 100%;
     }
 
     .mobile-welcome .brand-mark {
@@ -740,16 +828,73 @@ textarea {
     }
 
     .summary-grid {
-        grid-template-columns: repeat(2, minmax(140px, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .stat-card {
+        padding: 16px 14px;
     }
 
     .period-grid {
         grid-template-columns: 1fr;
     }
 
+    .period-card,
+    .panel {
+        padding: 18px;
+    }
+
+    .period-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .period-range {
+        text-align: left;
+    }
+
+    .toolbar {
+        width: 100%;
+    }
+
+    .toolbar > * {
+        flex: 1 1 100%;
+        min-width: 0;
+    }
+
+    .inline-field {
+        width: 100%;
+    }
+
+    .form-actions > *,
+    .settings-actions > * {
+        flex: 1 1 100%;
+    }
+
     .primary-button,
     .secondary-button,
-    .ghost-button {
-        flex: 1 1 auto;
+    .ghost-button,
+    .danger-button {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 420px) {
+    .summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .period-metrics {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .panel {
+        padding: 15px;
+    }
+
+    .card-meta,
+    .card-metrics {
+        grid-template-columns: 1fr;
     }
 }
