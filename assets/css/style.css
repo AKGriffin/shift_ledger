@@ -343,14 +343,77 @@ main {
     padding: 24px;
 }
 
-.settings-group {
-    padding: 22px 0;
-    border-top: 1px solid var(--border);
+.settings-page {
+    display: grid;
+    gap: clamp(20px, 3vh, 32px);
 }
 
-.settings-group h3 {
-    margin: 0 0 16px;
-    font-size: 1.05rem;
+.settings-page-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.settings-page-header h1 {
+    font-size: clamp(2rem, 4vw, 2.7rem);
+}
+
+.settings-page-header p:last-child {
+    margin: 8px 0 0;
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.settings-card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+    gap: clamp(14px, 2vw, 22px);
+}
+
+.settings-card {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    padding: clamp(18px, 2vw, 26px);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: var(--panel);
+    box-shadow: var(--shadow);
+}
+
+.settings-card-heading {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 22px;
+}
+
+.settings-card-heading .eyebrow {
+    margin-bottom: 5px;
+}
+
+.settings-card-heading h2 {
+    margin: 0;
+    font-size: 1.3rem;
+}
+
+.settings-card-icon {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 auto;
+    place-items: center;
+    border-radius: 13px;
+    background: var(--panel-alt);
+    color: var(--primary);
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+.data-card {
+    grid-column: 1 / -1;
 }
 
 .settings-grid {
@@ -361,15 +424,49 @@ main {
 
 .settings-description {
     max-width: 680px;
+    margin: 14px 0 0;
     color: var(--muted);
     line-height: 1.6;
+}
+
+.settings-card .settings-description + .settings-description {
+    margin-top: 8px;
+}
+
+.work-setup-card .settings-description {
+    margin-top: 0;
+}
+
+.work-setup-flow {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 20px;
+}
+
+.work-setup-flow span:not([aria-hidden="true"]) {
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--panel-alt);
+    color: var(--text);
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.work-setup-flow span[aria-hidden="true"] {
+    color: var(--muted);
 }
 
 .settings-actions {
     display: flex;
     flex-wrap: wrap;
+    width: 100%;
+    min-width: 0;
     gap: 12px;
-    margin-top: 18px;
+    margin-top: auto;
+    padding-top: 20px;
 }
 
 .danger-button {
@@ -806,6 +903,16 @@ textarea {
     }
 }
 
+@media (max-width: 900px) {
+    .settings-card-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .data-card {
+        grid-column: auto;
+    }
+}
+
 @media (min-width: 1360px) {
     .summary-grid {
         grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -956,6 +1063,23 @@ textarea {
         padding: 18px;
     }
 
+    .settings-card {
+        padding: 18px;
+    }
+
+    .settings-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .settings-actions {
+        flex-direction: column;
+        flex-wrap: nowrap;
+    }
+
+    .settings-actions > * {
+        width: 100%;
+    }
+
     .period-heading {
         align-items: flex-start;
         flex-direction: column;
@@ -983,11 +1107,39 @@ textarea {
         flex: 1 1 100%;
     }
 
+    .settings-actions > * {
+        flex: 0 0 auto;
+    }
+
     .primary-button,
     .secondary-button,
     .ghost-button,
     .danger-button {
         max-width: 100%;
+    }
+}
+
+@media (max-height: 760px) and (min-width: 721px) {
+    .app-shell {
+        padding-top: 16px;
+        padding-bottom: 24px;
+    }
+
+    .sidebar {
+        top: 12px;
+        bottom: 12px;
+        max-height: calc(100vh - 24px);
+        gap: 20px;
+        padding-top: 18px;
+        padding-bottom: 18px;
+    }
+
+    .app-content {
+        padding-top: 8px;
+    }
+
+    .settings-page {
+        gap: 18px;
     }
 }
 
@@ -1018,6 +1170,7 @@ textarea {
 }
 
 :root[data-style="material"] .panel,
+:root[data-style="material"] .settings-card,
 :root[data-style="material"] .sidebar,
 :root[data-style="material"] .stat-card,
 :root[data-style="material"] .period-card,
@@ -1110,6 +1263,7 @@ textarea {
 }
 
 :root[data-style="neo-brutalist"] .panel,
+:root[data-style="neo-brutalist"] .settings-card,
 :root[data-style="neo-brutalist"] .sidebar,
 :root[data-style="neo-brutalist"] .stat-card,
 :root[data-style="neo-brutalist"] .period-card,

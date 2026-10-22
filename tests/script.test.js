@@ -124,6 +124,10 @@ test("app workflow validates, saves, edits, filters, and deletes shifts", async 
         expect(element(".card-job").textContent).toBe("Expo");
 
         element('.main-nav [data-view="settings"]').click();
+        expect(app.querySelectorAll(".settings-card")).toHaveLength(3);
+        expect(element("#work-setup-title").textContent).toBe("Jobs & roles");
+        expect(element(".work-setup-flow").textContent.replace(/\s+/g, " ").trim())
+            .toContain("Restaurants › Roles › Shift templates");
         element("#setting-mode").value = "light";
         element("#setting-mode").dispatchEvent(new frame.contentWindow.Event("change", { bubbles: true }));
         element("#setting-style").value = "material";
