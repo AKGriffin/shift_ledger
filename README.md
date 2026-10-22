@@ -6,6 +6,12 @@ A lightweight, browser-based shift tracker for recording work hours, sales, tips
 
 Open `index.html` in a modern browser, or serve the project directory with any static web server. Browser storage is scoped to the origin, so use the same browser and URL to see the same saved data.
 
+## Install and offline use
+
+The app is installable and can load its app shell offline after its first successful visit. To use PWA features, serve it from `localhost` during development or deploy it over HTTPS; opening the HTML file directly does not enable service workers. Use your browser's Install app / Add to Home Screen command when available.
+
+The service worker caches the app shell and static assets. When deploying an update, increment `CACHE_NAME` in `sw.js` so installed copies replace their old cached assets.
+
 ## Features
 
 - Record, edit, and delete shifts
@@ -30,9 +36,15 @@ CSV exports include the values currently shown by the filters. Keep exported fil
 .
 ├── index.html
 ├── assert.js
+├── manifest.webmanifest
+├── sw.js
 ├── assets/
 │   ├── css/
 │   │   └── style.css
+│   ├── icons/
+│   │   ├── icon.svg
+│   │   ├── icon-192.png
+│   │   └── icon-512.png
 │   └── js/
 │       ├── script.js
 │       └── shift-math.js

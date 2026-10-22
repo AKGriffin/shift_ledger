@@ -58,6 +58,17 @@ bindEvents();
 renderDashboard();
 renderPreviousShifts();
 showView("dashboard");
+registerServiceWorker();
+
+function registerServiceWorker() {
+    if (!("serviceWorker" in navigator)) {
+        return;
+    }
+
+    navigator.serviceWorker.register("./sw.js").catch((error) => {
+        console.error("Unable to register the offline app worker:", error);
+    });
+}
 
 function bindEvents() {
     navButtons.forEach((button) => {
