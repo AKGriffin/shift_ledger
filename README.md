@@ -24,7 +24,7 @@ The service worker caches the app shell and static assets. When deploying an upd
 
 ## Tests
 
-Serve the project directory with a static web server, then open `/tests/` in the browser. The browser test page runs the shared shift calculation functions against the assertion helpers in `tests/assert.js`; it reports the pass/fail summary on the page and in the console.
+Serve the project directory with a static web server, then open `/tests/` in the browser. The browser test page checks shared shift calculations and runs an end-to-end app workflow for validation, saving, editing, filtering, settings, and deleting shifts. It reports the pass/fail summary on the page and in the console. App workflow tests use a hidden iframe and restore the browser's existing shift data and settings afterward.
 
 ## Data and privacy
 
@@ -52,6 +52,8 @@ CSV exports include the values currently shown by the filters. Keep exported fil
 ├── tests/
 │   ├── assert.js
 │   ├── index.html
+│   ├── run-tests.js
+│   ├── script.test.js
 │   └── shift-math.test.js
 └── README.md
 ```

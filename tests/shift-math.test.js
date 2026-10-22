@@ -1,4 +1,4 @@
-import { describe, expect, finishTests, test } from "./assert.js";
+import { describe, expect, test } from "./assert.js";
 
 const { getDurationMinutes, getNetTips, getSalesTotal, toMinutes } = window.ShiftMath;
 
@@ -60,11 +60,4 @@ describe("shift duration", () => {
         expect(getDurationMinutes({ clockIn: "09:00" })).toBe(0);
         expect(getDurationMinutes({ clockIn: "17:00", clockOut: "09:00" })).toBe(0);
     });
-});
-
-finishTests().catch((error) => {
-    const report = document.getElementById("test-results");
-    if (report) {
-        report.textContent = error.message;
-    }
 });
