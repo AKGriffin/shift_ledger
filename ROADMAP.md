@@ -26,5 +26,5 @@ This is a lightweight view of where Shift Ledger is headed, not a promise or a r
 - [x] Dashboard totals, weekly/monthly summaries, shift history, filters, and CSV export.
 - [x] Local shift storage, JSON backup/restore, and configurable preferences.
 - [x] Installable offline PWA support and browser-based tests.
-- [x] Minimalist, Material, and neo-brutalist styles with system, light, and dark color modes.
+- [x] Seven visual styles, each supporting system, light, and dark color modes.
 - [x] Responsive settings cards with a Jobs & roles direction preview.

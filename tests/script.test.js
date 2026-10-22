@@ -3,6 +3,23 @@ import { expect, test } from "./assert.js";
 const SHIFT_STORAGE_KEY = "shift-ledger-shifts-v1";
 const SETTINGS_STORAGE_KEY = "shift-ledger-settings-v1";
 
+function contrastRatio(firstHex, secondHex) {
+    const linearize = (channel) => {
+        const value = channel / 255;
+        return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+    };
+    const luminance = (hex) => {
+        const color = hex.replace("#", "");
+        const channels = [0, 2, 4].map((index) => Number.parseInt(color.slice(index, index + 2), 16));
+        return channels.reduce((sum, channel, index) => (
+            sum + linearize(channel) * [0.2126, 0.7152, 0.0722][index]
+        ), 0);
+    };
+    const first = luminance(firstHex);
+    const second = luminance(secondHex);
+    return (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05);
+}
+
 test("app workflow validates, saves, edits, filters, and deletes shifts", async () => {
     const previousShifts = localStorage.getItem(SHIFT_STORAGE_KEY);
     const previousSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
@@ -144,7 +161,7 @@ test("app workflow validates, saves, edits, filters, and deletes shifts", async 
         element("#setting-mode").dispatchEvent(new frame.contentWindow.Event("change", { bubbles: true }));
         expect(app.documentElement.dataset.theme).toBe("dark");
         expect(frame.contentWindow.getComputedStyle(app.documentElement).getPropertyValue("--bg").trim())
-            .toBe("#24211e");
+            .toBe("#171923");
         expect(app.querySelector('meta[name="theme-color"]').content).toBe("#d0bcff");
         expect(JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY)).colorMode).toBe("dark");
 
@@ -169,7 +186,50 @@ test("app workflow validates, saves, edits, filters, and deletes shifts", async 
         expect(app.documentElement.dataset.style).toBe("minimalist");
         expect(app.documentElement.dataset.theme).toBe("dark");
         expect(frame.contentWindow.getComputedStyle(app.documentElement).getPropertyValue("--bg").trim())
-            .toBe("#111827");
+            .toBe("#202124");
+
+        const styleOptions = [
+            "minimalist",
+            "material",
+            "neo-brutalist",
+            "cyberpunk",
+            "glassmorphism",
+            "skeuomorphic",
+            "high-contrast",
+        ];
+        expect([...element("#setting-style").options].map((option) => option.value)).toEqual(styleOptions);
+        for (const style of styleOptions) {
+            element("#setting-style").value = style;
+            element("#setting-style").dispatchEvent(new frame.contentWindow.Event("change", { bubbles: true }));
+            for (const mode of ["light", "dark"]) {
+                element("#setting-mode").value = mode;
+                element("#setting-mode").dispatchEvent(new frame.contentWindow.Event("change", { bubbles: true }));
+                expect(app.documentElement.dataset.style).toBe(style);
+                expect(app.documentElement.dataset.theme).toBe(mode);
+                expect(frame.contentWindow.getComputedStyle(app.documentElement).colorScheme).toBe(mode);
+                expect(frame.contentWindow.getComputedStyle(app.documentElement).getPropertyValue("--bg").trim())
+                    .toBeTruthy();
+                expect(app.querySelector('meta[name="theme-color"]').content).toBeTruthy();
+                if (style === "high-contrast") {
+                    const rootStyle = frame.contentWindow.getComputedStyle(app.documentElement);
+                    expect(contrastRatio(
+                        rootStyle.getPropertyValue("--text").trim(),
+                        rootStyle.getPropertyValue("--bg").trim()
+                    ) >= 7).toBe(true);
+                    expect(contrastRatio(
+                        rootStyle.getPropertyValue("--button-text").trim(),
+                        rootStyle.getPropertyValue("--primary").trim()
+                    ) >= 7).toBe(true);
+                }
+            }
+        }
+
+        element("#setting-style").value = "high-contrast";
+        element("#setting-style").dispatchEvent(new frame.contentWindow.Event("change", { bubbles: true }));
+        expect(frame.contentWindow.getComputedStyle(app.documentElement).getPropertyValue("--bg").trim())
+            .toBe("#000000");
+        expect(frame.contentWindow.getComputedStyle(app.documentElement).getPropertyValue("--text").trim())
+            .toBe("#ffffff");
 
         element("#setting-mode").value = "system";
         element("#setting-mode").dispatchEvent(new frame.contentWindow.Event("change", { bubbles: true }));
@@ -178,6 +238,8 @@ test("app workflow validates, saves, edits, filters, and deletes shifts", async 
 
         element("#setting-style").value = "material";
         element("#setting-style").dispatchEvent(new frame.contentWindow.Event("change", { bubbles: true }));
+        element("#setting-mode").value = "light";
+        element("#setting-mode").dispatchEvent(new frame.contentWindow.Event("change", { bubbles: true }));
 
         element("#setting-currency").value = "GBP";
         element("#setting-currency").dispatchEvent(new frame.contentWindow.Event("change", { bubbles: true }));

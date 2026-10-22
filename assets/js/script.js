@@ -196,9 +196,13 @@ function applyTheme() {
     const dark = state.settings.colorMode === "dark"
         || (state.settings.colorMode === "system" && systemTheme.matches);
     const themeColors = {
-        minimalist: dark ? "#111827" : "#2a6df6",
+        minimalist: dark ? "#202124" : "#ffffff",
         material: dark ? "#d0bcff" : "#6750a4",
         "neo-brutalist": dark ? "#ffb4a9" : "#efbd26",
+        cyberpunk: dark ? "#ff007f" : "#b000a5",
+        glassmorphism: dark ? "#a78bfa" : "#6366f1",
+        skeuomorphic: dark ? "#7dd3fc" : "#3b6d9a",
+        "high-contrast": dark ? "#39ff14" : "#0047ff",
     };
     document.querySelector('meta[name="theme-color"]').content =
         themeColors[state.settings.visualStyle] || themeColors.minimalist;
@@ -218,10 +222,14 @@ function loadSettings() {
             return defaults;
         }
 
-        const legacyTheme = ["system", "light", "dark", "material", "neo-brutalist"].includes(stored.theme)
+        const availableStyles = [
+            "minimalist", "material", "neo-brutalist", "cyberpunk",
+            "glassmorphism", "skeuomorphic", "high-contrast",
+        ];
+        const legacyTheme = ["system", "light", "dark", ...availableStyles].includes(stored.theme)
             ? stored.theme
             : null;
-        const legacyStyle = legacyTheme === "material" || legacyTheme === "neo-brutalist"
+        const legacyStyle = legacyTheme && availableStyles.includes(legacyTheme) && legacyTheme !== "minimalist"
             ? legacyTheme
             : "minimalist";
         const legacyMode = legacyTheme === "light" || legacyTheme === "dark"
@@ -230,7 +238,7 @@ function loadSettings() {
                 : legacyTheme ? "light" : defaults.colorMode;
 
         return {
-            visualStyle: ["minimalist", "material", "neo-brutalist"].includes(stored.visualStyle)
+            visualStyle: availableStyles.includes(stored.visualStyle)
                 ? stored.visualStyle
                 : legacyStyle,
             colorMode: ["system", "light", "dark"].includes(stored.colorMode)
