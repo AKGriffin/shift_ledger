@@ -19,14 +19,16 @@ The service worker caches the app shell and static assets. When deploying an upd
 - Review all-time, current-week, and current-month totals
 - Filter shift history by date range and job; sort by date, sales, or tips
 - Export the currently filtered shifts as a CSV file
+- Set the theme, week start day, and currency
+- Import or download a complete JSON data backup
 
 ## Tests
 
-Serve the project directory with a static web server, then open `/tests/` in the browser. The browser test page runs the shared shift calculation functions against the assertion helpers in `assert.js`; it reports the pass/fail summary on the page and in the console.
+Serve the project directory with a static web server, then open `/tests/` in the browser. The browser test page runs the shared shift calculation functions against the assertion helpers in `tests/assert.js`; it reports the pass/fail summary on the page and in the console.
 
 ## Data and privacy
 
-Shift data is saved in the browser's `localStorage` under the `shift-ledger-shifts-v1` key. It is not uploaded to a server. Clearing browser storage or switching browsers/devices can remove or make the data unavailable, so export a CSV backup when needed.
+Shift data and preferences are saved in this browser's `localStorage`; they are not uploaded to a server. Clearing browser storage or switching browsers/devices can remove or make the data unavailable, so download a JSON backup before clearing data or moving devices.
 
 CSV exports include the values currently shown by the filters. Keep exported files somewhere private because they can contain work and earnings information.
 
@@ -35,7 +37,6 @@ CSV exports include the values currently shown by the filters. Keep exported fil
 ```text
 .
 ├── index.html
-├── assert.js
 ├── manifest.webmanifest
 ├── sw.js
 ├── assets/
@@ -49,6 +50,7 @@ CSV exports include the values currently shown by the filters. Keep exported fil
 │       ├── script.js
 │       └── shift-math.js
 ├── tests/
+│   ├── assert.js
 │   ├── index.html
 │   └── shift-math.test.js
 └── README.md

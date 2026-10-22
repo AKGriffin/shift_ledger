@@ -1,9 +1,11 @@
 ﻿const STORAGE_KEY = "shift-ledger-shifts-v1";
-const { getDurationMinutes, getNetTips, getSalesTotal } = window.ShiftMath;
+const SETTINGS_KEY = "shift-ledger-settings-v1";
+const { getDurationMinutes, getNetTips, getSalesTotal, toMinutes } = window.ShiftMath;
 
 const state = {
     shifts: loadShifts(),
-    currentView: "dashboard",
+    settings: loadSettings(),
+    currentView: null,
     editingShiftId: null,
 };
 
@@ -53,11 +55,17 @@ const statEls = {
 
 const recentShiftsEl = document.getElementById("recent-shifts");
 const template = document.getElementById("shift-card-template");
+const themeSetting = document.getElementById("setting-theme");
+const weekStartSetting = document.getElementById("setting-week-start");
+const currencySetting = document.getElementById("setting-currency");
+const mobileLayout = window.matchMedia("(max-width: 720px)");
+const systemTheme = window.matchMedia("(prefers-color-scheme: dark)");
 
 bindEvents();
+initializeSettings();
 renderDashboard();
 renderPreviousShifts();
-showView("dashboard");
+showView(mobileLayout.matches ? "mobile-home" : "dashboard");
 registerServiceWorker();
 
 function registerServiceWorker() {
@@ -72,11 +80,15 @@ function registerServiceWorker() {
 
 function bindEvents() {
     navButtons.forEach((button) => {
-        button.addEventListener("click", () => {
+        button.addEventListener("click", (event) => {
+            if (button.tagName === "A") {
+                event.preventDefault();
+            }
             showView(button.dataset.view);
         });
     });
 
+    document.getElementById("back-to-menu").addEventListener("click", () => showView("mobile-home"));
     form.addEventListener("submit", handleFormSubmit);
     clearFormButton.addEventListener("click", resetForm);
     cancelFormButton.addEventListener("click", () => {
@@ -90,6 +102,21 @@ function bindEvents() {
     document.getElementById("clear-filters").addEventListener("click", clearHistoryFilters);
     document.getElementById("export-csv").addEventListener("click", exportFilteredShifts);
     shiftList.addEventListener("click", handleListAction);
+    themeSetting.addEventListener("change", () => updateSetting("theme", themeSetting.value));
+    weekStartSetting.addEventListener("change", () => updateSetting("weekStartsOn", weekStartSetting.value));
+    currencySetting.addEventListener("change", () => updateSetting("currency", currencySetting.value));
+    document.getElementById("export-backup").addEventListener("click", exportBackup);
+    document.getElementById("import-backup").addEventListener("click", () => {
+        document.getElementById("backup-file").click();
+    });
+    document.getElementById("backup-file").addEventListener("change", importBackup);
+    document.getElementById("clear-all-data").addEventListener("click", clearAllShifts);
+    mobileLayout.addEventListener("change", handleLayoutChange);
+    systemTheme.addEventListener("change", () => {
+        if (state.settings.theme === "system") {
+            applyTheme();
+        }
+    });
 }
 
 function showView(viewName) {
@@ -101,6 +128,94 @@ function showView(viewName) {
         section.classList.toggle("is-hidden", !visible);
         section.hidden = !visible;
     });
+
+    document.getElementById("back-to-menu").hidden = !mobileLayout.matches || viewName === "mobile-home";
+    document.querySelectorAll(".main-nav [data-view]").forEach((button) => {
+        if (button.tagName === "BUTTON") {
+            if (button.dataset.view === viewName) {
+                button.setAttribute("aria-current", "page");
+            } else {
+                button.removeAttribute("aria-current");
+            }
+        }
+    });
+}
+
+function handleLayoutChange(event) {
+    if (event.matches && state.currentView === "dashboard") {
+        showView("mobile-home");
+    } else if (!event.matches && state.currentView === "mobile-home") {
+        showView("dashboard");
+    } else {
+        showView(state.currentView);
+    }
+}
+
+function initializeSettings() {
+    themeSetting.value = state.settings.theme;
+    weekStartSetting.value = state.settings.weekStartsOn;
+    currencySetting.value = state.settings.currency;
+    applyTheme();
+}
+
+function updateSetting(name, value) {
+    const previousValue = state.settings[name];
+    state.settings[name] = value;
+
+    try {
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
+    } catch (error) {
+        state.settings[name] = previousValue;
+        initializeSettings();
+        console.error("Unable to save settings:", error);
+        setStatus("Unable to save your settings in this browser.", true);
+        return;
+    }
+
+    if (name === "theme") {
+        applyTheme();
+    } else if (name === "weekStartsOn") {
+        renderPeriodSummaries();
+    } else if (name === "currency") {
+        renderDashboard();
+        renderPreviousShifts();
+    }
+}
+
+function applyTheme() {
+    if (state.settings.theme === "system") {
+        document.documentElement.removeAttribute("data-theme");
+    } else {
+        document.documentElement.dataset.theme = state.settings.theme;
+    }
+
+    const dark = state.settings.theme === "dark"
+        || (state.settings.theme === "system" && systemTheme.matches);
+    document.querySelector('meta[name="theme-color"]').content = dark ? "#111827" : "#2a6df6";
+}
+
+function loadSettings() {
+    const defaults = { theme: "system", weekStartsOn: "monday", currency: "USD" };
+
+    try {
+        const stored = JSON.parse(localStorage.getItem(SETTINGS_KEY));
+        if (!stored || typeof stored !== "object") {
+            return defaults;
+        }
+
+        return {
+            theme: ["system", "light", "dark"].includes(stored.theme) ? stored.theme : defaults.theme,
+            weekStartsOn: ["monday", "sunday"].includes(stored.weekStartsOn)
+                ? stored.weekStartsOn
+                : defaults.weekStartsOn,
+            currency: ["USD", "CAD", "GBP", "EUR"].includes(stored.currency)
+                ? stored.currency
+                : defaults.currency,
+        };
+    } catch (error) {
+        console.error("Unable to read saved settings:", error);
+        return defaults;
+    }
 }
 
 function handleListAction(event) {
@@ -358,8 +473,9 @@ function renderPreviousShifts() {
 function renderPeriodSummaries() {
     const today = new Date();
     const weekStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const dayFromMonday = (weekStart.getDay() + 6) % 7;
-    weekStart.setDate(weekStart.getDate() - dayFromMonday);
+    const firstDay = state.settings.weekStartsOn === "sunday" ? 0 : 1;
+    const daysSinceWeekStart = (weekStart.getDay() - firstDay + 7) % 7;
+    weekStart.setDate(weekStart.getDate() - daysSinceWeekStart);
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekEnd.getDate() + 6);
 
@@ -370,6 +486,8 @@ function renderPeriodSummaries() {
     const monthFrom = toLocalDateString(monthStart);
     const monthTo = toLocalDateString(monthEnd);
 
+    const weekLabel = state.settings.weekStartsOn === "sunday" ? "Sunday to Saturday" : "Monday to Sunday";
+    weekDateRange.closest(".period-card").querySelector(".eyebrow").textContent = weekLabel;
     weekDateRange.textContent = `${formatDate(weekFrom)} – ${formatDate(weekTo)}`;
     monthDateRange.textContent = `${formatDate(monthFrom)} – ${formatDate(monthTo)}`;
     renderPeriodSummary(weekSummary, weekFrom, weekTo);
@@ -491,6 +609,117 @@ function exportFilteredShifts() {
     setStatus(`${shifts.length} ${shifts.length === 1 ? "shift" : "shifts"} exported to CSV.`);
 }
 
+function exportBackup() {
+    const backup = {
+        format: "shift-ledger-backup",
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        shifts: state.shifts,
+    };
+    downloadFile(
+        JSON.stringify(backup, null, 2),
+        `shift-ledger-backup-${toLocalDateString(new Date())}.json`,
+        "application/json"
+    );
+    setStatus(`Backup downloaded with ${state.shifts.length} ${state.shifts.length === 1 ? "shift" : "shifts"}.`);
+}
+
+async function importBackup(event) {
+    const fileInput = event.target;
+    const file = fileInput.files[0];
+    if (!file) {
+        return;
+    }
+
+    try {
+        const parsed = JSON.parse(await file.text());
+        const records = Array.isArray(parsed) ? parsed : parsed?.shifts;
+        if (!Array.isArray(records)) {
+            throw new Error("This file is not a Shift Ledger backup.");
+        }
+
+        const importedShifts = records.map(normalizeImportedShift);
+        if (!window.confirm(`Replace your ${state.shifts.length} saved shifts with ${importedShifts.length} shifts from this backup?`)) {
+            return;
+        }
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(importedShifts));
+        state.shifts = importedShifts;
+        renderDashboard();
+        renderPreviousShifts();
+        setStatus(`Restored ${importedShifts.length} ${importedShifts.length === 1 ? "shift" : "shifts"}.`);
+    } catch (error) {
+        console.error("Unable to restore backup:", error);
+        setStatus(error instanceof SyntaxError ? "The selected backup is not valid JSON." : error.message, true);
+    } finally {
+        fileInput.value = "";
+    }
+}
+
+function normalizeImportedShift(shift, index) {
+    if (!shift || typeof shift !== "object" || Array.isArray(shift)
+        || typeof shift.date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(shift.date)
+        || typeof shift.mealPeriod !== "string" || typeof shift.job !== "string"
+        || typeof shift.clockIn !== "string" || typeof shift.clockOut !== "string") {
+        throw new Error(`Backup shift ${index + 1} is missing valid required fields.`);
+    }
+
+    const amountFields = [
+        "foodSales", "bawSales", "liquorSales", "naBevSales", "additionalSales",
+        "ccTips", "cashTips", "tipsPaidOut", "tipOutReceived",
+    ];
+    const normalized = {
+        ...shift,
+        id: typeof shift.id === "number" && Number.isFinite(shift.id) ? shift.id : createShiftId(),
+    };
+    amountFields.forEach((field) => {
+        const amount = Number(shift[field] ?? 0);
+        if (!Number.isFinite(amount) || amount < 0) {
+            throw new Error(`Backup shift ${index + 1} has an invalid ${field} amount.`);
+        }
+        normalized[field] = amount;
+    });
+
+    if (typeof normalized.notes !== "string") {
+        normalized.notes = "";
+    }
+
+    return normalized;
+}
+
+function clearAllShifts() {
+    if (state.shifts.length === 0) {
+        setStatus("There are no shifts to delete.");
+        return;
+    }
+    if (!window.confirm(`Permanently delete all ${state.shifts.length} saved shifts? Export a backup first if you may need these records.`)) {
+        return;
+    }
+
+    try {
+        localStorage.removeItem(STORAGE_KEY);
+        state.shifts = [];
+        renderDashboard();
+        renderPreviousShifts();
+        setStatus("All shifts have been deleted.");
+    } catch (error) {
+        console.error("Unable to delete saved shifts:", error);
+        setStatus("Unable to delete saved shifts from this browser.", true);
+    }
+}
+
+function downloadFile(content, fileName, contentType) {
+    const file = new Blob([content], { type: `${contentType};charset=utf-8` });
+    const url = URL.createObjectURL(file);
+    const downloadLink = document.createElement("a");
+    downloadLink.href = url;
+    downloadLink.download = fileName;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    downloadLink.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 function escapeCsvValue(value) {
     let text = value === null || value === undefined ? "" : String(value);
     if (/^[\s]*[=+\-@]/.test(text)) {
@@ -546,7 +775,7 @@ function formatDuration(totalMinutes) {
 function formatCurrency(amount) {
     return new Intl.NumberFormat("en-US", {
         style: "currency",
-        currency: "USD",
+        currency: state.settings.currency,
         minimumFractionDigits: 2,
     }).format(Number(amount) || 0);
 }

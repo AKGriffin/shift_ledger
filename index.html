@@ -14,21 +14,58 @@
 
 <body>
     <div class="app-shell">
-        <header class="topbar">
-            <div>
-                <p class="eyebrow">Service ledger</p>
-                <h1>Shift Ledger</h1>
-            </div>
+        <aside class="sidebar">
+            <a class="brand" href="./" data-view="dashboard" aria-label="Shift Ledger dashboard">
+                <span class="brand-mark" aria-hidden="true">SL</span>
+                <span>
+                    <span class="eyebrow">Service ledger</span>
+                    <strong>Shift Ledger</strong>
+                </span>
+            </a>
             <nav class="main-nav" aria-label="Main navigation">
                 <button type="button" class="nav-button" data-view="dashboard">Dashboard</button>
                 <button type="button" class="nav-button" data-view="new-shift">New Shift</button>
                 <button type="button" class="nav-button" data-view="previous-shifts">Previous Shifts</button>
+                <button type="button" class="nav-button" data-view="settings">Settings</button>
             </nav>
-        </header>
+            <p class="sidebar-footer">Your shifts stay on this device.</p>
+        </aside>
 
-        <p id="form-status" class="form-status" role="status" aria-live="polite" hidden></p>
+        <div class="app-content">
+            <p id="form-status" class="form-status" role="status" aria-live="polite" hidden></p>
 
         <main>
+            <section id="mobile-home" class="view is-hidden mobile-home">
+                <div class="mobile-welcome">
+                    <span class="brand-mark" aria-hidden="true">SL</span>
+                    <p class="eyebrow">Your personal work log</p>
+                    <h1>Shift Ledger</h1>
+                    <p>Keep your shifts, hours, sales, and tips in one place.</p>
+                </div>
+                <nav class="mobile-menu" aria-label="App menu">
+                    <button type="button" class="mobile-menu-button" data-view="dashboard">
+                        <span class="menu-icon" aria-hidden="true">01</span>
+                        <span><strong>Dashboard</strong><small>Your totals and recent shifts</small></span>
+                        <span class="menu-arrow" aria-hidden="true">›</span>
+                    </button>
+                    <button type="button" class="mobile-menu-button" data-view="new-shift">
+                        <span class="menu-icon" aria-hidden="true">02</span>
+                        <span><strong>New Shift</strong><small>Log a shift and tips</small></span>
+                        <span class="menu-arrow" aria-hidden="true">›</span>
+                    </button>
+                    <button type="button" class="mobile-menu-button" data-view="previous-shifts">
+                        <span class="menu-icon" aria-hidden="true">03</span>
+                        <span><strong>Previous Shifts</strong><small>Search and review your history</small></span>
+                        <span class="menu-arrow" aria-hidden="true">›</span>
+                    </button>
+                    <button type="button" class="mobile-menu-button" data-view="settings">
+                        <span class="menu-icon" aria-hidden="true">04</span>
+                        <span><strong>Settings</strong><small>Preferences and data tools</small></span>
+                        <span class="menu-arrow" aria-hidden="true">›</span>
+                    </button>
+                </nav>
+            </section>
+            <button type="button" id="back-to-menu" class="back-to-menu ghost-button">‹ App menu</button>
             <section id="dashboard" class="view is-visible">
                 <div class="summary-grid">
                     <article class="stat-card accent-blue">
@@ -238,7 +275,60 @@
                     <div id="shift-list" class="shift-list"></div>
                 </div>
             </section>
+            <section id="settings" class="view is-hidden">
+                <div class="panel">
+                    <div class="panel-header">
+                        <div>
+                            <p class="eyebrow">Make it yours</p>
+                            <h2>Settings</h2>
+                        </div>
+                    </div>
+
+                    <section class="settings-group" aria-labelledby="preferences-title">
+                        <h3 id="preferences-title">Preferences</h3>
+                        <div class="settings-grid">
+                            <label class="field">
+                                <span>Appearance</span>
+                                <select id="setting-theme">
+                                    <option value="system">Use device setting</option>
+                                    <option value="light">Light</option>
+                                    <option value="dark">Dark</option>
+                                </select>
+                            </label>
+                            <label class="field">
+                                <span>Week starts on</span>
+                                <select id="setting-week-start">
+                                    <option value="monday">Monday</option>
+                                    <option value="sunday">Sunday</option>
+                                </select>
+                            </label>
+                            <label class="field">
+                                <span>Currency</span>
+                                <select id="setting-currency">
+                                    <option value="USD">US Dollar (USD)</option>
+                                    <option value="CAD">Canadian Dollar (CAD)</option>
+                                    <option value="GBP">British Pound (GBP)</option>
+                                    <option value="EUR">Euro (EUR)</option>
+                                </select>
+                            </label>
+                        </div>
+                        <p class="settings-description">Currency changes how amounts are displayed; it does not convert existing values.</p>
+                    </section>
+
+                    <section class="settings-group" aria-labelledby="data-title">
+                        <h3 id="data-title">Your data</h3>
+                        <p class="settings-description">Your shift records are saved in this browser on this device. Export a backup before clearing browser data or moving devices.</p>
+                        <div class="settings-actions">
+                            <button type="button" id="export-backup" class="secondary-button">Download backup</button>
+                            <button type="button" id="import-backup" class="secondary-button">Restore backup</button>
+                            <input type="file" id="backup-file" accept="application/json,.json" hidden>
+                            <button type="button" id="clear-all-data" class="danger-button">Delete all shifts</button>
+                        </div>
+                    </section>
+                </div>
+            </section>
         </main>
+        </div>
     </div>
 
     <template id="shift-card-template">

@@ -1,6 +1,6 @@
-import { describe, expect, finishTests, test } from "../assert.js";
+import { describe, expect, finishTests, test } from "./assert.js";
 
-const { getDurationMinutes, getNetTips, getSalesTotal } = window.ShiftMath;
+const { getDurationMinutes, getNetTips, getSalesTotal, toMinutes } = window.ShiftMath;
 
 describe("sales totals", () => {
     test("adds all sales categories", () => {
@@ -35,6 +35,11 @@ describe("net tips", () => {
 });
 
 describe("shift duration", () => {
+    test("converts a 24-hour clock time to minutes", () => {
+        expect(toMinutes("16:30")).toBe(990);
+        expect(toMinutes("00:00")).toBe(0);
+    });
+
     test("subtracts a recorded break from shift time", () => {
         expect(getDurationMinutes({
             clockIn: "16:00",

@@ -51,5 +51,6 @@
         getDurationMinutes,
         getNetTips,
         getSalesTotal,
+        toMinutes,
     };
 })(window);
