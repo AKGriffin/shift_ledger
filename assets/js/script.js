@@ -55,6 +55,7 @@ const statEls = {
 
 const recentShiftsEl = document.getElementById("recent-shifts");
 const template = document.getElementById("shift-card-template");
+const appShell = document.querySelector(".app-shell");
 const styleSetting = document.getElementById("setting-style");
 const modeSetting = document.getElementById("setting-mode");
 const weekStartSetting = document.getElementById("setting-week-start");
@@ -123,6 +124,9 @@ function bindEvents() {
 
 function showView(viewName) {
     state.currentView = viewName;
+    const isMobileHome = mobileLayout.matches && viewName === "mobile-home";
+    appShell.classList.toggle("is-mobile-home", isMobileHome);
+    document.body.classList.toggle("is-mobile-home", isMobileHome);
 
     document.querySelectorAll(".view").forEach((section) => {
         const visible = section.id === viewName;

@@ -27,6 +27,7 @@ test("brand uses the app icon and the mobile menu fits a standard phone viewport
 
     const standardFrame = await createAppFrame(390, 667);
     const compactFrame = await createAppFrame(320, 568);
+    const shortFrame = await createAppFrame(320, 400);
 
     try {
         const app = standardFrame.contentDocument;
@@ -36,12 +37,17 @@ test("brand uses the app icon and the mobile menu fits a standard phone viewport
         expect(app.documentElement.scrollHeight <= standardFrame.contentWindow.innerHeight).toBe(true);
         expect(compactFrame.contentDocument.documentElement.scrollHeight <= compactFrame.contentWindow.innerHeight)
             .toBe(true);
+        expect(shortFrame.contentDocument.documentElement.scrollHeight <= shortFrame.contentWindow.innerHeight)
+            .toBe(true);
+        expect(shortFrame.contentDocument.querySelector(".app-shell").scrollHeight
+            > shortFrame.contentDocument.querySelector(".app-shell").clientHeight).toBe(true);
         app.querySelector('.mobile-menu-button[data-view="dashboard"]').click();
         expect(app.querySelectorAll(".period-metric")).toHaveLength(8);
         expect(app.documentElement.scrollWidth <= standardFrame.contentWindow.innerWidth).toBe(true);
     } finally {
         standardFrame.remove();
         compactFrame.remove();
+        shortFrame.remove();
     }
 });
 
