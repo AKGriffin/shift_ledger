@@ -3,6 +3,45 @@ import { expect, test } from "./assert.js";
 const SHIFT_STORAGE_KEY = "shift-ledger-shifts-v1";
 const SETTINGS_STORAGE_KEY = "shift-ledger-settings-v1";
 
+test("brand uses the app icon and the mobile menu fits a standard phone viewport", async () => {
+    const createAppFrame = async (width, height) => {
+        const frame = document.createElement("iframe");
+        frame.title = "Mobile menu layout test";
+        frame.style.cssText = `position:fixed;left:-1300px;top:0;width:${width}px;height:${height}px;`;
+
+        const loaded = new Promise((resolve, reject) => {
+            const timeout = window.setTimeout(() => reject(new Error("The mobile layout test frame did not load.")), 10000);
+            frame.addEventListener("load", () => {
+                window.clearTimeout(timeout);
+                resolve();
+            }, { once: true });
+        });
+        frame.src = "../index.html";
+        document.body.appendChild(frame);
+        await loaded;
+        await new Promise((resolve) => frame.contentWindow.requestAnimationFrame(() => (
+            frame.contentWindow.requestAnimationFrame(resolve)
+        )));
+        return frame;
+    };
+
+    const standardFrame = await createAppFrame(390, 667);
+    const compactFrame = await createAppFrame(320, 568);
+
+    try {
+        const app = standardFrame.contentDocument;
+        expect(app.querySelector(".brand img").getAttribute("src")).toBe("assets/icons/icon.svg");
+        expect(app.querySelector(".mobile-brand img").getAttribute("src")).toBe("assets/icons/icon.svg");
+        expect(app.querySelector("#mobile-home").classList.contains("is-visible")).toBe(true);
+        expect(app.documentElement.scrollHeight <= standardFrame.contentWindow.innerHeight).toBe(true);
+        expect(compactFrame.contentDocument.documentElement.scrollHeight <= compactFrame.contentWindow.innerHeight)
+            .toBe(true);
+    } finally {
+        standardFrame.remove();
+        compactFrame.remove();
+    }
+});
+
 function contrastRatio(firstHex, secondHex) {
     const linearize = (channel) => {
         const value = channel / 255;
