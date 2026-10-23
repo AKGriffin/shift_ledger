@@ -103,7 +103,7 @@
                             </div>
                             <span id="week-date-range" class="period-range"></span>
                         </div>
-                        <div id="week-summary" class="period-metrics"></div>
+                        <div id="week-summary" class="period-metrics" aria-label="This week's statistics"></div>
                     </article>
                     <article class="period-card">
                         <div class="period-heading">
@@ -113,7 +113,7 @@
                             </div>
                             <span id="month-date-range" class="period-range"></span>
                         </div>
-                        <div id="month-summary" class="period-metrics"></div>
+                        <div id="month-summary" class="period-metrics" aria-label="This month's statistics"></div>
                     </article>
                 </section>
 
@@ -388,22 +388,26 @@
 
     <template id="shift-card-template">
         <article class="shift-card">
-            <div class="card-header">
-                <div>
-                    <p class="card-date"></p>
-                    <h3 class="card-title"></h3>
+            <div class="shift-card-summary">
+                <div class="card-header">
+                    <div>
+                        <p class="card-date"></p>
+                        <h3 class="card-title"></h3>
+                    </div>
+                    <span class="pill card-meal"></span>
                 </div>
-                <span class="pill card-meal"></span>
-            </div>
 
-            <div class="card-meta">
-                <p><strong>Job:</strong> <span class="card-job"></span></p>
-                <p><strong>Hours:</strong> <span class="card-hours"></span></p>
-            </div>
+                <div class="card-primary-metrics">
+                    <div class="card-meta">
+                        <p><strong>Job:</strong> <span class="card-job"></span></p>
+                        <p><strong>Hours:</strong> <span class="card-hours"></span></p>
+                    </div>
 
-            <div class="card-metrics">
-                <p><strong>Sales:</strong> <span class="card-sales"></span></p>
-                <p><strong>Tips:</strong> <span class="card-tips"></span></p>
+                    <div class="card-metrics">
+                        <p><strong>Sales:</strong> <span class="card-sales"></span></p>
+                        <p><strong>Tips:</strong> <span class="card-tips"></span></p>
+                    </div>
+                </div>
             </div>
 
             <div class="card-breakdown">

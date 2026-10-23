@@ -808,6 +808,10 @@ main {
 }
 
 .period-card {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    align-items: start;
+    gap: 18px;
     min-width: 0;
     padding: 20px;
     border: 1px solid var(--border);
@@ -818,10 +822,10 @@ main {
 
 .period-heading {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 18px;
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
 }
 
 .period-heading > div {
@@ -841,28 +845,33 @@ main {
     min-width: 0;
     color: var(--muted);
     font-size: 0.82rem;
-    text-align: right;
     overflow-wrap: anywhere;
 }
 
 .period-metrics {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px;
+    min-width: 0;
+    gap: 10px;
 }
 
 .period-metric {
-    display: grid;
-    gap: 5px;
+    display: flex;
+    min-width: 0;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
 }
 
 .period-metric span {
+    min-width: 0;
     color: var(--muted);
     font-size: 0.78rem;
 }
 
 .period-metric strong {
+    flex: 0 0 auto;
     font-size: 1.05rem;
+    text-align: right;
 }
 
 .recent-list {
@@ -1036,6 +1045,12 @@ textarea {
     background: var(--panel);
 }
 
+.shift-card-summary {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    gap: 18px;
+}
+
 .card-header {
     display: flex;
     align-items: flex-start;
@@ -1074,7 +1089,13 @@ textarea {
 
 .card-meta,
 .card-metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.card-primary-metrics {
+    display: grid;
+    align-content: start;
+    gap: 8px;
 }
 
 .card-meta p,
@@ -1287,26 +1308,6 @@ textarea {
         padding: 16px 14px;
     }
 
-    @media (max-width: 720px) and (max-height: 640px) {
-        .mobile-home.is-visible {
-            padding-top: 12px;
-            padding-bottom: 10px;
-        }
-
-        .mobile-welcome {
-            gap: 6px;
-            margin-bottom: 12px;
-        }
-
-        .mobile-menu {
-            gap: 8px;
-        }
-
-        .mobile-menu-button {
-            padding: 10px;
-        }
-    }
-
     .period-grid {
         grid-template-columns: 1fr;
     }
@@ -1331,15 +1332,6 @@ textarea {
 
     .settings-actions > * {
         width: 100%;
-    }
-
-    .period-heading {
-        align-items: flex-start;
-        flex-direction: column;
-    }
-
-    .period-range {
-        text-align: left;
     }
 
     .toolbar {
@@ -1369,6 +1361,26 @@ textarea {
     .ghost-button,
     .danger-button {
         max-width: 100%;
+    }
+}
+
+@media (max-width: 720px) and (max-height: 640px) {
+    .mobile-home.is-visible {
+        padding-top: 12px;
+        padding-bottom: 10px;
+    }
+
+    .mobile-welcome {
+        gap: 6px;
+        margin-bottom: 12px;
+    }
+
+    .mobile-menu {
+        gap: 8px;
+    }
+
+    .mobile-menu-button {
+        padding: 10px;
     }
 }
 

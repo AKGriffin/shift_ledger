@@ -4,7 +4,6 @@ This is a lightweight view of where Shift Ledger is headed, not a promise or a r
 
 ## Now
 
-- [ ] **Make dashboard and history summaries easier to scan** - Try a two-column summary-card layout with period labels and date ranges on one side and vertically stacked statistics on the other. Apply the same pattern to previous-shift cards and verify it at narrow widths.
 - [ ] **Improve mobile navigation and reachability** - Keep in-app back/forward navigation predictable instead of unexpectedly leaving the app, and place frequently used mobile actions where they are easier to reach one-handed.
 - [ ] **Model workplaces, roles, and shift templates** - Separate restaurants/workplaces from the positions worked there. A workplace owns its roles; each role can have a reusable shift template. Define how existing `job` values and saved shifts migrate without losing history.
 - [ ] **Manage workplaces and roles in Settings** - Let users add, rename, and archive a workplace and its roles. Make clear what happens to historical shifts when an item is archived.
@@ -39,3 +38,4 @@ This is a lightweight view of where Shift Ledger is headed, not a promise or a r
 - [x] Responsive settings cards with a Jobs & roles direction preview.
 - [x] Mobile app menu fits common phone screens and scrolls only when space is insufficient.
 - [x] App icon replaces the text monogram in the header, with the brand kept on one line.
+- [x] Dashboard period summaries and previous-shift cards use a two-column heading-and-statistics layout.

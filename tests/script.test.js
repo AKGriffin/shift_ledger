@@ -36,6 +36,9 @@ test("brand uses the app icon and the mobile menu fits a standard phone viewport
         expect(app.documentElement.scrollHeight <= standardFrame.contentWindow.innerHeight).toBe(true);
         expect(compactFrame.contentDocument.documentElement.scrollHeight <= compactFrame.contentWindow.innerHeight)
             .toBe(true);
+        app.querySelector('.mobile-menu-button[data-view="dashboard"]').click();
+        expect(app.querySelectorAll(".period-metric")).toHaveLength(8);
+        expect(app.documentElement.scrollWidth <= standardFrame.contentWindow.innerWidth).toBe(true);
     } finally {
         standardFrame.remove();
         compactFrame.remove();
@@ -156,12 +159,19 @@ test("app workflow validates, saves, edits, filters, and deletes shifts", async 
         expect(element("#summary-total-sales").textContent).toBe("$300.00");
         expect(element("#summary-total-tips").textContent).toBe("$84.00");
         expect(savedShifts()).toHaveLength(2);
+        element('.main-nav [data-view="dashboard"]').click();
+        expect(app.querySelectorAll(".period-metric")).toHaveLength(8);
+        expect(frame.contentWindow.getComputedStyle(element(".period-card")).gridTemplateColumns.split(" "))
+            .toHaveLength(2);
 
         element('.main-nav [data-view="previous-shifts"]').click();
         expect(app.querySelectorAll(".shift-card")).toHaveLength(2);
         const serverCard = [...app.querySelectorAll(".shift-card")]
             .find((card) => card.querySelector(".card-job").textContent === "Server");
         expect(serverCard).toBeDefined();
+        expect(frame.contentWindow.getComputedStyle(serverCard.querySelector(".shift-card-summary"))
+            .gridTemplateColumns.split(" ")).toHaveLength(2);
+        expect(serverCard.querySelectorAll(".card-primary-metrics p")).toHaveLength(4);
         expect(serverCard.querySelector(".card-notes").textContent).toBe(notesWithMarkup);
         expect(serverCard.querySelector(".card-notes img")).toBeNull();
         serverCard.querySelector(".edit-shift").click();
