@@ -35,6 +35,47 @@ describe("Mobile menu", () => {
         expect(doc.documentElement.scrollWidth).toBeLessThanOrEqual(win.innerWidth);
     }));
 
+    test("uses browser back and forward to revisit mobile app views", () => withApp({
+        width: 390,
+        height: 667,
+    }, ({ element, win }) => {
+        element('.mobile-menu-button[data-view="dashboard"]').click();
+        expect(win.history.state.shiftLedgerView).toBe("dashboard");
+        expect(element("#dashboard").classList.contains("is-visible")).toBe(true);
+
+        win.dispatchEvent(new win.PopStateEvent("popstate", {
+            state: { shiftLedgerView: "mobile-home" },
+        }));
+        expect(element("#mobile-home").classList.contains("is-visible")).toBe(true);
+
+        win.dispatchEvent(new win.PopStateEvent("popstate", {
+            state: { shiftLedgerView: "dashboard" },
+        }));
+        expect(element("#dashboard").classList.contains("is-visible")).toBe(true);
+    }));
+
+    test("keeps an unfinished shift when navigating back to it", () => withApp({
+        width: 390,
+        height: 667,
+    }, ({ element, fire, win }) => {
+        element('.mobile-menu-button[data-view="new-shift"]').click();
+        expect(win.history.state.shiftLedgerView).toBe("new-shift");
+        const foodSales = element("#shift-food-sales");
+        foodSales.value = "25";
+        fire(foodSales, "input");
+
+        win.dispatchEvent(new win.PopStateEvent("popstate", {
+            state: { shiftLedgerView: "mobile-home" },
+        }));
+        expect(element("#mobile-home").classList.contains("is-visible")).toBe(true);
+
+        win.dispatchEvent(new win.PopStateEvent("popstate", {
+            state: { shiftLedgerView: "new-shift" },
+        }));
+        expect(element("#new-shift").classList.contains("is-visible")).toBe(true);
+        expect(foodSales.value).toBe("25");
+    }));
+
     test("keeps mobile history controls and its filter dialog within the viewport", () => withApp({
         width: 390,
         height: 844,

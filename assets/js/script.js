@@ -1,5 +1,6 @@
 ﻿const STORAGE_KEY = "shift-ledger-shifts-v1";
 const SETTINGS_KEY = "shift-ledger-settings-v1";
+const VIEW_HISTORY_KEY = "shiftLedgerView";
 const { getAutoGratuity, getDurationMinutes, getFinancialBreakdown, getNetTips, getSalesTotal, toMinutes } = window.ShiftMath;
 const CARD_BREAKDOWN_SELECTORS = {
     foodSales: ".card-food-sales",
@@ -108,7 +109,7 @@ initializeDoubleReports();
 initializeSettings();
 renderDashboard();
 renderPreviousShifts();
-showView(mobileLayout.matches ? "mobile-home" : "dashboard");
+showView(getInitialView(), { historyAction: "replace" });
 registerServiceWorker();
 
 function registerServiceWorker() {
@@ -177,6 +178,7 @@ function bindEvents() {
     });
 
     document.getElementById("back-to-menu").addEventListener("click", () => showView("mobile-home"));
+    window.addEventListener("popstate", handlePopState);
     form.addEventListener("submit", handleFormSubmit);
     form.addEventListener("input", markShiftFormDirty);
     form.addEventListener("change", markShiftFormDirty);
@@ -265,7 +267,20 @@ function bindEvents() {
     });
 }
 
-function showView(viewName) {
+function showView(viewName, { historyAction = "push" } = {}) {
+    if (historyAction !== "none"
+        && (historyAction === "replace" || state.currentView !== viewName)) {
+        const historyState = {
+            ...(window.history.state || {}),
+            [VIEW_HISTORY_KEY]: viewName,
+        };
+        if (historyAction === "replace") {
+            window.history.replaceState(historyState, "", window.location.href);
+        } else {
+            window.history.pushState(historyState, "", window.location.href);
+        }
+    }
+
     state.currentView = viewName;
     if (historyFilterDialog.open && viewName !== "previous-shifts") {
         closeHistoryFilterDialog(false);
@@ -297,6 +312,25 @@ function showView(viewName) {
     });
 }
 
+function handlePopState(event) {
+    const viewName = event.state?.[VIEW_HISTORY_KEY];
+    if (typeof viewName === "string" && document.getElementById(viewName)?.classList.contains("view")) {
+        showView(viewName, { historyAction: "none" });
+        return;
+    }
+
+    showView(mobileLayout.matches ? "mobile-home" : "dashboard", { historyAction: "replace" });
+}
+
+function getInitialView() {
+    const historyView = window.history.state?.[VIEW_HISTORY_KEY];
+    if (typeof historyView === "string" && document.getElementById(historyView)?.classList.contains("view")) {
+        return historyView;
+    }
+
+    return mobileLayout.matches ? "mobile-home" : "dashboard";
+}
+
 function closeHistoryFilterDialog(restoreFocus = true) {
     if (historyFilterDialog.open) {
         historyFilterDialog.close();
@@ -309,11 +343,11 @@ function closeHistoryFilterDialog(restoreFocus = true) {
 
 function handleLayoutChange(event) {
     if (event.matches && state.currentView === "dashboard") {
-        showView("mobile-home");
+        showView("mobile-home", { historyAction: "replace" });
     } else if (!event.matches && state.currentView === "mobile-home") {
-        showView("dashboard");
+        showView("dashboard", { historyAction: "replace" });
     } else {
-        showView(state.currentView);
+        showView(state.currentView, { historyAction: "replace" });
     }
 }
 
