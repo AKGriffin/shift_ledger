@@ -947,34 +947,94 @@ form {
     gap: 18px;
 }
 
+#new-shift {
+    container-type: inline-size;
+}
+
+.form-header-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.form-header-card > div {
+    min-width: 0;
+}
+
+.form-header-card .eyebrow {
+    margin: 0 0 4px;
+}
+
+.form-header-card h2 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.form-header-card > p {
+    max-width: 32rem;
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.shift-form {
+    gap: 16px;
+}
+
+.form-context-grid,
+.form-report-grid {
+    display: grid;
+    min-width: 0;
+    gap: 16px;
+}
+
 fieldset {
     margin: 0;
-    padding: 18px 16px 10px;
+    min-width: 0;
+    padding: 20px 18px 18px;
     border: 1px solid var(--border);
     border-radius: 16px;
-    background: var(--panel-alt);
+    background: var(--panel);
+    box-shadow: var(--shadow);
 }
 
 legend {
     padding: 0 10px;
     font-weight: 700;
-    color: var(--muted);
+    color: var(--text);
 }
 
 .form-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 16px;
-    margin-top: 10px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+    margin-top: 8px;
 }
 
 #single-report-fields {
-    display: grid;
-    gap: 18px;
+    grid-template-columns: minmax(0, 1fr);
 }
 
 #single-report-fields[hidden] {
     display: none;
+}
+
+#double-report-fields:not([hidden]) {
+    display: grid;
+    grid-column: 1 / -1;
+    gap: 10px;
+}
+
+#double-report-fields h3,
+#double-report-fields > p {
+    margin: 0;
+}
+
+#double-report-fields > p {
+    color: var(--muted);
+    line-height: 1.5;
 }
 
 .double-report-list {
@@ -1085,7 +1145,7 @@ legend {
 }
 
 .notes-field {
-    margin-top: 6px;
+    margin: 0;
 }
 
 textarea {
@@ -1096,7 +1156,26 @@ textarea {
 .form-actions {
     display: flex;
     flex-wrap: wrap;
+    justify-content: flex-end;
     gap: 12px;
+}
+
+@container (min-width: 640px) {
+    .form-context-grid {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    }
+
+    #single-report-fields {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 480px) {
+    .form-header-card {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 8px;
+    }
 }
 
 .toolbar {

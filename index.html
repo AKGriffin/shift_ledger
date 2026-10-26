@@ -127,12 +127,16 @@
             </section>
 
             <section id="new-shift" class="view is-hidden">
-                <div class="panel">
-                    <div class="panel-header">
+                <div class="panel form-header-card">
+                    <div>
+                        <p class="eyebrow">Shift entry</p>
                         <h2 id="form-title">New Shift</h2>
                     </div>
+                    <p>Capture the time, sales, and tips for this shift.</p>
+                </div>
 
-                    <form id="shift-form" novalidate>
+                <form id="shift-form" class="shift-form" novalidate>
+                    <div class="form-context-grid">
                         <fieldset>
                             <legend>General</legend>
                             <div class="form-grid">
@@ -188,8 +192,9 @@
                                 </label>
                             </div>
                         </fieldset>
+                    </div>
 
-                        <div id="single-report-fields">
+                    <div id="single-report-fields" class="form-report-grid">
                         <fieldset>
                             <legend>Sales</legend>
                             <div class="form-grid">
@@ -241,30 +246,32 @@
                                 </label>
                             </div>
                         </fieldset>
-                        </div>
+                    </div>
 
-                        <section id="double-report-fields" hidden aria-labelledby="double-report-heading">
-                            <h3 id="double-report-heading">Double-shift reports</h3>
-                            <p>Record the reports you have. A missing report is different from a report with zero sales or tips.</p>
-                            <div id="double-report-list" class="double-report-list"></div>
-                        </section>
+                    <section id="double-report-fields" hidden aria-labelledby="double-report-heading">
+                        <h3 id="double-report-heading">Double-shift reports</h3>
+                        <p>Record the reports you have. A missing report is different from a report with zero sales or tips.</p>
+                        <div id="double-report-list" class="double-report-list"></div>
+                    </section>
 
+                    <fieldset class="notes-section">
+                        <legend>Notes</legend>
                         <label class="field notes-field">
-                            <span>Shift notes</span>
-                            <textarea id="shift-notes" rows="4" placeholder="Anything important from the shift?"></textarea>
+                            <span>Anything important from the shift?</span>
+                            <textarea id="shift-notes" rows="4" placeholder="Optional"></textarea>
                         </label>
+                    </fieldset>
 
-                        <div id="form-errors" class="form-errors" role="alert" hidden>
-                            <p>Please fix the following before saving:</p>
-                            <ul></ul>
-                        </div>
-                        <div class="form-actions">
-                            <button type="submit" class="primary-button">Save shift</button>
-                            <button type="button" id="clear-form" class="secondary-button">Clear</button>
-                            <button type="button" id="cancel-form" class="ghost-button">Cancel</button>
-                        </div>
-                    </form>
-                </div>
+                    <div id="form-errors" class="form-errors" role="alert" hidden>
+                        <p>Please fix the following before saving:</p>
+                        <ul></ul>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="primary-button">Save shift</button>
+                        <button type="button" id="clear-form" class="secondary-button">Clear</button>
+                        <button type="button" id="cancel-form" class="ghost-button">Cancel</button>
+                    </div>
+                </form>
             </section>
 
             <section id="previous-shifts" class="view is-hidden">
