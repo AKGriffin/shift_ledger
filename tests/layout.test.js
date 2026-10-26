@@ -97,4 +97,39 @@ describe("New shift layout", () => {
         expect(top("#single-report-fields fieldset:last-child")).toBeGreaterThan(top("#single-report-fields fieldset:first-child"));
         expect(doc.documentElement.scrollWidth).toBeLessThanOrEqual(win.innerWidth);
     }));
+
+    test("keeps double-shift report details grouped without nested cards", () => withApp({
+        width: 1400,
+        height: 1000,
+    }, ({ element, fire, openView }) => {
+        openView("new-shift");
+        const mealPeriod = element("#shift-meal-period");
+        mealPeriod.value = "Double";
+        fire(mealPeriod, "change");
+
+        const report = element('[data-report-period="lunch"]');
+        const sales = report.querySelector(".report-data-group[aria-label='Sales']");
+        const tips = report.querySelector(".report-data-group[aria-label='Tips']");
+
+        expect(report.querySelectorAll(".sub-card")).toHaveLength(0);
+        expect(report.querySelectorAll("[data-report-field]")).toHaveLength(10);
+        expect(tips.getBoundingClientRect().left).toBeGreaterThan(sales.getBoundingClientRect().left);
+    }));
+
+    test("stacks double-shift groups on a phone without horizontal overflow", () => withApp({
+        width: 390,
+        height: 844,
+    }, ({ doc, element, fire, openView, win }) => {
+        openView("new-shift");
+        const mealPeriod = element("#shift-meal-period");
+        mealPeriod.value = "Double";
+        fire(mealPeriod, "change");
+
+        const report = element('[data-report-period="lunch"]');
+        const sales = report.querySelector(".report-data-group[aria-label='Sales']");
+        const tips = report.querySelector(".report-data-group[aria-label='Tips']");
+
+        expect(tips.getBoundingClientRect().top).toBeGreaterThan(sales.getBoundingClientRect().top);
+        expect(doc.documentElement.scrollWidth).toBeLessThanOrEqual(win.innerWidth);
+    }));
 });

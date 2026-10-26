@@ -535,26 +535,35 @@
             </label>
             <fieldset data-report-fields disabled>
                 <legend>Report details</legend>
-                <div class="sub-card-grid">
-                    <div class="sub-card" role="group" aria-label="Sales">
-                        <h4 class="sub-card-title">Sales</h4>
-                        <label class="field"><span>Food</span><input type="number" min="0" step="0.01" value="0" data-report-field="foodSales"></label>
-                        <label class="field"><span>Additional</span><input type="number" min="0" step="0.01" value="0" data-report-field="additionalSales"></label>
-                        <label class="field"><span>Beer &amp; wine</span><input type="number" min="0" step="0.01" value="0" data-report-field="bawSales"></label>
-                        <label class="field"><span>Liquor</span><input type="number" min="0" step="0.01" value="0" data-report-field="liquorSales"></label>
-                        <label class="field"><span>NA beverage</span><input type="number" min="0" step="0.01" value="0" data-report-field="naBevSales"></label>
-                    </div>
-                    <div class="sub-card" role="group" aria-label="Tips earned">
-                        <h4 class="sub-card-title">Tips earned</h4>
-                        <label class="field"><span>CC tips</span><input type="number" min="0" step="0.01" value="0" data-report-field="ccTips"></label>
-                        <label class="field"><span>Cash tips</span><input type="number" min="0" step="0.01" value="0" data-report-field="cashTips"></label>
-                        <label class="field"><span>Auto-gratuity</span><input type="number" min="0" step="0.01" value="0" data-report-field="autoGratuity"></label>
-                    </div>
-                    <div class="sub-card" role="group" aria-label="Tip out">
-                        <h4 class="sub-card-title">Tip out</h4>
-                        <label class="field"><span>Tips paid out</span><input type="number" min="0" step="0.01" value="0" data-report-field="tipsPaidOut"></label>
-                        <label class="field"><span>Tip out received</span><input type="number" min="0" step="0.01" value="0" data-report-field="tipOutReceived"></label>
-                    </div>
+                <div class="report-details-grid">
+                    <section class="report-data-group" role="group" aria-label="Sales">
+                        <h4>Sales</h4>
+                        <div class="report-field-grid">
+                            <label class="field"><span>Food</span><input type="number" min="0" step="0.01" value="0" data-report-field="foodSales"></label>
+                            <label class="field"><span>Additional</span><input type="number" min="0" step="0.01" value="0" data-report-field="additionalSales"></label>
+                            <label class="field"><span>Beer &amp; wine</span><input type="number" min="0" step="0.01" value="0" data-report-field="bawSales"></label>
+                            <label class="field"><span>Liquor</span><input type="number" min="0" step="0.01" value="0" data-report-field="liquorSales"></label>
+                            <label class="field"><span>NA beverage</span><input type="number" min="0" step="0.01" value="0" data-report-field="naBevSales"></label>
+                        </div>
+                    </section>
+                    <section class="report-data-group" role="group" aria-label="Tips">
+                        <h4>Tips</h4>
+                        <div class="report-field-subgroup">
+                            <h5>Earned</h5>
+                            <div class="report-field-grid">
+                                <label class="field"><span>CC tips</span><input type="number" min="0" step="0.01" value="0" data-report-field="ccTips"></label>
+                                <label class="field"><span>Cash tips</span><input type="number" min="0" step="0.01" value="0" data-report-field="cashTips"></label>
+                                <label class="field"><span>Auto-gratuity</span><input type="number" min="0" step="0.01" value="0" data-report-field="autoGratuity"></label>
+                            </div>
+                        </div>
+                        <div class="report-field-subgroup">
+                            <h5>Tip out</h5>
+                            <div class="report-field-grid">
+                                <label class="field"><span>Tips paid out</span><input type="number" min="0" step="0.01" value="0" data-report-field="tipsPaidOut"></label>
+                                <label class="field"><span>Tip out received</span><input type="number" min="0" step="0.01" value="0" data-report-field="tipOutReceived"></label>
+                            </div>
+                        </div>
+                    </section>
                 </div>
             </fieldset>
         </div>
