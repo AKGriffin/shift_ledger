@@ -57,14 +57,15 @@ describe("Double-shift report entry", () => {
 
     test("adds lunch and dinner reports without double-counting an optional whole report", () => withApp((harness) => {
         saveDouble(harness, {
-            lunch: { foodSales: 100, ccTips: 20 },
-            dinner: { foodSales: 200, ccTips: 30 },
-            whole: { foodSales: 500, ccTips: 99 },
+            lunch: { foodSales: 100, ccTips: 20, autoGratuity: 5 },
+            dinner: { foodSales: 200, ccTips: 30, autoGratuity: 8 },
+            whole: { foodSales: 500, ccTips: 99, autoGratuity: 99 },
         });
         harness.openView("previous-shifts");
 
         expect(harness.element("#summary-total-sales").textContent).toBe("$300.00");
-        expect(harness.element("#summary-total-tips").textContent).toBe("$50.00");
+        expect(harness.element("#summary-total-tips").textContent).toBe("$63.00");
+        expect(harness.element(".card-auto-gratuity").textContent).toBe("$13.00");
         expect(harness.element(".card-report-status").textContent)
             .toBe("Lunch and dinner reports (whole-double report also saved)");
     }));

@@ -61,7 +61,7 @@ describe("Shift form validation", () => {
 
 describe("Saving shifts", () => {
     test("saves a valid shift and totals it on the dashboard", () => withApp(({ element, saveShift, savedShifts }) => {
-        saveShift({ foodSales: 100, ccTips: 20, cashTips: 5, tipOutPaid: 3, tipOutReceived: 2 });
+        saveShift({ foodSales: 100, ccTips: 20, cashTips: 5, autoGratuity: 7, tipOutPaid: 3, tipOutReceived: 2 });
 
         expect(element("#form-errors").hidden).toBe(true);
         expect(element("#form-status").textContent).toBe("Shift saved.");
@@ -69,7 +69,8 @@ describe("Saving shifts", () => {
         expect(element("#summary-total-shifts").textContent).toBe("1");
         expect(element("#summary-total-hours").textContent).toBe("6h 0m");
         expect(element("#summary-total-sales").textContent).toBe("$100.00");
-        expect(element("#summary-total-tips").textContent).toBe("$24.00");
+        expect(element("#summary-total-tips").textContent).toBe("$31.00");
+        expect(savedShifts()[0].autoGratuity).toBe(7);
     }));
 
     test("adds each new shift to the totals", () => withApp(({ element, saveShift, savedShifts }) => {
@@ -114,6 +115,20 @@ describe("Editing and deleting shifts", () => {
         expect(savedShifts()).toHaveLength(1);
         expect(savedShifts()[0].foodSales).toBe(125.5);
         expect(element("#summary-total-sales").textContent).toBe("$125.50");
+    }));
+
+    test("keeps auto-gratuity separate when editing and includes it in net tips", () => withApp(({ element, fillForm, openView, saveShift, savedShifts, submitForm }) => {
+        saveShift({ ccTips: 20, autoGratuity: 12 });
+        openView("previous-shifts");
+        element(".edit-shift").click();
+
+        expect(element("#shift-auto-gratuity").value).toBe("12.00");
+        fillForm({ autoGratuity: "18.50" });
+        submitForm();
+
+        expect(savedShifts()[0].ccTips).toBe(20);
+        expect(savedShifts()[0].autoGratuity).toBe(18.5);
+        expect(element("#summary-total-tips").textContent).toBe("$38.50");
     }));
 
     test("deletes a shift from history", () => withApp({

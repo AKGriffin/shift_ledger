@@ -1,6 +1,6 @@
 ﻿const STORAGE_KEY = "shift-ledger-shifts-v1";
 const SETTINGS_KEY = "shift-ledger-settings-v1";
-const { getDurationMinutes, getNetTips, getSalesTotal, toMinutes } = window.ShiftMath;
+const { getAutoGratuity, getDurationMinutes, getNetTips, getSalesTotal, toMinutes } = window.ShiftMath;
 
 const state = {
     shifts: loadShifts(),
@@ -34,7 +34,7 @@ const reportPeriods = [
 ];
 const reportAmountFields = [
     "foodSales", "bawSales", "liquorSales", "naBevSales", "additionalSales",
-    "ccTips", "cashTips", "tipsPaidOut", "tipOutReceived",
+    "ccTips", "cashTips", "autoGratuity", "tipsPaidOut", "tipOutReceived",
 ];
 
 const fields = {
@@ -52,6 +52,7 @@ const fields = {
     additionalSales: document.getElementById("shift-additional-sales"),
     ccTips: document.getElementById("shift-cc-tips"),
     cashTips: document.getElementById("shift-cash-tips"),
+    autoGratuity: document.getElementById("shift-auto-gratuity"),
     tipOutPaid: document.getElementById("shift-tip-out-paid"),
     tipOutReceived: document.getElementById("shift-tip-out-received"),
     notes: document.getElementById("shift-notes"),
@@ -357,6 +358,7 @@ function populateForm(shift) {
     fields.additionalSales.value = Number(shift.additionalSales || 0).toFixed(2);
     fields.ccTips.value = Number(shift.ccTips || 0).toFixed(2);
     fields.cashTips.value = Number(shift.cashTips || 0).toFixed(2);
+    fields.autoGratuity.value = Number(shift.autoGratuity || 0).toFixed(2);
     fields.tipOutPaid.value = Number(shift.tipsPaidOut || 0).toFixed(2);
     fields.tipOutReceived.value = Number(shift.tipOutReceived || 0).toFixed(2);
     fields.notes.value = shift.notes || "";
@@ -423,6 +425,7 @@ function readFormValues() {
         additionalSales: toNumber(fields.additionalSales.value),
         ccTips: toNumber(fields.ccTips.value),
         cashTips: toNumber(fields.cashTips.value),
+        autoGratuity: toNumber(fields.autoGratuity.value),
         tipsPaidOut: toNumber(fields.tipOutPaid.value),
         tipOutReceived: toNumber(fields.tipOutReceived.value),
         notes: fields.notes.value.trim(),
@@ -654,6 +657,7 @@ function renderPreviousShifts() {
         card.querySelector(".card-hours").textContent = formatDuration(getDurationMinutes(shift));
         card.querySelector(".card-sales").textContent = formatCurrency(getSalesTotal(shift));
         card.querySelector(".card-tips").textContent = formatCurrency(getNetTips(shift));
+        card.querySelector(".card-auto-gratuity").textContent = formatCurrency(getAutoGratuity(shift));
         card.querySelector(".card-clock-in").textContent = formatTime(shift.clockIn);
         card.querySelector(".card-clock-out").textContent = formatClockOut(shift);
         card.querySelector(".card-break").textContent = shift.breakStart && shift.breakEnd
@@ -765,7 +769,7 @@ function exportFilteredShifts() {
     const headers = [
         "Date", "Meal period", "Job", "Clock in", "Clock out", "Break start", "Break end",
         "Hours worked", "Food sales", "Beer and wine sales", "Liquor sales", "NA beverage sales",
-        "Additional sales", "Total sales", "CC tips", "Cash tips", "Tips paid out",
+        "Additional sales", "Total sales", "CC tips", "Cash tips", "Auto-gratuity", "Tips paid out",
         "Tip out received", "Net tips", "Report coverage",
         ...reportPeriods.flatMap(([, label]) => reportAmountFields.map((field) => `${label} ${formatReportFieldName(field)}`)),
         "Notes",
@@ -786,8 +790,8 @@ function exportFilteredShifts() {
                 shift.foodSales, shift.bawSales, shift.liquorSales, shift.naBevSales, shift.additionalSales,
             ]),
             getSalesTotal(shift),
-            ...(isDouble ? Array(4).fill("") : [
-                shift.ccTips, shift.cashTips, shift.tipsPaidOut, shift.tipOutReceived,
+            ...(isDouble ? Array(5).fill("") : [
+                shift.ccTips, shift.cashTips, Number(shift.autoGratuity) || 0, shift.tipsPaidOut, shift.tipOutReceived,
             ]),
             getNetTips(shift),
             isDouble ? getDoubleReportStatus(shift) : "",
@@ -869,7 +873,7 @@ function normalizeImportedShift(shift, index) {
 
     const amountFields = [
         "foodSales", "bawSales", "liquorSales", "naBevSales", "additionalSales",
-        "ccTips", "cashTips", "tipsPaidOut", "tipOutReceived",
+        "ccTips", "cashTips", "autoGratuity", "tipsPaidOut", "tipOutReceived",
     ];
     const normalized = {
         ...shift,

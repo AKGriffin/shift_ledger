@@ -1,6 +1,6 @@
 import { describe, expect, test } from "./assert.js";
 
-const { getDurationMinutes, getNetTips, getSalesTotal, toMinutes } = window.ShiftMath;
+const { getAutoGratuity, getDurationMinutes, getNetTips, getSalesTotal, toMinutes } = window.ShiftMath;
 
 describe("sales totals", () => {
     test("adds all sales categories", () => {
@@ -39,6 +39,37 @@ describe("net tips", () => {
         })).toBe(32.5);
     });
 
+    test("adds auto-gratuity to net tips", () => {
+        const shift = {
+            ccTips: 30,
+            cashTips: 10,
+            autoGratuity: 4,
+            tipOutReceived: 5,
+            tipsPaidOut: 12.5,
+        };
+
+        expect(getAutoGratuity(shift)).toBe(4);
+        expect(getNetTips(shift)).toBe(36.5);
+    });
+
+    test("uses the same report precedence for separate double auto-gratuity totals", () => {
+        expect(getAutoGratuity({
+            reports: {
+                lunch: { autoGratuity: 5 },
+                dinner: { autoGratuity: 8 },
+                whole: { autoGratuity: 99 },
+            },
+        })).toBe(13);
+        expect(getAutoGratuity({
+            reports: {
+                lunch: { autoGratuity: 5 },
+                dinner: null,
+                whole: { autoGratuity: 99 },
+            },
+        })).toBe(99);
+        expect(getAutoGratuity({})).toBe(0);
+    });
+
     test("defaults missing tip amounts to zero", () => {
         expect(getNetTips({})).toBe(0);
     });
@@ -48,9 +79,9 @@ describe("net tips", () => {
             reports: {
                 lunch: { ccTips: 20 },
                 dinner: null,
-                whole: { ccTips: 60, tipsPaidOut: 5 },
+                whole: { ccTips: 60, autoGratuity: 10, tipsPaidOut: 5 },
             },
-        })).toBe(55);
+        })).toBe(65);
     });
 
     test("returns zero for an explicit double with no reports", () => {

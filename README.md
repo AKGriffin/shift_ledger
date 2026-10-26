@@ -16,6 +16,7 @@ The service worker caches the app shell and static assets. When deploying an upd
 
 - Record, edit, and delete shifts
 - Track clock-in/out times, breaks, sales, tips, and notes
+- Record auto-gratuity separately from other tips; it is included in net tip totals and preserved in backups and CSV exports.
 - For doubles, save lunch and dinner reports independently, a whole-double report, any combination, or no report. Totals avoid double-counting and history labels partial or combined figures; older doubles remain treated as combined reports.
 - Log overnight shifts by recording the date the shift starts; an earlier clock-out (or break end) is treated as the next day. The full shift is grouped under its start date in summaries and history filters.
 - Review all-time, current-week, and current-month totals

@@ -10,6 +10,7 @@ const seededShifts = () => [
         foodSales: 100,
         ccTips: 20,
         cashTips: 5,
+        autoGratuity: 7,
         tipsPaidOut: 3,
         tipOutReceived: 2,
         notes: notesWithMarkup,
@@ -35,7 +36,8 @@ describe("Previous shifts", () => {
         expect(elements(".shift-card")).toHaveLength(2);
         expect(serverCard).toBeDefined();
         expect(style(serverCard.querySelector(".shift-card-summary")).gridTemplateColumns.split(" ")).toHaveLength(2);
-        expect(serverCard.querySelectorAll(".card-primary-metrics p")).toHaveLength(4);
+        expect(serverCard.querySelectorAll(".card-primary-metrics p")).toHaveLength(5);
+        expect(serverCard.querySelector(".card-auto-gratuity").textContent).toBe("$7.00");
     }));
 
     test("renders notes as text instead of markup", () => withApp({ shifts: seededShifts() }, ({ elements, openView }) => {

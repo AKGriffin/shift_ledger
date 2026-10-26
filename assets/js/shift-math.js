@@ -53,6 +53,7 @@
             return round(reports.reduce((sum, report) => sum
                 + (Number(report.ccTips) || 0)
                 + (Number(report.cashTips) || 0)
+                + (Number(report.autoGratuity) || 0)
                 + (Number(report.tipOutReceived) || 0)
                 - (Number(report.tipsPaidOut) || 0), 0));
         }
@@ -60,9 +61,18 @@
         return round(
             (Number(shift.ccTips) || 0)
             + (Number(shift.cashTips) || 0)
+            + (Number(shift.autoGratuity) || 0)
             + (Number(shift.tipOutReceived) || 0)
             - (Number(shift.tipsPaidOut) || 0)
         );
+    }
+
+    function getAutoGratuity(shift) {
+        const reports = getFinancialReports(shift);
+        if (reports) {
+            return round(reports.reduce((sum, report) => sum + (Number(report.autoGratuity) || 0), 0));
+        }
+        return round(Number(shift.autoGratuity) || 0);
     }
 
     function getDurationMinutes(shift) {
@@ -97,6 +107,7 @@
     }
 
     global.ShiftMath = {
+        getAutoGratuity,
         getDurationMinutes,
         getNetTips,
         getSalesTotal,
