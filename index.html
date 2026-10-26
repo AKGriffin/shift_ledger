@@ -138,24 +138,27 @@
                             <div class="form-grid">
                                 <label class="field">
                                     <span>Date</span>
-                                    <input type="date" id="shift-date" required>
+                                    <input type="date" id="shift-date" aria-describedby="shift-date-error" required>
+                                    <span class="field-error" id="shift-date-error" hidden></span>
                                 </label>
                                 <label class="field">
                                     <span>Meal period</span>
-                                    <select id="shift-meal-period" required>
+                                    <select id="shift-meal-period" aria-describedby="shift-meal-period-error" required>
                                         <option value="">Select</option>
                                         <option value="Lunch">Lunch</option>
                                         <option value="Dinner">Dinner</option>
                                         <option value="Double">Double</option>
                                     </select>
+                                    <span class="field-error" id="shift-meal-period-error" hidden></span>
                                 </label>
                                 <label class="field">
                                     <span>Job</span>
-                                    <select id="shift-job" required>
+                                    <select id="shift-job" aria-describedby="shift-job-error" required>
                                         <option value="">Select</option>
                                         <option value="Server">Server</option>
                                         <option value="Expo">Expo</option>
                                     </select>
+                                    <span class="field-error" id="shift-job-error" hidden></span>
                                 </label>
                             </div>
                         </fieldset>
@@ -165,19 +168,23 @@
                             <div class="form-grid">
                                 <label class="field">
                                     <span>Clock in</span>
-                                    <input type="time" id="shift-clock-in" required>
+                                    <input type="time" id="shift-clock-in" aria-describedby="shift-clock-in-error" required>
+                                    <span class="field-error" id="shift-clock-in-error" hidden></span>
                                 </label>
                                 <label class="field">
                                     <span>Clock out</span>
-                                    <input type="time" id="shift-clock-out" required>
+                                    <input type="time" id="shift-clock-out" aria-describedby="shift-clock-out-error" required>
+                                    <span class="field-error" id="shift-clock-out-error" hidden></span>
                                 </label>
                                 <label class="field">
                                     <span>Break start</span>
-                                    <input type="time" id="shift-break-start">
+                                    <input type="time" id="shift-break-start" aria-describedby="shift-break-start-error">
+                                    <span class="field-error" id="shift-break-start-error" hidden></span>
                                 </label>
                                 <label class="field">
                                     <span>Break end</span>
-                                    <input type="time" id="shift-break-end">
+                                    <input type="time" id="shift-break-end" aria-describedby="shift-break-end-error">
+                                    <span class="field-error" id="shift-break-end-error" hidden></span>
                                 </label>
                             </div>
                         </fieldset>
@@ -235,6 +242,10 @@
                             <textarea id="shift-notes" rows="4" placeholder="Anything important from the shift?"></textarea>
                         </label>
 
+                        <div id="form-errors" class="form-errors" role="alert" hidden>
+                            <p>Please fix the following before saving:</p>
+                            <ul></ul>
+                        </div>
                         <div class="form-actions">
                             <button type="submit" class="primary-button">Save shift</button>
                             <button type="button" id="clear-form" class="secondary-button">Clear</button>

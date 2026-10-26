@@ -134,7 +134,30 @@ test("app workflow validates, saves, edits, filters, and deletes shifts", async 
             bubbles: true,
             cancelable: true,
         }));
-        expect(element("#form-status").textContent).toContain("Date is required.");
+        expect(element("#shift-date").getAttribute("aria-invalid")).toBe("true");
+        expect(element("#shift-date-error").textContent).toBe("Date is required.");
+        expect(element("#form-errors").hidden).toBe(false);
+        expect(element("#form-errors").textContent).toContain("Please fix the following before saving:");
+        expect(element("#form-errors a").getAttribute("href")).toBe("#shift-date");
+        expect(app.activeElement.id).toBe("shift-date");
+        expect(savedShifts()).toHaveLength(0);
+
+        element("#shift-date").value = "2026-10-19";
+        element("#shift-date").dispatchEvent(new frame.contentWindow.Event("change", { bubbles: true }));
+        expect(element("#form-errors").hidden).toBe(false);
+        expect(element("#shift-date").hasAttribute("aria-invalid")).toBe(false);
+        expect(element("#shift-clock-in").getAttribute("aria-invalid")).toBe("true");
+        expect([...app.querySelectorAll("#form-errors a")].some((link) => link.href.endsWith("#shift-date"))).toBe(false);
+        element("#shift-meal-period").value = "Dinner";
+        element("#shift-job").value = "Server";
+        element("#shift-clock-in").value = "16:00";
+        element("#shift-clock-out").value = "15:00";
+        element("#shift-form").dispatchEvent(new frame.contentWindow.Event("submit", {
+            bubbles: true,
+            cancelable: true,
+        }));
+        expect(element("#shift-clock-out").getAttribute("aria-invalid")).toBe("true");
+        expect(element("#shift-clock-out-error").textContent).toBe("Clock out must be later than clock in.");
         expect(savedShifts()).toHaveLength(0);
 
         const notesWithMarkup = '<img src=x onerror="alert(1)">';
@@ -148,6 +171,7 @@ test("app workflow validates, saves, edits, filters, and deletes shifts", async 
             tipOutReceived: 2,
             notes: notesWithMarkup,
         });
+        expect(element("#form-errors").hidden).toBe(true);
         expect(element("#form-status").textContent).toBe("Shift saved.");
         expect(savedShifts()).toHaveLength(1);
 

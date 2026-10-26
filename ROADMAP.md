@@ -4,7 +4,6 @@ This is a lightweight view of where Shift Ledger is headed, not a promise or a r
 
 ## Now
 
-- [ ] **Improve shift-form validation feedback** - Show field-specific errors and invalid styling on the affected inputs, and keep an error summary near the form actions so users do not have to scroll back to the top to fix a problem.
 - [ ] **Track automatic gratuity separately and include it in tips** - Add an optional auto-gratuity field, update net-tip calculations and totals, and carry it through editing, history, CSV export, backup/restore, and legacy records without changing existing values.
 - [ ] **Redesign previous-shift browsing** - Replace the heavy nested-card appearance with a clearer, lighter history list; move filters into an accessible dialog or sheet while keeping sort easy to find and usable on mobile.
 - [ ] **Make PWA refresh and update behavior reliable** - Ensure refreshes and app restarts preserve saved shifts, and make new app versions activate or become available predictably without requiring users to fully close the app.
@@ -50,3 +49,4 @@ This is a lightweight view of where Shift Ledger is headed, not a promise or a r
 - [x] Mobile app menu fits common phone screens and scrolls only when space is insufficient.
 - [x] App icon replaces the text monogram in the header, with the brand kept on one line.
 - [x] Dashboard period summaries and previous-shift cards use a two-column heading-and-statistics layout.
+- [x] Shift-form validation identifies affected fields, marks invalid inputs, and links an error summary beside the form actions.

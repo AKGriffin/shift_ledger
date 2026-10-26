@@ -92,6 +92,7 @@ function bindEvents() {
 
     document.getElementById("back-to-menu").addEventListener("click", () => showView("mobile-home"));
     form.addEventListener("submit", handleFormSubmit);
+    form.addEventListener("change", updateValidationErrors);
     clearFormButton.addEventListener("click", resetForm);
     cancelFormButton.addEventListener("click", () => {
         resetForm();
@@ -311,6 +312,7 @@ function resetForm(shouldClearStatus = true) {
         }
     });
 
+    clearValidationErrors();
     if (shouldClearStatus) {
         setStatus("");
     }
@@ -342,7 +344,12 @@ function handleFormSubmit(event) {
 
     try {
         const shift = readFormValues();
-        validateShift(shift);
+        const issues = validateShift(shift);
+        if (issues.length > 0) {
+            showValidationErrors(issues);
+            return;
+        }
+        clearValidationErrors();
 
         if (state.editingShiftId !== null) {
             const index = state.shifts.findIndex((entry) => entry.id === state.editingShiftId);
@@ -393,35 +400,93 @@ function readFormValues() {
 function validateShift(shift) {
     const issues = [];
 
-    if (!shift.date) issues.push("Date is required.");
-    if (!shift.mealPeriod) issues.push("Meal period is required.");
-    if (!shift.job) issues.push("Job is required.");
-    if (!shift.clockIn || !shift.clockOut) issues.push("Clock in and clock out are required.");
+    if (!shift.date) issues.push({ field: "date", message: "Date is required." });
+    if (!shift.mealPeriod) issues.push({ field: "mealPeriod", message: "Meal period is required." });
+    if (!shift.job) issues.push({ field: "job", message: "Job is required." });
+    if (!shift.clockIn) issues.push({ field: "clockIn", message: "Clock in is required." });
+    if (!shift.clockOut) issues.push({ field: "clockOut", message: "Clock out is required." });
 
     if (shift.clockIn && shift.clockOut && toMinutes(shift.clockOut) <= toMinutes(shift.clockIn)) {
-        issues.push("Clock out must be later than clock in.");
+        issues.push({ field: "clockOut", message: "Clock out must be later than clock in." });
     }
 
-    if (shift.breakStart && !shift.breakEnd) issues.push("Break end is required when a break starts.");
-    if (shift.breakEnd && !shift.breakStart) issues.push("Break start is required when a break ends.");
+    if (shift.breakStart && !shift.breakEnd) {
+        issues.push({ field: "breakEnd", message: "Break end is required when a break starts." });
+    }
+    if (shift.breakEnd && !shift.breakStart) {
+        issues.push({ field: "breakStart", message: "Break start is required when a break ends." });
+    }
 
     if (shift.breakStart && shift.breakEnd) {
         const breakStartMinutes = toMinutes(shift.breakStart);
         const breakEndMinutes = toMinutes(shift.breakEnd);
 
         if (breakEndMinutes <= breakStartMinutes) {
-            issues.push("Break end must be later than break start.");
+            issues.push({ field: "breakEnd", message: "Break end must be later than break start." });
         }
 
         const shiftMinutes = Math.max(0, toMinutes(shift.clockOut) - toMinutes(shift.clockIn));
         if (breakEndMinutes - breakStartMinutes > shiftMinutes) {
-            issues.push("Break length cannot exceed the total shift length.");
+            issues.push({ field: "breakEnd", message: "Break length cannot exceed the total shift length." });
         }
     }
 
-    if (issues.length > 0) {
-        throw new Error(issues.join(" "));
+    return issues;
+}
+
+function showValidationErrors(issues, shouldFocus = true) {
+    clearValidationErrors();
+    if (issues.length === 0) {
+        return;
     }
+
+    const summary = document.getElementById("form-errors");
+    const list = summary.querySelector("ul");
+    const firstField = fields[issues[0].field];
+
+    issues.forEach(({ field, message }) => {
+        const input = fields[field];
+        const error = document.getElementById(`${input.id}-error`);
+        input.setAttribute("aria-invalid", "true");
+        error.textContent = message;
+        error.hidden = false;
+
+        const item = document.createElement("li");
+        const link = document.createElement("a");
+        link.href = `#${input.id}`;
+        link.textContent = message;
+        item.appendChild(link);
+        list.appendChild(item);
+    });
+
+    summary.hidden = false;
+    if (shouldFocus) {
+        firstField.focus();
+    }
+}
+
+function updateValidationErrors() {
+    const summary = document.getElementById("form-errors");
+    if (!summary.hidden) {
+        showValidationErrors(validateShift(readFormValues()), false);
+    }
+}
+
+function clearValidationErrors() {
+    const summary = document.getElementById("form-errors");
+    summary.querySelector("ul").replaceChildren();
+    summary.hidden = true;
+
+    Object.values(fields).forEach((field) => {
+        if (!field.hasAttribute("aria-invalid")) {
+            return;
+        }
+
+        field.removeAttribute("aria-invalid");
+        const error = document.getElementById(`${field.id}-error`);
+        error.textContent = "";
+        error.hidden = true;
+    });
 }
 
 function renderDashboard() {

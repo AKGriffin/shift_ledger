@@ -997,6 +997,46 @@ legend {
     border-color: var(--primary);
 }
 
+.field input[aria-invalid="true"],
+.field select[aria-invalid="true"] {
+    border-color: var(--danger);
+}
+
+.field input[aria-invalid="true"]:focus,
+.field select[aria-invalid="true"]:focus {
+    outline-color: var(--danger);
+}
+
+.field-error {
+    color: var(--danger);
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.form-errors {
+    padding: 12px 14px;
+    border: 1px solid var(--danger);
+    border-radius: 10px;
+    background: var(--panel-alt);
+    color: var(--text);
+}
+
+.form-errors p {
+    margin: 0 0 6px;
+    font-weight: 700;
+}
+
+.form-errors ul {
+    margin: 0;
+    padding-left: 1.25rem;
+}
+
+.form-errors a {
+    color: var(--danger);
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+}
+
 .notes-field {
     margin-top: 6px;
 }
@@ -1859,6 +1899,17 @@ textarea {
     color: var(--text);
 }
 
+:root[data-style="high-contrast"] .field input[aria-invalid="true"],
+:root[data-style="high-contrast"] .field select[aria-invalid="true"],
+:root[data-style="high-contrast"] .form-errors {
+    border: 2px solid var(--danger);
+}
+
+:root[data-style="high-contrast"] .field-error,
+:root[data-style="high-contrast"] .form-errors a {
+    color: var(--danger);
+}
+
 :root[data-style="high-contrast"] .empty-state {
     border: 2px dashed var(--border);
     background: var(--panel);
@@ -1878,6 +1929,11 @@ textarea {
 :root[data-style="high-contrast"] textarea::placeholder {
     color: var(--text);
     opacity: 1;
+}
+
+:root[data-style] .field input[aria-invalid="true"],
+:root[data-style] .field select[aria-invalid="true"] {
+    border-color: var(--danger);
 }
 
 @media (prefers-color-scheme: dark) {
