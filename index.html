@@ -269,11 +269,14 @@
 
             <section id="previous-shifts" class="view is-hidden">
                 <div class="panel history-header-card">
-                    <div class="panel-header panel-header-stack">
-                        <h2>Previous shifts</h2>
+                    <div class="history-header">
+                        <div class="history-heading">
+                            <h2>Previous shifts</h2>
+                            <p id="history-status" class="history-status" role="status" aria-live="polite"></p>
+                        </div>
                         <div class="history-toolbar">
-                            <label class="field inline-field">
-                                <span>Sort</span>
+                            <label class="inline-field history-sort">
+                                <span>Sort by</span>
                                 <select id="sort-by">
                                     <option value="date-desc">Newest first</option>
                                     <option value="date-asc">Oldest first</option>
@@ -286,12 +289,10 @@
                                     aria-haspopup="dialog" aria-controls="history-filter-dialog" aria-expanded="false">
                                     Filters <span id="active-filter-count" class="filter-count" hidden></span>
                                 </button>
-                                <button type="button" id="export-csv" class="primary-button">Export CSV</button>
+                                <button type="button" id="export-csv" class="secondary-button">Export CSV</button>
                             </div>
                         </div>
                     </div>
-
-                    <p id="history-status" class="history-status" role="status" aria-live="polite"></p>
                 </div>
 
                 <dialog id="history-filter-dialog" class="history-filter-dialog" aria-labelledby="history-filter-title">
