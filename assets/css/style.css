@@ -1118,6 +1118,10 @@ textarea {
     min-width: 0;
 }
 
+.history-heading h2 {
+    white-space: nowrap;
+}
+
 .history-toolbar {
     display: flex;
     min-width: 0;
@@ -1151,6 +1155,24 @@ textarea {
     display: flex;
     align-items: center;
     gap: 10px;
+}
+
+@media (min-width: 721px) {
+    .history-header {
+        flex-wrap: nowrap;
+        gap: 14px 16px;
+    }
+
+    .history-sort {
+        min-width: 0;
+    }
+
+    .history-sort select {
+        min-width: 0;
+        width: 100%;
+        max-width: 11rem;
+        text-overflow: ellipsis;
+    }
 }
 
 .filter-count {
