@@ -951,6 +951,11 @@ form {
     container-type: inline-size;
 }
 
+.form-header-card,
+.shift-form {
+    max-width: 680px;
+}
+
 .form-header-card {
     display: flex;
     align-items: center;
@@ -1015,7 +1020,7 @@ legend {
 
 .sub-card-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: 14px;
     margin-top: 8px;
 }
@@ -1116,7 +1121,7 @@ legend {
 
 .report-field-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 145px), 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: 14px;
 }
 
@@ -1266,20 +1271,6 @@ textarea {
     justify-content: flex-end;
     gap: 12px;
 }
-
-@container (min-width: 520px) {
-    .form-grid-3 {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-}
-
-@container (min-width: 640px) {
-    .report-details-grid {
-        grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
-    }
-}
-
-
 
 @media (max-width: 480px) {
     .form-header-card {

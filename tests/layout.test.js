@@ -60,19 +60,23 @@ describe("New shift layout", () => {
         expect(element(".form-header-card").contains(element("#shift-form"))).toBe(false);
     }));
 
-    test("lays out the entry cards in columns when there is room", () => withApp({ width: 1400, height: 1000 }, ({ element, openView }) => {
+    test("flows the form in one vertical column on a wide screen", () => withApp({ width: 1400, height: 1000 }, ({ element, elements, openView }) => {
         openView("new-shift");
 
-        const top = (selector) => element(selector).getBoundingClientRect().top;
-        const cardTop = (id) => element(`#${id}`).getBoundingClientRect().top;
+        const rect = (selector) => element(selector).getBoundingClientRect();
+        const ids = [
+            "shift-date", "shift-meal-period", "shift-job", "shift-clock-in", "shift-clock-out",
+            "shift-break-start", "shift-break-end", "shift-food-sales", "shift-additional-sales",
+            "shift-baw-sales", "shift-cc-tips", "shift-tip-out-paid",
+        ];
+        const lefts = ids.map((id) => rect(`#${id}`).left);
 
-        expect(top("#shift-date")).toBe(top("#shift-meal-period"));
-        expect(top("#shift-meal-period")).toBe(top("#shift-job"));
-        expect(cardTop("clock-card-title")).toBe(cardTop("break-card-title"));
-        expect(cardTop("food-card-title")).toBe(cardTop("additional-card-title"));
-        expect(cardTop("food-card-title")).toBe(cardTop("beverage-card-title"));
-        expect(cardTop("earned-card-title")).toBe(cardTop("tipout-card-title"));
-        expect(top("#single-report-fields fieldset:last-child")).toBeGreaterThan(top("#single-report-fields fieldset:first-child"));
+        ids.slice(1).forEach((id, index) => {
+            expect(rect(`#${id}`).top).toBeGreaterThan(rect(`#${ids[index]}`).top);
+        });
+        expect(Math.max(...lefts) - Math.min(...lefts)).toBeLessThanOrEqual(60);
+        expect(rect("#shift-form").width).toBeLessThanOrEqual(680);
+        expect(elements("#shift-form fieldset").length).toBeGreaterThan(0);
     }));
 
     test("stacks the inputs inside each sub card", () => withApp({ width: 1400, height: 1000 }, ({ element, openView }) => {
@@ -100,7 +104,7 @@ describe("New shift layout", () => {
         expect(doc.documentElement.scrollWidth).toBeLessThanOrEqual(win.innerWidth);
     }));
 
-    test("keeps double-shift report details grouped without nested cards", () => withApp({
+    test("keeps double-shift report details in one vertical column", () => withApp({
         width: 1400,
         height: 1000,
     }, ({ element, fire, openView }) => {
@@ -115,7 +119,8 @@ describe("New shift layout", () => {
 
         expect(report.querySelectorAll(".sub-card")).toHaveLength(0);
         expect(report.querySelectorAll("[data-report-field]")).toHaveLength(10);
-        expect(tips.getBoundingClientRect().left).toBeGreaterThan(sales.getBoundingClientRect().left);
+        expect(tips.getBoundingClientRect().top).toBeGreaterThan(sales.getBoundingClientRect().top);
+        expect(Math.round(tips.getBoundingClientRect().left)).toBe(Math.round(sales.getBoundingClientRect().left));
     }));
 
     test("stacks double-shift groups on a phone without horizontal overflow", () => withApp({
