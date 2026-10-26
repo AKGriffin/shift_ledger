@@ -1235,8 +1235,8 @@ textarea {
 
 .shift-card-summary {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
 }
 
 .card-header {
@@ -1254,7 +1254,7 @@ textarea {
 
 .card-title {
     margin: 0.35rem 0 0;
-    font-size: 1.2rem;
+    font-size: 1.35rem;
 }
 
 .pill {
@@ -1270,13 +1270,23 @@ textarea {
 
 .card-stat {
     display: grid;
-    gap: 2px;
+    align-content: start;
+    gap: 5px;
     min-width: 0;
     margin: 0;
-    padding: 10px 12px;
+    padding: 10px;
+    border-top: 3px solid var(--primary);
     border-radius: 12px;
     background: var(--panel-alt);
     overflow-wrap: anywhere;
+}
+
+.card-stat-sales {
+    border-top-color: var(--success);
+}
+
+.card-stat-tips {
+    border-top-color: var(--purple);
 }
 
 .card-stat-label,
@@ -1289,7 +1299,9 @@ textarea {
 }
 
 .card-stat strong {
-    font-size: 1.05rem;
+    font-size: 1.1rem;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
 }
 
 .card-groups {
@@ -1645,6 +1657,14 @@ textarea {
 
     .shift-card-summary {
         gap: 8px;
+    }
+
+    .card-stat {
+        padding: 9px 8px;
+    }
+
+    .card-stat strong {
+        font-size: 1rem;
     }
 
     .form-actions > *,

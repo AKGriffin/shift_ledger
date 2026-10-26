@@ -37,7 +37,10 @@ describe("Previous shifts", () => {
         expect(serverCard).toBeDefined();
         expect(style(serverCard).borderTopWidth).toBe("1px");
         expect(element(".history-header-card").contains(element("#shift-list"))).toBe(false);
-        expect(serverCard.querySelectorAll(".card-primary-metrics .card-stat")).toHaveLength(4);
+        expect(serverCard.querySelector(".card-title .card-job").textContent).toBe("Server");
+        expect(serverCard.querySelectorAll(".card-primary-metrics .card-stat")).toHaveLength(3);
+        expect(Array.from(serverCard.querySelectorAll(".card-stat-label"), (label) => label.textContent))
+            .toEqual(["Hours", "Sales", "Net tips"]);
         expect(serverCard.querySelector(".card-sales").textContent).toBe("$100.00");
         expect(serverCard.querySelector(".card-tips").textContent).toBe("$31.00");
         expect(serverCard.querySelector(".card-auto-gratuity").textContent).toBe("$7.00");

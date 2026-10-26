@@ -706,7 +706,6 @@ function renderPreviousShifts() {
         const card = cardNode.querySelector(".shift-card");
         card.dataset.shiftId = String(shift.id);
         card.querySelector(".card-date").textContent = formatDate(shift.date);
-        card.querySelector(".card-title").textContent = `${shift.job} shift`;
         card.querySelector(".card-meal").textContent = shift.mealPeriod;
         const reportStatus = card.querySelector(".card-report-status");
         if (shift.mealPeriod === "Double") {
