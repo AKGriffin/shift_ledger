@@ -82,29 +82,34 @@
                         <h1>Your overview</h1>
                         <p>See how your shifts, hours, sales, and tips are adding up.</p>
                     </div>
-                    <button type="button" class="primary-button" data-view="new-shift">＋ Log a shift</button>
+                    <div class="dashboard-heading-actions">
+                        <button type="button" id="open-dashboard-customize" class="secondary-button" aria-haspopup="dialog" aria-controls="dashboard-customize-dialog">Customize</button>
+                        <button type="button" class="primary-button" data-view="new-shift">＋ Log a shift</button>
+                    </div>
                 </div>
-                <h2 class="summary-heading">All-time totals</h2>
-                <div class="summary-grid" role="group" aria-label="All-time totals">
-                    <article class="stat-card accent-blue">
-                        <span>Total shifts</span>
-                        <strong id="summary-total-shifts">0</strong>
-                    </article>
-                    <article class="stat-card accent-green">
-                        <span>Hours worked</span>
-                        <strong id="summary-total-hours">0h 0m</strong>
-                    </article>
-                    <article class="stat-card accent-gold">
-                        <span>Total sales</span>
-                        <strong id="summary-total-sales">$0.00</strong>
-                    </article>
-                    <article class="stat-card accent-purple">
-                        <span>Net tips</span>
-                        <strong id="summary-total-tips">$0.00</strong>
-                    </article>
-                </div>
+                <section class="dashboard-totals" data-dashboard-section="totals" aria-labelledby="summary-heading">
+                    <h2 id="summary-heading" class="summary-heading">All-time totals</h2>
+                    <div class="summary-grid" role="group" aria-label="All-time totals">
+                        <article class="stat-card accent-blue" data-dashboard-stat="shifts">
+                            <span>Total shifts</span>
+                            <strong id="summary-total-shifts">0</strong>
+                        </article>
+                        <article class="stat-card accent-green" data-dashboard-stat="hours">
+                            <span>Hours worked</span>
+                            <strong id="summary-total-hours">0h 0m</strong>
+                        </article>
+                        <article class="stat-card accent-gold" data-dashboard-stat="sales">
+                            <span>Total sales</span>
+                            <strong id="summary-total-sales">$0.00</strong>
+                        </article>
+                        <article class="stat-card accent-purple" data-dashboard-stat="tips">
+                            <span>Net tips</span>
+                            <strong id="summary-total-tips">$0.00</strong>
+                        </article>
+                    </div>
+                </section>
 
-                <section class="period-grid" aria-label="Period summaries">
+                <section class="period-grid" data-dashboard-section="periods" aria-label="Period summaries">
                     <article class="period-card">
                         <div class="period-heading">
                             <div>
@@ -127,13 +132,40 @@
                     </article>
                 </section>
 
-                <section class="panel">
+                <section class="panel" data-dashboard-section="recent">
                     <div class="panel-header">
                         <h2>Recent activity</h2>
                         <button type="button" class="secondary-button" data-view="previous-shifts">View all</button>
                     </div>
                     <div id="recent-shifts" class="recent-list"></div>
                 </section>
+
+                <dialog id="dashboard-customize-dialog" class="history-filter-dialog" aria-labelledby="dashboard-customize-title">
+                    <div class="filter-dialog-header">
+                        <div>
+                            <h3 id="dashboard-customize-title">Customize dashboard</h3>
+                            <p>Choose which sections and stats to show.</p>
+                        </div>
+                        <button type="button" id="close-dashboard-customize" class="ghost-button" aria-label="Close customization">&times;</button>
+                    </div>
+                    <fieldset class="dashboard-options">
+                        <legend>Sections</legend>
+                        <label><input type="checkbox" data-dashboard-option="section" data-dashboard-key="totals"> All-time totals</label>
+                        <label><input type="checkbox" data-dashboard-option="section" data-dashboard-key="periods"> This week and this month</label>
+                        <label><input type="checkbox" data-dashboard-option="section" data-dashboard-key="recent"> Recent activity</label>
+                    </fieldset>
+                    <fieldset class="dashboard-options">
+                        <legend>Stats</legend>
+                        <label><input type="checkbox" data-dashboard-option="stat" data-dashboard-key="shifts"> Shifts</label>
+                        <label><input type="checkbox" data-dashboard-option="stat" data-dashboard-key="hours"> Hours</label>
+                        <label><input type="checkbox" data-dashboard-option="stat" data-dashboard-key="sales"> Sales</label>
+                        <label><input type="checkbox" data-dashboard-option="stat" data-dashboard-key="tips"> Net tips</label>
+                    </fieldset>
+                    <div class="filter-dialog-actions">
+                        <span></span>
+                        <button type="button" id="done-dashboard-customize" class="primary-button">Done</button>
+                    </div>
+                </dialog>
             </section>
 
             <section id="new-shift" class="view is-hidden">
@@ -417,9 +449,33 @@
                             <p class="settings-description">Currency changes how amounts are displayed; it does not convert existing values.</p>
                         </section>
 
-                        <section class="settings-card work-setup-card" aria-labelledby="work-setup-title">
+                        <section class="settings-card dashboard-settings-card" aria-labelledby="dashboard-settings-title">
                             <div class="settings-card-heading">
                                 <span class="settings-card-icon" aria-hidden="true">02</span>
+                                <div>
+                                    <p class="eyebrow">Personalize</p>
+                                    <h2 id="dashboard-settings-title">Dashboard</h2>
+                                </div>
+                            </div>
+                            <p class="settings-description">Choose which sections and core stats appear on your dashboard. These settings also apply to the Customize button there.</p>
+                            <fieldset class="dashboard-options">
+                                <legend>Sections</legend>
+                                <label><input type="checkbox" data-dashboard-option="section" data-dashboard-key="totals"> All-time totals</label>
+                                <label><input type="checkbox" data-dashboard-option="section" data-dashboard-key="periods"> This week and this month</label>
+                                <label><input type="checkbox" data-dashboard-option="section" data-dashboard-key="recent"> Recent activity</label>
+                            </fieldset>
+                            <fieldset class="dashboard-options">
+                                <legend>Stats</legend>
+                                <label><input type="checkbox" data-dashboard-option="stat" data-dashboard-key="shifts"> Shifts</label>
+                                <label><input type="checkbox" data-dashboard-option="stat" data-dashboard-key="hours"> Hours</label>
+                                <label><input type="checkbox" data-dashboard-option="stat" data-dashboard-key="sales"> Sales</label>
+                                <label><input type="checkbox" data-dashboard-option="stat" data-dashboard-key="tips"> Net tips</label>
+                            </fieldset>
+                        </section>
+
+                        <section class="settings-card work-setup-card" aria-labelledby="work-setup-title">
+                            <div class="settings-card-heading">
+                                <span class="settings-card-icon" aria-hidden="true">03</span>
                                 <div>
                                     <p class="eyebrow">Work profile</p>
                                     <h2 id="work-setup-title">Jobs &amp; roles</h2>
@@ -438,7 +494,7 @@
 
                         <section class="settings-card data-card" aria-labelledby="data-title">
                             <div class="settings-card-heading">
-                                <span class="settings-card-icon" aria-hidden="true">03</span>
+                                <span class="settings-card-icon" aria-hidden="true">04</span>
                                 <div>
                                     <p class="eyebrow">Backup &amp; privacy</p>
                                     <h2 id="data-title">Your data</h2>

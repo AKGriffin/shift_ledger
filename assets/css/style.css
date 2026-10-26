@@ -730,6 +730,20 @@ main {
     min-width: 0;
 }
 
+.dashboard-heading-actions {
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+[data-dashboard-section][hidden],
+.stat-card[hidden],
+.period-metrics[hidden],
+.recent-metrics[hidden] {
+    display: none;
+}
+
 .dashboard-heading h1 {
     margin: 0;
     font-size: clamp(1.5rem, 2.4vw, 1.9rem);
@@ -873,15 +887,15 @@ main {
     background: var(--panel-alt);
 }
 
-.period-metric:nth-child(2) {
+.period-metric[data-stat="hours"] {
     border-top-color: var(--success);
 }
 
-.period-metric:nth-child(3) {
+.period-metric[data-stat="sales"] {
     border-top-color: var(--gold);
 }
 
-.period-metric:nth-child(4) {
+.period-metric[data-stat="tips"] {
     border-top-color: var(--purple);
 }
 
@@ -1526,6 +1540,34 @@ textarea {
     gap: 12px;
 }
 
+.dashboard-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 10px 16px;
+    padding: 14px 16px;
+}
+
+.dashboard-options legend {
+    padding: 0 6px;
+}
+
+.dashboard-options label {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 9px;
+    color: var(--text);
+    line-height: 1.4;
+}
+
+.dashboard-options input {
+    width: 1rem;
+    height: 1rem;
+    flex: 0 0 auto;
+    margin: 0;
+    accent-color: var(--primary);
+}
+
 .inline-field {
     min-width: min(150px, 100%);
 }
@@ -1940,7 +1982,15 @@ textarea {
     }
 
     .dashboard-heading .primary-button {
+        width: auto;
+    }
+
+    .dashboard-heading-actions {
         width: 100%;
+    }
+
+    .dashboard-heading-actions > button {
+        flex: 1;
     }
 
     .mobile-brand {

@@ -1,6 +1,7 @@
 ﻿const STORAGE_KEY = "shift-ledger-shifts-v1";
 const SETTINGS_KEY = "shift-ledger-settings-v1";
 const VIEW_HISTORY_KEY = "shiftLedgerView";
+const DASHBOARD_STATS = ["shifts", "hours", "sales", "tips"];
 const { getAutoGratuity, getDurationMinutes, getFinancialBreakdown, getNetTips, getSalesTotal, toMinutes } = window.ShiftMath;
 const CARD_BREAKDOWN_SELECTORS = {
     foodSales: ".card-food-sales",
@@ -100,6 +101,7 @@ const modeSetting = document.getElementById("setting-mode");
 const weekStartSetting = document.getElementById("setting-week-start");
 const zeroDetailsSetting = document.getElementById("setting-zero-details");
 const currencySetting = document.getElementById("setting-currency");
+const dashboardCustomizeDialog = document.getElementById("dashboard-customize-dialog");
 const mobileLayout = window.matchMedia("(max-width: 720px)");
 const systemTheme = window.matchMedia("(prefers-color-scheme: dark)");
 
@@ -253,6 +255,22 @@ function bindEvents() {
     weekStartSetting.addEventListener("change", () => updateSetting("weekStartsOn", weekStartSetting.value));
     currencySetting.addEventListener("change", () => updateSetting("currency", currencySetting.value));
     zeroDetailsSetting.addEventListener("change", () => updateSetting("zeroDetails", zeroDetailsSetting.value));
+    document.getElementById("open-dashboard-customize").addEventListener("click", () => {
+        dashboardCustomizeDialog.showModal();
+    });
+    document.getElementById("close-dashboard-customize").addEventListener("click", () => {
+        dashboardCustomizeDialog.close();
+    });
+    document.getElementById("done-dashboard-customize").addEventListener("click", () => {
+        dashboardCustomizeDialog.close();
+    });
+    document.querySelectorAll("[data-dashboard-option]").forEach((option) => {
+        option.addEventListener("change", () => updateDashboardPreference(
+            option.dataset.dashboardOption,
+            option.dataset.dashboardKey,
+            option.checked
+        ));
+    });
     document.getElementById("export-backup").addEventListener("click", exportBackup);
     document.getElementById("import-backup").addEventListener("click", () => {
         document.getElementById("backup-file").click();
@@ -357,7 +375,34 @@ function initializeSettings() {
     weekStartSetting.value = state.settings.weekStartsOn;
     currencySetting.value = state.settings.currency;
     zeroDetailsSetting.value = state.settings.zeroDetails;
+    syncDashboardOptionControls();
     applyTheme();
+}
+
+function syncDashboardOptionControls() {
+    document.querySelectorAll("[data-dashboard-option]").forEach((option) => {
+        const group = option.dataset.dashboardOption === "section" ? "sections" : "stats";
+        option.checked = state.settings.dashboard[group][option.dataset.dashboardKey];
+    });
+}
+
+function updateDashboardPreference(groupName, key, value) {
+    const group = groupName === "section" ? "sections" : "stats";
+    const previousValue = state.settings.dashboard[group][key];
+    state.settings.dashboard[group][key] = value;
+
+    try {
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
+    } catch (error) {
+        state.settings.dashboard[group][key] = previousValue;
+        syncDashboardOptionControls();
+        console.error("Unable to save dashboard settings:", error);
+        setStatus("Unable to save your dashboard settings in this browser.", true);
+        return;
+    }
+
+    syncDashboardOptionControls();
+    renderDashboard();
 }
 
 function updateSetting(name, value) {
@@ -414,6 +459,10 @@ function loadSettings() {
         weekStartsOn: "monday",
         currency: "USD",
         zeroDetails: "hide",
+        dashboard: {
+            sections: { totals: true, periods: true, recent: true },
+            stats: { shifts: true, hours: true, sales: true, tips: true },
+        },
     };
 
     try {
@@ -437,6 +486,16 @@ function loadSettings() {
             : legacyTheme === "system" ? "system"
                 : legacyTheme ? "light" : defaults.colorMode;
 
+        const storedDashboard = stored.dashboard && typeof stored.dashboard === "object"
+            ? stored.dashboard
+            : {};
+        const storedSections = storedDashboard.sections && typeof storedDashboard.sections === "object"
+            ? storedDashboard.sections
+            : {};
+        const storedStats = storedDashboard.stats && typeof storedDashboard.stats === "object"
+            ? storedDashboard.stats
+            : {};
+
         return {
             visualStyle: availableStyles.includes(stored.visualStyle)
                 ? stored.visualStyle
@@ -453,6 +512,19 @@ function loadSettings() {
             zeroDetails: ["hide", "show"].includes(stored.zeroDetails)
                 ? stored.zeroDetails
                 : defaults.zeroDetails,
+            dashboard: {
+                sections: {
+                    totals: typeof storedSections.totals === "boolean" ? storedSections.totals : true,
+                    periods: typeof storedSections.periods === "boolean" ? storedSections.periods : true,
+                    recent: typeof storedSections.recent === "boolean" ? storedSections.recent : true,
+                },
+                stats: {
+                    shifts: typeof storedStats.shifts === "boolean" ? storedStats.shifts : true,
+                    hours: typeof storedStats.hours === "boolean" ? storedStats.hours : true,
+                    sales: typeof storedStats.sales === "boolean" ? storedStats.sales : true,
+                    tips: typeof storedStats.tips === "boolean" ? storedStats.tips : true,
+                },
+            },
         };
     } catch (error) {
         console.error("Unable to read saved settings:", error);
@@ -948,6 +1020,7 @@ function clearValidationErrors() {
 }
 
 function renderDashboard() {
+    applyDashboardPreferences();
     const totalShifts = state.shifts.length;
     const totalHours = state.shifts.reduce((sum, shift) => sum + getDurationMinutes(shift), 0);
     const totalSales = state.shifts.reduce((sum, shift) => sum + getSalesTotal(shift), 0);
@@ -983,7 +1056,11 @@ function renderDashboard() {
 
         const metrics = document.createElement("div");
         metrics.className = "recent-metrics";
-        [["Sales", getSalesTotal(shift)], ["Net tips", getNetTips(shift)]].forEach(([label, amount]) => {
+        metrics.hidden = !state.settings.dashboard.stats.sales && !state.settings.dashboard.stats.tips;
+        [
+            ["sales", "Sales", getSalesTotal(shift)],
+            ["tips", "Net tips", getNetTips(shift)],
+        ].filter(([key]) => state.settings.dashboard.stats[key]).forEach(([, label, amount]) => {
             const metric = document.createElement("div");
             metric.className = "recent-metric";
             const metricLabel = document.createElement("small");
@@ -998,6 +1075,19 @@ function renderDashboard() {
         fragment.appendChild(item);
     });
     recentShiftsEl.replaceChildren(fragment);
+}
+
+function applyDashboardPreferences() {
+    const hasSelectedStats = DASHBOARD_STATS.some((key) => state.settings.dashboard.stats[key]);
+    document.querySelectorAll("[data-dashboard-section]").forEach((section) => {
+        const hasMetrics = section.dataset.dashboardSection === "totals"
+            || section.dataset.dashboardSection === "periods";
+        section.hidden = !state.settings.dashboard.sections[section.dataset.dashboardSection]
+            || (hasMetrics && !hasSelectedStats);
+    });
+    document.querySelectorAll("[data-dashboard-stat]").forEach((stat) => {
+        stat.hidden = !state.settings.dashboard.stats[stat.dataset.dashboardStat];
+    });
 }
 
 function renderPreviousShifts() {
@@ -1106,16 +1196,18 @@ function renderPeriodSummary(container, fromDate, toDate) {
     const sales = shifts.reduce((sum, shift) => sum + getSalesTotal(shift), 0);
     const tips = shifts.reduce((sum, shift) => sum + getNetTips(shift), 0);
     const values = [
-        ["Shifts", String(shifts.length)],
-        ["Hours", formatDuration(hours)],
-        ["Sales", formatCurrency(sales)],
-        ["Net tips", formatCurrency(tips)],
-    ];
+        ["shifts", "Shifts", String(shifts.length)],
+        ["hours", "Hours", formatDuration(hours)],
+        ["sales", "Sales", formatCurrency(sales)],
+        ["tips", "Net tips", formatCurrency(tips)],
+    ].filter(([key]) => state.settings.dashboard.stats[key]);
+    container.hidden = values.length === 0;
     const fragment = document.createDocumentFragment();
 
-    values.forEach(([label, value]) => {
+    values.forEach(([key, label, value]) => {
         const metric = document.createElement("div");
         metric.className = "period-metric";
+        metric.dataset.stat = key;
         const metricLabel = document.createElement("span");
         metricLabel.textContent = label;
         const metricValue = document.createElement("strong");

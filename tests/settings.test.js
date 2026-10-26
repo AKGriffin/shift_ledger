@@ -12,14 +12,57 @@ const styleOptions = [
 ];
 
 describe("Settings page", () => {
-    test("shows the preferences, work setup, and data cards", () => withApp(({ element, elements, openView }) => {
+    test("shows the preferences, dashboard, work setup, and data cards", () => withApp(({ element, elements, openView }) => {
         openView("settings");
 
-        expect(elements(".settings-card")).toHaveLength(3);
+        expect(elements(".settings-card")).toHaveLength(4);
         expect(element("#work-setup-title").textContent).toBe("Jobs & roles");
+        expect(element("#dashboard-settings-title").textContent).toBe("Dashboard");
         expect(element("#export-csv").textContent).toBe("Download CSV");
         expect(element(".work-setup-flow").textContent.replace(/\s+/g, " ").trim())
             .toContain("Restaurants › Roles › Shift templates");
+    }));
+});
+
+describe("Dashboard customization", () => {
+    test("saves section and stat choices from Settings and applies them across dashboard views", () => withApp({
+        shifts: [makeShift({ foodSales: 125, ccTips: 24 })],
+    }, ({ element, elements, openView, fire, savedSettings }) => {
+        openView("settings");
+        const recentToggle = element('.dashboard-settings-card [data-dashboard-option="section"][data-dashboard-key="recent"]');
+        recentToggle.checked = false;
+        fire(recentToggle, "change");
+        const tipsToggle = element('.dashboard-settings-card [data-dashboard-option="stat"][data-dashboard-key="tips"]');
+        tipsToggle.checked = false;
+        fire(tipsToggle, "change");
+
+        expect(savedSettings().dashboard.sections.recent).toBe(false);
+        expect(savedSettings().dashboard.stats.tips).toBe(false);
+        expect(element('#dashboard [data-dashboard-section="recent"]').hidden).toBe(true);
+        expect(element("#summary-total-tips").closest(".stat-card").hidden).toBe(true);
+        expect(elements(".period-metric")).toHaveLength(6);
+        expect(elements(".recent-metric")).toHaveLength(1);
+        expect(element('#dashboard-customize-dialog [data-dashboard-option="section"][data-dashboard-key="recent"]').checked).toBe(false);
+        expect(element('#dashboard-customize-dialog [data-dashboard-option="stat"][data-dashboard-key="tips"]').checked).toBe(false);
+    }));
+
+    test("opens dashboard options and hides empty stat sections when all stats are disabled", () => withApp(({ element, fire, openView }) => {
+        element("#open-dashboard-customize").click();
+        expect(element("#dashboard-customize-dialog").open).toBe(true);
+        const statToggle = element('#dashboard-customize-dialog [data-dashboard-option="stat"][data-dashboard-key="shifts"]');
+        statToggle.checked = false;
+        fire(statToggle, "change");
+        for (const key of ["hours", "sales", "tips"]) {
+            const toggle = element(`#dashboard-customize-dialog [data-dashboard-option="stat"][data-dashboard-key="${key}"]`);
+            toggle.checked = false;
+            fire(toggle, "change");
+        }
+
+        expect(element('#dashboard [data-dashboard-section="totals"]').hidden).toBe(true);
+        expect(element('#dashboard [data-dashboard-section="periods"]').hidden).toBe(true);
+        element("#done-dashboard-customize").click();
+        openView("settings");
+        expect(element('.dashboard-settings-card [data-dashboard-option="stat"][data-dashboard-key="shifts"]').checked).toBe(false);
     }));
 });
 
