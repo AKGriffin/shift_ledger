@@ -56,6 +56,7 @@ describe("Previous shifts", () => {
 
         expect(serverCard().querySelector(".card-food-sales").parentElement.hidden).toBe(false);
         expect(serverCard().querySelector(".card-na-bev-sales").parentElement.hidden).toBe(true);
+        expect(serverCard().querySelector(".card-auto-gratuity").parentElement.hidden).toBe(false);
 
         openView("settings");
         change("#setting-zero-details", "show");

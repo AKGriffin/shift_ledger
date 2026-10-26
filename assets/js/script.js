@@ -900,7 +900,10 @@ function renderPreviousShifts() {
         card.querySelector(".card-hours").textContent = formatDuration(getDurationMinutes(shift));
         card.querySelector(".card-sales").textContent = formatCurrency(getSalesTotal(shift));
         card.querySelector(".card-tips").textContent = formatCurrency(getNetTips(shift));
-        card.querySelector(".card-auto-gratuity").textContent = formatCurrency(getAutoGratuity(shift));
+        const autoGratuity = getAutoGratuity(shift);
+        const autoGratuityValue = card.querySelector(".card-auto-gratuity");
+        autoGratuityValue.textContent = formatCurrency(autoGratuity);
+        autoGratuityValue.parentElement.hidden = state.settings.zeroDetails === "hide" && !autoGratuity;
         const breakdown = getFinancialBreakdown(shift);
         Object.entries(CARD_BREAKDOWN_SELECTORS).forEach(([field, selector]) => {
             const value = card.querySelector(selector);
