@@ -381,11 +381,12 @@ function handleListAction(event) {
 
     closeCardMenus();
 
-    if (button.classList.contains("card-toggle")) {
+    if (button.classList.contains("card-stat-toggle")) {
+        const stat = button.closest(".card-stat");
         const expanded = button.getAttribute("aria-expanded") !== "true";
         button.setAttribute("aria-expanded", String(expanded));
-        card.classList.toggle("is-expanded", expanded);
-        button.textContent = expanded ? "Hide details" : "Show details";
+        button.setAttribute("aria-label", button.getAttribute("aria-label").replace(/^(Show|Hide)/, expanded ? "Hide" : "Show"));
+        stat.classList.toggle("is-expanded", expanded);
         return;
     }
 

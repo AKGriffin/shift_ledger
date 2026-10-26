@@ -1378,22 +1378,59 @@ textarea {
     border-top: 1px dashed var(--border);
 }
 
-.card-toggle {
+.card-stat-head {
+    position: relative;
+    display: grid;
+    gap: 5px;
+}
+
+.card-stat-toggle {
     display: none;
-    justify-self: start;
 }
 
 @container (max-width: 400px) {
-    .card-toggle {
-        display: inline-flex;
-    }
-
-    .shift-card:not(.is-expanded) .card-substats {
-        display: none;
-    }
-
-    .shift-card.is-expanded .shift-card-summary {
+    .shift-card-summary {
         grid-template-columns: minmax(0, 1fr);
+    }
+
+    .card-stat-head {
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        padding-right: 28px;
+    }
+
+    .card-stat-toggle {
+        position: absolute;
+        inset: -10px;
+        display: block;
+        width: auto;
+        min-height: 44px;
+        padding: 0;
+        border: 0;
+        border-radius: 12px;
+        background: transparent;
+        cursor: pointer;
+    }
+
+    .card-stat-toggle::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        right: 14px;
+        width: 8px;
+        height: 8px;
+        border-right: 2px solid var(--muted);
+        border-bottom: 2px solid var(--muted);
+        transform: translateY(-70%) rotate(45deg);
+        transition: transform 0.15s ease;
+    }
+
+    .card-stat.is-expanded .card-stat-toggle::after {
+        transform: translateY(-30%) rotate(-135deg);
+    }
+
+    .card-stat:not(.is-expanded) .card-substats {
+        display: none;
     }
 }
 

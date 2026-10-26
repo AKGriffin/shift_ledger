@@ -55,19 +55,23 @@ describe("Previous shifts", () => {
         shifts: seededShifts(),
     }, ({ element, openView, style }) => {
         openView("previous-shifts");
-        const toggle = element(".card-toggle");
-        const card = element(".shift-card");
-        const substats = element(".card-stat-sales .card-substats");
+        const salesToggle = element(".card-stat-sales .card-stat-toggle");
+        const tipsToggle = element(".card-stat-tips .card-stat-toggle");
+        const salesDetails = element(".card-stat-sales .card-substats");
+        const tipsDetails = element(".card-stat-tips .card-substats");
 
-        expect(style(toggle).display).not.toBe("none");
-        expect(toggle.getAttribute("aria-expanded")).toBe("false");
-        expect(style(substats).display).toBe("none");
-        toggle.click();
-        expect(card.classList.contains("is-expanded")).toBe(true);
-        expect(toggle.getAttribute("aria-expanded")).toBe("true");
-        expect(style(substats).display).not.toBe("none");
-        toggle.click();
-        expect(style(substats).display).toBe("none");
+        expect(style(element(".shift-card-summary")).gridTemplateColumns.split(" ")).toHaveLength(1);
+        expect(style(salesToggle).display).not.toBe("none");
+        expect(salesToggle.getAttribute("aria-expanded")).toBe("false");
+        expect(style(salesDetails).display).toBe("none");
+        salesToggle.click();
+        expect(salesToggle.getAttribute("aria-expanded")).toBe("true");
+        expect(style(salesDetails).display).not.toBe("none");
+        expect(style(tipsDetails).display).toBe("none");
+        expect(style(element(".shift-card-summary")).gridTemplateColumns.split(" ")).toHaveLength(1);
+        salesToggle.click();
+        expect(style(salesDetails).display).toBe("none");
+        expect(tipsToggle.getAttribute("aria-expanded")).toBe("false");
     }));
 
     test("keeps totals side by side with details visible at tablet width", () => withApp({
@@ -78,7 +82,7 @@ describe("Previous shifts", () => {
         openView("previous-shifts");
 
         expect(style(element(".shift-card-summary")).gridTemplateColumns.split(" ")).toHaveLength(3);
-        expect(style(element(".card-toggle")).display).toBe("none");
+        expect(style(element(".card-stat-toggle")).display).toBe("none");
         expect(style(element(".card-stat-sales .card-substats")).display).not.toBe("none");
     }));
 
@@ -89,7 +93,7 @@ describe("Previous shifts", () => {
     }, ({ element, openView, style }) => {
         openView("previous-shifts");
 
-        expect(style(element(".card-toggle")).display).toBe("none");
+        expect(style(element(".card-stat-toggle")).display).toBe("none");
         expect(style(element(".card-stat-tips .card-substats")).display).not.toBe("none");
         expect(element(".card-stat-hours .card-clock-in")).not.toBeNull();
     }));
