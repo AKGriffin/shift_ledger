@@ -93,6 +93,13 @@ function bindEvents() {
     document.getElementById("back-to-menu").addEventListener("click", () => showView("mobile-home"));
     form.addEventListener("submit", handleFormSubmit);
     form.addEventListener("change", updateValidationErrors);
+    form.addEventListener("focusin", selectNumberOnFocus);
+    form.addEventListener("mouseup", (event) => {
+        if (event.target.type === "number" && event.target.dataset.selectedOnFocus) {
+            event.preventDefault();
+            delete event.target.dataset.selectedOnFocus;
+        }
+    });
     clearFormButton.addEventListener("click", resetForm);
     cancelFormButton.addEventListener("click", () => {
         resetForm();
@@ -462,6 +469,14 @@ function showValidationErrors(issues, shouldFocus = true) {
     summary.hidden = false;
     if (shouldFocus) {
         firstField.focus();
+    }
+}
+
+function selectNumberOnFocus(event) {
+    const input = event.target;
+    if (input.tagName === "INPUT" && input.type === "number") {
+        input.dataset.selectedOnFocus = "true";
+        input.select();
     }
 }
 

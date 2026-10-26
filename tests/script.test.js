@@ -160,6 +160,10 @@ test("app workflow validates, saves, edits, filters, and deletes shifts", async 
         expect(element("#shift-clock-out-error").textContent).toBe("Clock out must be later than clock in.");
         expect(savedShifts()).toHaveLength(0);
 
+        const foodSales = element("#shift-food-sales");
+        foodSales.dispatchEvent(new frame.contentWindow.Event("focusin", { bubbles: true }));
+        expect(foodSales.dataset.selectedOnFocus).toBe("true");
+
         const notesWithMarkup = '<img src=x onerror="alert(1)">';
         enterShift({
             date: "2026-10-20",

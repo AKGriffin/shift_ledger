@@ -4,6 +4,8 @@ This is a lightweight view of where Shift Ledger is headed, not a promise or a r
 
 ## Now
 
+- [ ] **Rework double-shift reporting** - Let a double record its lunch and dinner portions with independent shift reports. Support a report for both, one, neither, or only for the whole double with no per-shift breakdown, and clearly mark which figures are missing or combined. Review other report combinations before settling the model.
+- [ ] **Handle shifts that cross midnight** - Define how a shift that ends the next day is entered, validated (clock-out earlier than clock-in), displayed, and counted in daily, weekly, and monthly totals, while keeping existing records unchanged.
 - [ ] **Track automatic gratuity separately and include it in tips** - Add an optional auto-gratuity field, update net-tip calculations and totals, and carry it through editing, history, CSV export, backup/restore, and legacy records without changing existing values.
 - [ ] **Redesign previous-shift browsing** - Replace the heavy nested-card appearance with a clearer, lighter history list; move filters into an accessible dialog or sheet while keeping sort easy to find and usable on mobile.
 - [ ] **Make PWA refresh and update behavior reliable** - Ensure refreshes and app restarts preserve saved shifts, and make new app versions activate or become available predictably without requiring users to fully close the app.
@@ -17,6 +19,7 @@ This is a lightweight view of where Shift Ledger is headed, not a promise or a r
 
 - [ ] **Make success and error notices dismiss reliably** - Ensure timed notices close while the app remains open, and that navigation, refresh, or visibility changes do not leave stale notices behind.
 - [ ] **Strengthen and clarify the test suite** - Improve the lightweight assertion-based tests with expressive assertions, focused behavior coverage, and clear failure output, following useful patterns from flat_map_framework without adding unnecessary test dependencies.
+- [ ] **Add undo and redo while editing forms** - Let users step back and forward through changes in the shift form, working with keyboard shortcuts and accessible controls without interfering with native input undo.
 - [ ] **Improve Material Dark colors** - Refine its dark palette and contrast so it feels intentional and as cohesive as the paper-inspired light theme.
 - [ ] **Use descriptive export filenames** - Name downloads by export type and relevant date range (and job only when useful), rather than a generic filename; avoid adding personal identifiers by default.
 - [ ] **Support roles that do not have shift reports** - Let a role's template mark sales/report details as unavailable or not applicable, so users can still log hours and other known shift details without entering invented numbers.
@@ -49,4 +52,5 @@ This is a lightweight view of where Shift Ledger is headed, not a promise or a r
 - [x] Mobile app menu fits common phone screens and scrolls only when space is insufficient.
 - [x] App icon replaces the text monogram in the header, with the brand kept on one line.
 - [x] Dashboard period summaries and previous-shift cards use a two-column heading-and-statistics layout.
+- [x] Number fields in the shift form select their contents on focus, so values like 0 can be replaced without deleting.
 - [x] Shift-form validation identifies affected fields, marks invalid inputs, and links an error summary beside the form actions.
