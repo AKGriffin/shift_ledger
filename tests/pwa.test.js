@@ -43,7 +43,7 @@ describe("PWA updates", () => {
                 resolve();
             }, { once: true });
         });
-        refreshedFrame.src = "./";
+        refreshedFrame.src = "./index.html";
         harness.doc.body.appendChild(refreshedFrame);
         await loaded;
         expect(refreshedFrame.contentDocument.querySelector("#summary-total-shifts").textContent).toBe("1");

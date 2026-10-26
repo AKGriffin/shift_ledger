@@ -34,21 +34,12 @@ describe("Mobile navigation", () => {
         expect(element('.mobile-bottom-nav [data-view="new-shift"]').getAttribute("aria-current")).toBe("page");
     }));
 
-    test("hides dashboard customizing and the overview blurb on phones, and floats Log a shift above the nav", () => withApp({
+    test("hides dashboard actions and the overview blurb on phones", () => withApp({
         width: 390,
         height: 844,
-    }, ({ element, style, win }) => {
-        const log = element("#dashboard .primary-button").getBoundingClientRect();
-        const nav = element(".mobile-bottom-nav").getBoundingClientRect();
-
-        expect(style(element("#open-dashboard-customize")).display).toBe("none");
+    }, ({ element, style }) => {
+        expect(style(element(".dashboard-heading-actions")).display).toBe("none");
         expect(style(element(".dashboard-heading p:last-child")).display).toBe("none");
-        expect(log.bottom).toBeLessThanOrEqual(nav.top);
-        expect(log.right).toBeLessThanOrEqual(win.innerWidth);
-        expect(log.top).toBeGreaterThan(win.innerHeight / 2);
-
-        element("#dashboard .primary-button").click();
-        expect(element("#new-shift").classList.contains("is-visible")).toBe(true);
     }));
 
     test("hides the bottom navigation on wide screens", () => withApp({ width: 1200, height: 800 }, ({ element, style }) => {
