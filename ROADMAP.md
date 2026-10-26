@@ -24,6 +24,7 @@ This is a lightweight view of where Shift Ledger is headed, not a promise or a r
 - [ ] **Improve transient notification feedback** - Use dismissible in-app notices with a close button and a visible circular countdown for automatic dismissal. Tapping a notice should dismiss it rather than open a destination; provide a sensible timeout, respect reduced-motion preferences, and let users adjust or disable these notices in Settings.
 - [ ] **Offer a guided shift-entry flow** - Add an optional step-by-step mode for logging a shift while preserving the current form for users who prefer it.
 - [ ] **Make dashboard labels adaptable** - Let users reduce descriptive text in dense views, with a discoverable way to reveal it on demand. Consider separate compact/expanded preferences for small and large screens, and ensure labels remain accessible without relying on hover.
+- [ ] **Make the dashboard customizable** - Let users show/hide sections, choose stats (including optional tips per hour, average sales per shift, and tip % of sales), pick the period, reorder sections, filter by job, and choose compact or detailed density, from both Settings and a Customize button on the dashboard.
 - [ ] **Expand dashboard insights** - Add useful trends and visualizations only where they clarify hours, sales, tips, or comparisons across time periods.
 - [ ] **Add thoughtful feedback and bug reporting** - Provide a clear way to report a problem or request a feature, without including shift or personal data unless the user explicitly chooses to share it.
 - [ ] **Strengthen data reliability** - Validate imported and stored records consistently, handle storage failures clearly, and add coverage for backup restore and invalid data.
@@ -48,6 +49,7 @@ This is a lightweight view of where Shift Ledger is headed, not a promise or a r
 - [x] Responsive settings cards with a Jobs & roles direction preview.
 - [x] Mobile app menu fits common phone screens and scrolls only when space is insufficient.
 - [x] App icon replaces the text monogram in the header, with the brand kept on one line.
+- [x] Dashboard visually refreshed to match the other sections: header card, accented stat cards, tiled period metrics, and labeled recent-activity values.
 - [x] Dashboard period summaries and previous-shift cards use a two-column heading-and-statistics layout.
 - [x] Number fields in the shift form select their contents on focus, so values like 0 can be replaced without deleting.
 - [x] Shift-form validation identifies affected fields, marks invalid inputs, and links an error summary beside the form actions.

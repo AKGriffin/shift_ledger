@@ -723,7 +723,7 @@ main {
     align-items: center;
     justify-content: space-between;
     gap: 24px;
-    margin-bottom: 26px;
+    margin-bottom: 18px;
 }
 
 .dashboard-heading > div {
@@ -732,7 +732,7 @@ main {
 
 .dashboard-heading h1 {
     margin: 0;
-    font-size: clamp(1.8rem, 3vw, 2.5rem);
+    font-size: clamp(1.5rem, 2.4vw, 1.9rem);
 }
 
 .dashboard-heading p:last-child {
@@ -753,22 +753,27 @@ main {
 
 .summary-heading {
     margin: 0 0 12px;
-    font-size: 1rem;
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
 }
 
 .summary-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: clamp(12px, 1.5vw, 20px);
-    margin-bottom: 28px;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px;
+    margin-bottom: 26px;
 }
 
 .stat-card {
     min-width: 0;
     overflow: hidden;
-    padding: clamp(16px, 1.8vw, 22px);
+    padding: 16px 18px;
     border-radius: 18px;
     border: 1px solid var(--border);
+    border-top: 3px solid var(--primary);
     background: var(--panel);
     box-shadow: var(--shadow);
 }
@@ -776,40 +781,37 @@ main {
 .stat-card span {
     display: block;
     color: var(--muted);
-    margin-bottom: 10px;
-    font-size: 0.8rem;
+    margin-bottom: 8px;
+    font-size: 0.75rem;
     text-transform: uppercase;
     font-weight: 700;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.05em;
 }
 
 .stat-card strong {
     display: block;
     overflow-wrap: anywhere;
-    font-size: clamp(1.35rem, 2vw, 1.9rem);
-}
-
-.accent-blue {
-    background: linear-gradient(135deg, rgba(42, 109, 246, 0.12), rgba(42, 109, 246, 0.04));
+    font-size: clamp(1.3rem, 2vw, 1.7rem);
+    font-variant-numeric: tabular-nums;
 }
 
 .accent-green {
-    background: linear-gradient(135deg, rgba(16, 158, 98, 0.12), rgba(16, 158, 98, 0.04));
+    border-top-color: var(--success);
 }
 
 .accent-gold {
-    background: linear-gradient(135deg, rgba(242, 185, 63, 0.15), rgba(242, 185, 63, 0.04));
+    border-top-color: var(--gold);
 }
 
 .accent-purple {
-    background: linear-gradient(135deg, rgba(124, 90, 241, 0.12), rgba(124, 90, 241, 0.04));
+    border-top-color: var(--purple);
 }
 
 .period-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: clamp(12px, 1.5vw, 20px);
-    margin-bottom: 28px;
+    gap: 18px;
+    margin-bottom: 26px;
 }
 
 .period-card {
@@ -855,33 +857,52 @@ main {
 
 .period-metrics {
     display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     min-width: 0;
-    gap: 10px;
+    gap: 8px;
 }
 
 .period-metric {
-    display: flex;
+    display: grid;
+    align-content: start;
     min-width: 0;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 8px;
+    gap: 5px;
+    padding: 10px;
+    border-top: 3px solid var(--primary);
+    border-radius: 12px;
+    background: var(--panel-alt);
+}
+
+.period-metric:nth-child(2) {
+    border-top-color: var(--success);
+}
+
+.period-metric:nth-child(3) {
+    border-top-color: var(--gold);
+}
+
+.period-metric:nth-child(4) {
+    border-top-color: var(--purple);
 }
 
 .period-metric span {
     min-width: 0;
     color: var(--muted);
-    font-size: 0.78rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
 }
 
 .period-metric strong {
-    flex: 0 0 auto;
     font-size: 1.05rem;
-    text-align: right;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
 }
 
 .recent-list {
     display: grid;
-    gap: 12px;
+    gap: 10px;
 }
 
 .recent-item {
@@ -889,8 +910,9 @@ main {
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 14px 16px;
+    padding: 12px 14px;
     border: 1px solid var(--border);
+    border-left: 3px solid var(--primary);
     border-radius: 12px;
     background: var(--panel-alt);
 }
@@ -916,9 +938,26 @@ main {
 
 .recent-metrics {
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
+    flex: 0 0 auto;
+    gap: 18px;
+}
+
+.recent-metric {
+    display: grid;
+    gap: 2px;
+    text-align: right;
+}
+
+.recent-metric small {
+    color: var(--muted);
+    font-size: 0.7rem;
     font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.recent-metric strong {
+    font-variant-numeric: tabular-nums;
 }
 
 .form-status {
@@ -1819,12 +1858,6 @@ textarea {
     }
 }
 
-@media (min-width: 1360px) {
-    .summary-grid {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-}
-
 @media (max-width: 720px) {
     body {
         overflow-x: hidden;
@@ -1903,7 +1936,7 @@ textarea {
         align-items: flex-start;
         flex-direction: column;
         gap: 16px;
-        margin: 8px 0 22px;
+        margin: 8px 0 18px;
     }
 
     .dashboard-heading .primary-button {
@@ -2004,6 +2037,24 @@ textarea {
 
     .period-grid {
         grid-template-columns: 1fr;
+    }
+
+    .period-card {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .recent-item {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .recent-metrics {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .recent-metric {
+        text-align: left;
     }
 
     .period-card,

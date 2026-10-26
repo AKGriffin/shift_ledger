@@ -983,11 +983,16 @@ function renderDashboard() {
 
         const metrics = document.createElement("div");
         metrics.className = "recent-metrics";
-        const sales = document.createElement("span");
-        sales.textContent = formatCurrency(getSalesTotal(shift));
-        const tips = document.createElement("span");
-        tips.textContent = formatCurrency(getNetTips(shift));
-        metrics.append(sales, tips);
+        [["Sales", getSalesTotal(shift)], ["Net tips", getNetTips(shift)]].forEach(([label, amount]) => {
+            const metric = document.createElement("div");
+            metric.className = "recent-metric";
+            const metricLabel = document.createElement("small");
+            metricLabel.textContent = label;
+            const metricValue = document.createElement("strong");
+            metricValue.textContent = formatCurrency(amount);
+            metric.append(metricLabel, metricValue);
+            metrics.appendChild(metric);
+        });
 
         item.append(details, metrics);
         fragment.appendChild(item);
