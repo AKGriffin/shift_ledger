@@ -30,6 +30,16 @@
 
         <div class="app-content">
             <p id="form-status" class="form-status" role="status" aria-live="polite" hidden></p>
+            <section id="app-update-notice" class="app-update-notice" aria-labelledby="app-update-title" hidden>
+                <div>
+                    <h2 id="app-update-title">Update ready</h2>
+                    <p role="status" aria-live="polite">A new version of Shift Ledger is ready. Reload when convenient. Unsaved shift changes are protected by a confirmation.</p>
+                </div>
+                <div class="app-update-actions">
+                    <button type="button" id="reload-app" class="primary-button">Reload now</button>
+                    <button type="button" id="dismiss-app-update" class="ghost-button">Later</button>
+                </div>
+            </section>
 
         <main>
             <section id="mobile-home" class="view is-hidden mobile-home">

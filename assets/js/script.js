@@ -20,9 +20,17 @@ const state = {
     editingShiftId: null,
 };
 let formStatusTimeout = null;
+let shiftFormDirty = false;
+let allowUpdateReload = false;
+let serviceWorkerRegistration = null;
+let hadServiceWorkerController = "serviceWorker" in navigator
+    && Boolean(navigator.serviceWorker.controller);
 
 const navButtons = document.querySelectorAll("[data-view]");
 const formStatus = document.getElementById("form-status");
+const appUpdateNotice = document.getElementById("app-update-notice");
+const reloadAppButton = document.getElementById("reload-app");
+const dismissAppUpdateButton = document.getElementById("dismiss-app-update");
 const form = document.getElementById("shift-form");
 const formTitle = document.getElementById("form-title");
 const clearFormButton = document.getElementById("clear-form");
@@ -108,9 +116,54 @@ function registerServiceWorker() {
         return;
     }
 
-    navigator.serviceWorker.register("./sw.js").catch((error) => {
-        console.error("Unable to register the offline app worker:", error);
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (hadServiceWorkerController) {
+            appUpdateNotice.hidden = false;
+        }
+        hadServiceWorkerController = true;
     });
+    window.addEventListener("online", checkForServiceWorkerUpdate);
+    document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) {
+            checkForServiceWorkerUpdate();
+        }
+    });
+
+    navigator.serviceWorker.register("./sw.js")
+        .then((registration) => {
+            serviceWorkerRegistration = registration;
+        })
+        .catch((error) => {
+            console.error("Unable to register the offline app worker:", error);
+        });
+}
+
+function checkForServiceWorkerUpdate() {
+    if (!serviceWorkerRegistration) {
+        return;
+    }
+
+    serviceWorkerRegistration.update().catch((error) => {
+        console.warn("Unable to check for app updates:", error);
+    });
+}
+
+function reloadForAppUpdate() {
+    if (shiftFormDirty && !window.confirm("Reload now and discard the unsaved shift changes?")) {
+        return;
+    }
+
+    allowUpdateReload = true;
+    window.location.reload();
+}
+
+function guardUnsavedShiftChanges(event) {
+    if (!shiftFormDirty || allowUpdateReload) {
+        return;
+    }
+
+    event.preventDefault();
+    event.returnValue = "";
 }
 
 function bindEvents() {
@@ -125,7 +178,14 @@ function bindEvents() {
 
     document.getElementById("back-to-menu").addEventListener("click", () => showView("mobile-home"));
     form.addEventListener("submit", handleFormSubmit);
+    form.addEventListener("input", markShiftFormDirty);
+    form.addEventListener("change", markShiftFormDirty);
     form.addEventListener("change", updateValidationErrors);
+    window.addEventListener("beforeunload", guardUnsavedShiftChanges);
+    reloadAppButton.addEventListener("click", reloadForAppUpdate);
+    dismissAppUpdateButton.addEventListener("click", () => {
+        appUpdateNotice.hidden = true;
+    });
     fields.mealPeriod.addEventListener("change", updateMealPeriodFields);
     doubleReportList.addEventListener("change", handleDoubleReportToggle);
     form.addEventListener("focusin", selectNumberOnFocus);
@@ -567,7 +627,11 @@ function handleAddNote() {
 function handleNoteRemove(event) {
     const button = event.target.closest(".note-remove");
     if (button) {
-        removeNoteRow(button.closest(".note-row"));
+        const row = button.closest(".note-row");
+        if (row.querySelector(".note-input").value.trim()) {
+            markShiftFormDirty();
+        }
+        removeNoteRow(row);
     }
 }
 
@@ -597,6 +661,7 @@ function readNotes() {
 
 function resetForm(shouldClearStatus = true) {
     form.reset();
+    shiftFormDirty = false;
     updateMealPeriodFields();
     setNoteRows([]);
     state.editingShiftId = null;
@@ -614,6 +679,7 @@ function resetForm(shouldClearStatus = true) {
 }
 
 function populateForm(shift) {
+    shiftFormDirty = false;
     state.editingShiftId = shift.id;
     fields.date.value = shift.date || "";
     fields.mealPeriod.value = shift.mealPeriod || "";
@@ -645,6 +711,10 @@ function populateForm(shift) {
         });
         setReportInputsEnabled(reportNode, toggle.checked);
     });
+}
+
+function markShiftFormDirty() {
+    shiftFormDirty = true;
 }
 
 function handleFormSubmit(event) {

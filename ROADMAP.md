@@ -4,7 +4,7 @@ This is a lightweight view of where Shift Ledger is headed, not a promise or a r
 
 ## Now
 
-- [ ] **Make PWA refresh and update behavior reliable** - Ensure refreshes and app restarts preserve saved shifts, and make new app versions activate or become available predictably without requiring users to fully close the app.
+- [x] **Make PWA refresh and update behavior reliable** - Refreshes preserve saved shifts, updates are checked when the app returns online or to the foreground, and active versions offer a manual reload without discarding unsaved shift changes.
 - [ ] **Improve mobile navigation and reachability** - Keep in-app back/forward navigation predictable instead of unexpectedly leaving the app, and place frequently used mobile actions where they are easier to reach one-handed.
 - [ ] **Model workplaces, roles, and shift templates** - Separate restaurants/workplaces from the positions worked there. A workplace owns its roles; each role can have a reusable shift template. Define how existing `job` values and saved shifts migrate without losing history.
 - [ ] **Manage workplaces and roles in Settings** - Let users add, rename, and archive a workplace and its roles. Make clear what happens to historical shifts when an item is archived.
