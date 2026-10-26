@@ -15,7 +15,6 @@ const FIELD_IDS = {
     autoGratuity: "shift-auto-gratuity",
     tipOutPaid: "shift-tip-out-paid",
     tipOutReceived: "shift-tip-out-received",
-    notes: "shift-notes",
 };
 
 const DEFAULT_FORM_VALUES = {

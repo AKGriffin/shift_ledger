@@ -277,10 +277,9 @@
 
                     <fieldset class="notes-section">
                         <legend>Notes</legend>
-                        <label class="field notes-field">
-                            <span>Anything important from the shift?</span>
-                            <textarea id="shift-notes" rows="4" placeholder="Optional"></textarea>
-                        </label>
+                        <p class="notes-hint" id="notes-hint">Anything important from the shift? Add one note per line. Press Enter for the next note.</p>
+                        <ul id="notes-list" class="notes-list" aria-describedby="notes-hint"></ul>
+                        <button type="button" id="add-note" class="secondary-button">+ Add note</button>
                     </fieldset>
 
                     <div id="form-errors" class="form-errors" role="alert" hidden>
@@ -526,7 +525,7 @@
                 </div>
             </div>
 
-            <p class="card-notes"></p>
+            <div class="card-notes"></div>
         </article>
     </template>
 

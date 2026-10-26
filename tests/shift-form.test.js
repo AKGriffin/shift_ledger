@@ -142,6 +142,83 @@ describe("Editing and deleting shifts", () => {
     }));
 });
 
+describe("Shift notes", () => {
+    const typeNote = (harness, index, text) => {
+        const input = harness.elements(".note-input")[index];
+        input.value = text;
+        harness.fire(input, "input");
+    };
+
+    test("starts with one empty note and adds more on request", () => withApp((harness) => {
+        harness.openView("new-shift");
+
+        expect(harness.elements(".note-input")).toHaveLength(1);
+        harness.element("#add-note").click();
+        harness.element("#add-note").click();
+        expect(harness.elements(".note-input")).toHaveLength(3);
+        expect(harness.elements(".note-input")[2].getAttribute("aria-label")).toBe("Note 3");
+    }));
+
+    test("saves each note separately and ignores blank ones", () => withApp((harness) => {
+        harness.openView("new-shift");
+        harness.element("#add-note").click();
+        harness.element("#add-note").click();
+        typeNote(harness, 0, "  Large party  ");
+        typeNote(harness, 2, "Slow close");
+        harness.fillForm({ date: "2026-10-20", mealPeriod: "Dinner", job: "Server", clockIn: "16:00", clockOut: "22:00" });
+        harness.submitForm();
+
+        expect(harness.savedShifts()[0].notes).toEqual(["Large party", "Slow close"]);
+
+        harness.openView("previous-shifts");
+        const items = harness.elements(".card-note-list li").map((item) => item.textContent);
+        expect(items).toEqual(["Large party", "Slow close"]);
+    }));
+
+    test("Enter adds the next note and Backspace on an empty note removes it", () => withApp((harness) => {
+        harness.openView("new-shift");
+        const first = harness.element(".note-input");
+        first.focus();
+        first.dispatchEvent(new harness.win.KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
+
+        expect(harness.elements(".note-input")).toHaveLength(2);
+        expect(harness.doc.activeElement).toBe(harness.elements(".note-input")[1]);
+
+        harness.doc.activeElement.dispatchEvent(new harness.win.KeyboardEvent("keydown", { key: "Backspace", bubbles: true, cancelable: true }));
+
+        expect(harness.elements(".note-input")).toHaveLength(1);
+        expect(harness.doc.activeElement).toBe(harness.element(".note-input"));
+    }));
+
+    test("removes a note with its button and keeps one empty row when all are removed", () => withApp((harness) => {
+        harness.openView("new-shift");
+        harness.element("#add-note").click();
+        typeNote(harness, 0, "One");
+        typeNote(harness, 1, "Two");
+
+        harness.elements(".note-remove")[0].click();
+        expect(harness.elements(".note-input").map((input) => input.value)).toEqual(["Two"]);
+
+        harness.element(".note-remove").click();
+        expect(harness.elements(".note-input").map((input) => input.value)).toEqual([""]);
+    }));
+
+    test("restores notes when editing and shows legacy text notes as a single note", () => withApp({
+        shifts: [makeShift({ id: 1, notes: ["First", "Second"] }), makeShift({ id: 2, date: "2026-10-21", notes: "Old single note" })],
+    }, (harness) => {
+        harness.openView("previous-shifts");
+        const cards = harness.elements(".shift-card");
+        const legacy = cards.find((card) => card.textContent.includes("Old single note"));
+        expect([...legacy.querySelectorAll(".card-note-list li")].map((item) => item.textContent)).toEqual(["Old single note"]);
+
+        cards.find((card) => card.textContent.includes("Second")).querySelector(".edit-shift").click();
+        expect(harness.elements(".note-input").map((input) => input.value)).toEqual(["First", "Second"]);
+
+        harness.element("#clear-form").click();
+        expect(harness.elements(".note-input").map((input) => input.value)).toEqual([""]);
+    }));
+});
+
 describe("Number field focus", () => {
     test("selects a number field's contents when it receives focus", () => withApp(({ element, fire, openView }) => {
         openView("new-shift");

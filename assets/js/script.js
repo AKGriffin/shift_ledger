@@ -70,8 +70,10 @@ const fields = {
     autoGratuity: document.getElementById("shift-auto-gratuity"),
     tipOutPaid: document.getElementById("shift-tip-out-paid"),
     tipOutReceived: document.getElementById("shift-tip-out-received"),
-    notes: document.getElementById("shift-notes"),
 };
+
+const notesList = document.getElementById("notes-list");
+const addNoteButton = document.getElementById("add-note");
 
 const statEls = {
     totalShifts: document.getElementById("summary-total-shifts"),
@@ -91,6 +93,7 @@ const mobileLayout = window.matchMedia("(max-width: 720px)");
 const systemTheme = window.matchMedia("(prefers-color-scheme: dark)");
 
 bindEvents();
+setNoteRows([]);
 initializeDoubleReports();
 initializeSettings();
 renderDashboard();
@@ -130,6 +133,10 @@ function bindEvents() {
             delete event.target.dataset.selectedOnFocus;
         }
     });
+    addNoteButton.addEventListener("click", () => addNoteRow("", { focus: true }));
+    notesList.addEventListener("click", handleNoteRemove);
+    notesList.addEventListener("input", (event) => autosizeNote(event.target));
+    notesList.addEventListener("keydown", handleNoteKeydown);
     clearFormButton.addEventListener("click", resetForm);
     cancelFormButton.addEventListener("click", () => {
         resetForm();
@@ -210,6 +217,10 @@ function showView(viewName) {
         section.classList.toggle("is-hidden", !visible);
         section.hidden = !visible;
     });
+
+    if (viewName === "new-shift") {
+        notesList.querySelectorAll(".note-input").forEach(autosizeNote);
+    }
 
     document.getElementById("back-to-menu").hidden = !mobileLayout.matches || viewName === "mobile-home";
     document.querySelectorAll(".main-nav [data-view]").forEach((button) => {
@@ -443,9 +454,115 @@ function setStatus(message, isError = false) {
     formStatus.hidden = !message;
 }
 
+// Older saves stored notes as one string; newer ones store a list of notes.
+function getNotes(shift) {
+    const notes = Array.isArray(shift.notes) ? shift.notes : [shift.notes];
+    return notes
+        .filter((note) => typeof note === "string")
+        .map((note) => note.trim())
+        .filter(Boolean);
+}
+
+function setNoteRows(notes) {
+    notesList.replaceChildren();
+    (notes.length > 0 ? notes : [""]).forEach((note) => addNoteRow(note));
+}
+
+function addNoteRow(value = "", { focus = false, after = null } = {}) {
+    const row = document.createElement("li");
+    row.className = "note-row";
+
+    const input = document.createElement("textarea");
+    input.className = "note-input";
+    input.rows = 1;
+    input.value = value;
+    input.placeholder = "Add a note";
+
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "ghost-button note-remove";
+    remove.textContent = "✕";
+
+    row.append(input, remove);
+    if (after) {
+        after.after(row);
+    } else {
+        notesList.appendChild(row);
+    }
+    labelNoteRows();
+    autosizeNote(input);
+    if (focus) {
+        input.focus();
+    }
+    return row;
+}
+
+function labelNoteRows() {
+    notesList.querySelectorAll(".note-row").forEach((row, index) => {
+        row.querySelector(".note-input").setAttribute("aria-label", `Note ${index + 1}`);
+        row.querySelector(".note-remove").setAttribute("aria-label", `Remove note ${index + 1}`);
+    });
+}
+
+function autosizeNote(input) {
+    if (!input.classList?.contains("note-input") || input.scrollHeight === 0) {
+        return;
+    }
+    input.style.height = "auto";
+    input.style.height = `${input.scrollHeight}px`;
+}
+
+function removeNoteRow(row, { focusPrevious = false } = {}) {
+    const rows = [...notesList.querySelectorAll(".note-row")];
+    if (rows.length === 1) {
+        const input = row.querySelector(".note-input");
+        input.value = "";
+        autosizeNote(input);
+        input.focus();
+        return;
+    }
+
+    const index = rows.indexOf(row);
+    const preferPrevious = focusPrevious || index === rows.length - 1;
+    const neighbor = (preferPrevious ? rows[index - 1] : rows[index + 1]) || rows[index + 1] || rows[index - 1];
+    row.remove();
+    labelNoteRows();
+    neighbor.querySelector(".note-input").focus();
+}
+
+function handleNoteRemove(event) {
+    const button = event.target.closest(".note-remove");
+    if (button) {
+        removeNoteRow(button.closest(".note-row"));
+    }
+}
+
+function handleNoteKeydown(event) {
+    const input = event.target;
+    if (!input.classList.contains("note-input")) {
+        return;
+    }
+    const row = input.closest(".note-row");
+
+    if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
+        event.preventDefault();
+        addNoteRow("", { focus: true, after: row });
+    } else if (event.key === "Backspace" && input.value === "" && notesList.children.length > 1) {
+        event.preventDefault();
+        removeNoteRow(row, { focusPrevious: true });
+    }
+}
+
+function readNotes() {
+    return [...notesList.querySelectorAll(".note-input")]
+        .map((input) => input.value.trim())
+        .filter(Boolean);
+}
+
 function resetForm(shouldClearStatus = true) {
     form.reset();
     updateMealPeriodFields();
+    setNoteRows([]);
     state.editingShiftId = null;
     formTitle.textContent = "New Shift";
     Object.values(fields).forEach((field) => {
@@ -480,7 +597,7 @@ function populateForm(shift) {
     fields.autoGratuity.value = Number(shift.autoGratuity || 0).toFixed(2);
     fields.tipOutPaid.value = Number(shift.tipsPaidOut || 0).toFixed(2);
     fields.tipOutReceived.value = Number(shift.tipOutReceived || 0).toFixed(2);
-    fields.notes.value = shift.notes || "";
+    setNoteRows(getNotes(shift));
     reportPeriods.forEach(([period]) => {
         const report = shift.reports?.[period];
         const reportNode = getReportNode(period);
@@ -547,7 +664,7 @@ function readFormValues() {
         autoGratuity: toNumber(fields.autoGratuity.value),
         tipsPaidOut: toNumber(fields.tipOutPaid.value),
         tipOutReceived: toNumber(fields.tipOutReceived.value),
-        notes: fields.notes.value.trim(),
+        notes: readNotes(),
     };
 
     if (baseline.mealPeriod === "Double") {
@@ -786,7 +903,20 @@ function renderPreviousShifts() {
         card.querySelector(".card-break").textContent = shift.breakStart && shift.breakEnd
             ? `${formatTime(shift.breakStart)} - ${formatBreakEnd(shift)}`
             : "None";
-        card.querySelector(".card-notes").textContent = shift.notes ? shift.notes : "No notes recorded.";
+        const notesEl = card.querySelector(".card-notes");
+        const notes = getNotes(shift);
+        if (notes.length > 0) {
+            const list = document.createElement("ul");
+            list.className = "card-note-list";
+            notes.forEach((note) => {
+                const item = document.createElement("li");
+                item.textContent = note;
+                list.appendChild(item);
+            });
+            notesEl.replaceChildren(list);
+        } else {
+            notesEl.textContent = "No notes recorded.";
+        }
         fragment.appendChild(cardNode);
     });
 
@@ -924,7 +1054,7 @@ function exportShiftsCsv() {
             ...reportPeriods.flatMap(([period]) => reportAmountFields.map((field) => (
                 reports[period] ? reports[period][field] : ""
             ))),
-            shift.notes,
+            getNotes(shift).join(" | "),
         ];
     });
     const csv = [headers, ...rows]
@@ -1042,9 +1172,7 @@ function normalizeImportedShift(shift, index) {
         normalized.reports = reports;
     }
 
-    if (typeof normalized.notes !== "string") {
-        normalized.notes = "";
-    }
+    normalized.notes = getNotes(shift);
 
     return normalized;
 }
