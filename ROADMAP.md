@@ -54,3 +54,4 @@ This is a lightweight view of where Shift Ledger is headed, not a promise or a r
 - [x] Double shifts can record lunch, dinner, and whole-double reports independently; totals avoid double-counting, and history labels incomplete, combined, and legacy reports.
 - [x] Auto-gratuity is stored separately from other tips, included in net tip totals, and carried through edits, double reports, CSV, backups, and records created before the field existed.
 - [x] Previous shifts use a lighter single-column list, with sorting kept visible and date/job filters in an accessible dialog.
+- [x] Previous shifts have a standalone header card and responsive per-shift cards grouped into time clock, sales and tips, with an expandable sales/tips breakdown.

@@ -1207,31 +1207,36 @@ textarea {
     display: none;
 }
 
+.history-header-card {
+    margin-bottom: 18px;
+}
+
 .shift-list {
     display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    margin-top: 18px;
-    border-top: 1px solid var(--border);
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
+    align-items: start;
+    gap: 18px;
+}
+
+.shift-list > .empty-state {
+    grid-column: 1 / -1;
 }
 
 .shift-card {
     min-width: 0;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 12px 24px;
-    padding: 18px 8px;
-    border: 0;
-    border-bottom: 1px solid var(--border);
-    border-radius: 0;
-    background: transparent;
-    box-shadow: none;
+    gap: 14px;
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: var(--panel);
+    box-shadow: var(--shadow);
 }
 
 .shift-card-summary {
     display: grid;
-    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-    gap: 18px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
 }
 
 .card-header {
@@ -1263,42 +1268,87 @@ textarea {
     letter-spacing: 0.05em;
 }
 
-.card-meta,
-.card-metrics,
-.card-breakdown {
+.card-stat {
     display: grid;
-    gap: 8px;
+    gap: 2px;
+    min-width: 0;
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--panel-alt);
+    overflow-wrap: anywhere;
 }
 
-.card-meta,
-.card-metrics {
-    grid-template-columns: minmax(0, 1fr);
+.card-stat-label,
+.card-group h4 {
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
 }
 
-.card-primary-metrics {
+.card-stat strong {
+    font-size: 1.05rem;
+}
+
+.card-groups {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+}
+
+.card-group {
     display: grid;
     align-content: start;
-    gap: 8px;
+    gap: 6px;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
 }
 
-.card-meta p,
-.card-metrics p,
-.card-breakdown p {
+.card-group h4 {
+    margin: 0 0 2px;
+}
+
+.card-group p {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 0;
     min-width: 0;
     overflow-wrap: anywhere;
 }
 
-.card-breakdown {
+.card-group p span {
+    color: var(--muted);
+}
+
+.card-group p strong {
+    text-align: right;
+}
+
+.card-subgroup {
     display: grid;
-    grid-column: 1;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px 16px;
-    padding: 0;
-    border: 0;
+    gap: 6px;
+}
+
+.card-subgroup + .card-subgroup {
+    margin-top: 6px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--border);
+}
+
+.card-details[hidden] {
+    display: none;
+}
+
+.card-toggle {
+    justify-self: start;
 }
 
 .card-notes {
-    grid-column: 1 / -1;
     margin: 0;
     color: var(--muted);
     line-height: 1.5;
@@ -1306,19 +1356,9 @@ textarea {
 
 .card-actions {
     display: flex;
-    grid-column: 2;
-    grid-row: 1 / span 3;
     gap: 10px;
-    flex-direction: column;
-    justify-content: flex-end;
-}
-
-#previous-shifts .shift-card {
-    background: transparent;
-    border: 0;
-    border-bottom: 1px solid var(--border);
-    border-radius: 0;
-    box-shadow: none;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
 }
 
 .empty-state {
@@ -1600,29 +1640,11 @@ textarea {
     }
 
     .shift-card {
-        grid-template-columns: minmax(0, 1fr);
-        gap: 12px;
-        padding: 16px 2px;
+        padding: 16px;
     }
 
     .shift-card-summary {
-        grid-template-columns: minmax(0, 1fr);
-        gap: 10px;
-    }
-
-    .card-breakdown {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .card-notes,
-    .card-actions {
-        grid-column: 1;
-    }
-
-    .card-actions {
-        grid-row: auto;
-        flex-direction: row;
-        justify-content: flex-start;
+        gap: 8px;
     }
 
     .form-actions > *,
@@ -1697,11 +1719,6 @@ textarea {
 
     .panel {
         padding: 15px;
-    }
-
-    .card-meta,
-    .card-metrics {
-        grid-template-columns: 1fr;
     }
 }
 

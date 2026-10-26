@@ -75,6 +75,20 @@
         return round(Number(shift.autoGratuity) || 0);
     }
 
+    const BREAKDOWN_FIELDS = [
+        "foodSales", "bawSales", "liquorSales", "naBevSales", "additionalSales",
+        "ccTips", "cashTips", "autoGratuity", "tipsPaidOut", "tipOutReceived",
+    ];
+
+    function getFinancialBreakdown(shift) {
+        const sources = getFinancialReports(shift) || [shift];
+        const breakdown = {};
+        BREAKDOWN_FIELDS.forEach((field) => {
+            breakdown[field] = round(sources.reduce((sum, source) => sum + (Number(source[field]) || 0), 0));
+        });
+        return breakdown;
+    }
+
     function getDurationMinutes(shift) {
         if (!shift.clockIn || !shift.clockOut) {
             return 0;
@@ -109,6 +123,7 @@
     global.ShiftMath = {
         getAutoGratuity,
         getDurationMinutes,
+        getFinancialBreakdown,
         getNetTips,
         getSalesTotal,
         toMinutes,

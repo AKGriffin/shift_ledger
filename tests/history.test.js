@@ -28,17 +28,55 @@ describe("Dashboard summaries", () => {
 });
 
 describe("Previous shifts", () => {
-    test("lists every saved shift with its summary metrics", () => withApp({ shifts: seededShifts() }, ({ doc, elements, openView, style }) => {
+    test("lists every saved shift with its summary metrics", () => withApp({ shifts: seededShifts() }, ({ element, elements, openView, style }) => {
         openView("previous-shifts");
         const serverCard = elements(".shift-card")
             .find((card) => card.querySelector(".card-job").textContent === "Server");
 
         expect(elements(".shift-card")).toHaveLength(2);
         expect(serverCard).toBeDefined();
-        expect(style(doc.querySelector("#shift-list")).gridTemplateColumns.split(" ")).toHaveLength(1);
-        expect(style(serverCard.querySelector(".shift-card-summary")).gridTemplateColumns.split(" ")).toHaveLength(2);
-        expect(serverCard.querySelectorAll(".card-primary-metrics p")).toHaveLength(5);
+        expect(style(serverCard).borderTopWidth).toBe("1px");
+        expect(element(".history-header-card").contains(element("#shift-list"))).toBe(false);
+        expect(serverCard.querySelectorAll(".card-primary-metrics .card-stat")).toHaveLength(4);
+        expect(serverCard.querySelector(".card-sales").textContent).toBe("$100.00");
+        expect(serverCard.querySelector(".card-tips").textContent).toBe("$31.00");
         expect(serverCard.querySelector(".card-auto-gratuity").textContent).toBe("$7.00");
+        expect(serverCard.querySelector(".card-cc-tips").textContent).toBe("$20.00");
+        expect(serverCard.querySelector(".card-tips-paid-out").textContent).toBe("$3.00");
+        expect(serverCard.querySelector(".card-food-sales").textContent).toBe("$100.00");
+    }));
+
+    test("expands and collapses the sales and tips breakdown", () => withApp({ shifts: seededShifts() }, ({ element, openView }) => {
+        openView("previous-shifts");
+        const toggle = element(".card-toggle");
+        const details = element(".card-details");
+
+        expect(details.hidden).toBe(true);
+        expect(toggle.getAttribute("aria-expanded")).toBe("false");
+        toggle.click();
+        expect(details.hidden).toBe(false);
+        expect(toggle.getAttribute("aria-expanded")).toBe("true");
+        toggle.click();
+        expect(details.hidden).toBe(true);
+    }));
+
+    test("shows shifts as separate cards in multiple columns on wide screens", () => withApp({
+        width: 1400,
+        height: 900,
+        shifts: seededShifts(),
+    }, ({ element, openView, style }) => {
+        openView("previous-shifts");
+        expect(style(element("#shift-list")).gridTemplateColumns.split(" ").length).toBeGreaterThan(1);
+    }));
+
+    test("stacks shift cards in one column on mobile without overflow", () => withApp({
+        width: 390,
+        height: 800,
+        shifts: seededShifts(),
+    }, ({ doc, element, openView, style }) => {
+        openView("previous-shifts");
+        expect(style(element("#shift-list")).gridTemplateColumns.split(" ")).toHaveLength(1);
+        expect(doc.documentElement.scrollWidth).toBeLessThanOrEqual(doc.documentElement.clientWidth);
     }));
 
     test("keeps sorting visible and opens an accessible filter dialog", () => withApp({

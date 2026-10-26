@@ -1,6 +1,17 @@
 ﻿const STORAGE_KEY = "shift-ledger-shifts-v1";
 const SETTINGS_KEY = "shift-ledger-settings-v1";
-const { getAutoGratuity, getDurationMinutes, getNetTips, getSalesTotal, toMinutes } = window.ShiftMath;
+const { getAutoGratuity, getDurationMinutes, getFinancialBreakdown, getNetTips, getSalesTotal, toMinutes } = window.ShiftMath;
+const CARD_BREAKDOWN_SELECTORS = {
+    foodSales: ".card-food-sales",
+    bawSales: ".card-baw-sales",
+    liquorSales: ".card-liquor-sales",
+    naBevSales: ".card-na-bev-sales",
+    additionalSales: ".card-additional-sales",
+    ccTips: ".card-cc-tips",
+    cashTips: ".card-cash-tips",
+    tipsPaidOut: ".card-tips-paid-out",
+    tipOutReceived: ".card-tip-out-received",
+};
 
 const state = {
     shifts: loadShifts(),
@@ -328,6 +339,19 @@ function handleListAction(event) {
     }
 
     const card = button.closest(".shift-card");
+    if (!card) {
+        return;
+    }
+
+    if (button.classList.contains("card-toggle")) {
+        const details = card.querySelector(".card-details");
+        const expanded = button.getAttribute("aria-expanded") !== "true";
+        button.setAttribute("aria-expanded", String(expanded));
+        details.hidden = !expanded;
+        button.textContent = expanded ? "Hide sales & tips breakdown" : "Show sales & tips breakdown";
+        return;
+    }
+
     const shiftId = Number(card.dataset.shiftId);
     const shift = state.shifts.find((entry) => entry.id === shiftId);
 
@@ -696,6 +720,10 @@ function renderPreviousShifts() {
         card.querySelector(".card-sales").textContent = formatCurrency(getSalesTotal(shift));
         card.querySelector(".card-tips").textContent = formatCurrency(getNetTips(shift));
         card.querySelector(".card-auto-gratuity").textContent = formatCurrency(getAutoGratuity(shift));
+        const breakdown = getFinancialBreakdown(shift);
+        Object.entries(CARD_BREAKDOWN_SELECTORS).forEach(([field, selector]) => {
+            card.querySelector(selector).textContent = formatCurrency(breakdown[field]);
+        });
         card.querySelector(".card-clock-in").textContent = formatTime(shift.clockIn);
         card.querySelector(".card-clock-out").textContent = formatClockOut(shift);
         card.querySelector(".card-break").textContent = shift.breakStart && shift.breakEnd

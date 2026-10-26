@@ -1,6 +1,25 @@
 import { describe, expect, test } from "./assert.js";
 
-const { getAutoGratuity, getDurationMinutes, getNetTips, getSalesTotal, toMinutes } = window.ShiftMath;
+const { getAutoGratuity, getDurationMinutes, getFinancialBreakdown, getNetTips, getSalesTotal, toMinutes } = window.ShiftMath;
+
+describe("financial breakdown", () => {
+    test("uses the reports that count toward double totals", () => {
+        const breakdown = getFinancialBreakdown({
+            reports: {
+                lunch: { foodSales: 100, ccTips: 10 },
+                dinner: { foodSales: 200, tipsPaidOut: 5 },
+                whole: { foodSales: 500 },
+            },
+        });
+        expect(breakdown.foodSales).toBe(300);
+        expect(breakdown.ccTips).toBe(10);
+        expect(breakdown.tipsPaidOut).toBe(5);
+    });
+
+    test("reads fields directly from single shifts", () => {
+        expect(getFinancialBreakdown({ liquorSales: 12.5 }).liquorSales).toBe(12.5);
+    });
+});
 
 describe("sales totals", () => {
     test("adds all sales categories", () => {
