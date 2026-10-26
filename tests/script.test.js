@@ -151,13 +151,14 @@ test("app workflow validates, saves, edits, filters, and deletes shifts", async 
         element("#shift-meal-period").value = "Dinner";
         element("#shift-job").value = "Server";
         element("#shift-clock-in").value = "16:00";
-        element("#shift-clock-out").value = "15:00";
+        element("#shift-clock-out").value = "16:00";
         element("#shift-form").dispatchEvent(new frame.contentWindow.Event("submit", {
             bubbles: true,
             cancelable: true,
         }));
         expect(element("#shift-clock-out").getAttribute("aria-invalid")).toBe("true");
-        expect(element("#shift-clock-out-error").textContent).toBe("Clock out must be later than clock in.");
+        expect(element("#shift-clock-out-error").textContent)
+            .toBe("Clock out must differ from clock in; an earlier time means the next day.");
         expect(savedShifts()).toHaveLength(0);
 
         const foodSales = element("#shift-food-sales");
@@ -334,6 +335,46 @@ test("app workflow validates, saves, edits, filters, and deletes shifts", async 
         expect(element("#summary-total-shifts").textContent).toBe("1");
         expect(element("#summary-total-sales").textContent).toBe("£125.50");
         expect(savedShifts()).toHaveLength(1);
+
+        element('.main-nav [data-view="new-shift"]').click();
+        const overnightValues = {
+            "shift-date": "2026-10-22",
+            "shift-meal-period": "Dinner",
+            "shift-job": "Server",
+            "shift-clock-in": "22:00",
+            "shift-clock-out": "06:00",
+            "shift-break-start": "07:00",
+            "shift-break-end": "08:00",
+        };
+        Object.entries(overnightValues).forEach(([id, value]) => {
+            app.getElementById(id).value = value;
+        });
+        element("#shift-form").dispatchEvent(new frame.contentWindow.Event("submit", {
+            bubbles: true,
+            cancelable: true,
+        }));
+        expect(element("#shift-break-start").getAttribute("aria-invalid")).toBe("true");
+        expect(element("#form-errors").textContent).toContain("Break start must be during the shift.");
+        expect(savedShifts()).toHaveLength(1);
+
+        app.getElementById("shift-break-start").value = "23:30";
+        app.getElementById("shift-break-end").value = "00:30";
+        element("#shift-form").dispatchEvent(new frame.contentWindow.Event("submit", {
+            bubbles: true,
+            cancelable: true,
+        }));
+        expect(savedShifts()).toHaveLength(2);
+        expect(savedShifts()[1].date).toBe("2026-10-22");
+        expect(element("#summary-total-hours").textContent).toBe("13h 0m");
+        element('.main-nav [data-view="previous-shifts"]').click();
+        element("#filter-job").value = "all";
+        element("#filter-job").dispatchEvent(new frame.contentWindow.Event("change", { bubbles: true }));
+        const overnightCard = [...app.querySelectorAll(".shift-card")]
+            .find((card) => card.querySelector(".card-clock-in").textContent === "10:00 PM");
+        expect(overnightCard).toBeDefined();
+        expect(overnightCard.querySelector(".card-clock-out").textContent).toBe("6:00 AM (next day)");
+        expect(overnightCard.querySelector(".card-break").textContent)
+            .toBe("11:30 PM - 12:30 AM (next day)");
 
         localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify({
             theme: "neo-brutalist",

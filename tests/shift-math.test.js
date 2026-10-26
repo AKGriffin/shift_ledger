@@ -56,8 +56,29 @@ describe("shift duration", () => {
         })).toBe(510);
     });
 
-    test("returns zero when a clock time is missing or the interval is negative", () => {
+    test("returns zero when a clock time is missing", () => {
         expect(getDurationMinutes({ clockIn: "09:00" })).toBe(0);
-        expect(getDurationMinutes({ clockIn: "17:00", clockOut: "09:00" })).toBe(0);
+    });
+
+    test("counts a clock-out on the next day as an overnight shift", () => {
+        expect(getDurationMinutes({ clockIn: "22:00", clockOut: "06:00" })).toBe(480);
+    });
+
+    test("subtracts an overnight break from an overnight shift", () => {
+        expect(getDurationMinutes({
+            clockIn: "22:00",
+            clockOut: "06:00",
+            breakStart: "01:00",
+            breakEnd: "01:30",
+        })).toBe(450);
+    });
+
+    test("counts a break that crosses midnight", () => {
+        expect(getDurationMinutes({
+            clockIn: "20:00",
+            clockOut: "04:00",
+            breakStart: "23:30",
+            breakEnd: "00:30",
+        })).toBe(420);
     });
 });

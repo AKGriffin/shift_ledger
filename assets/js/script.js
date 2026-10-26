@@ -413,8 +413,11 @@ function validateShift(shift) {
     if (!shift.clockIn) issues.push({ field: "clockIn", message: "Clock in is required." });
     if (!shift.clockOut) issues.push({ field: "clockOut", message: "Clock out is required." });
 
-    if (shift.clockIn && shift.clockOut && toMinutes(shift.clockOut) <= toMinutes(shift.clockIn)) {
-        issues.push({ field: "clockOut", message: "Clock out must be later than clock in." });
+    if (shift.clockIn && shift.clockOut && toMinutes(shift.clockOut) === toMinutes(shift.clockIn)) {
+        issues.push({
+            field: "clockOut",
+            message: "Clock out must differ from clock in; an earlier time means the next day.",
+        });
     }
 
     if (shift.breakStart && !shift.breakEnd) {
@@ -425,16 +428,35 @@ function validateShift(shift) {
     }
 
     if (shift.breakStart && shift.breakEnd) {
-        const breakStartMinutes = toMinutes(shift.breakStart);
-        const breakEndMinutes = toMinutes(shift.breakEnd);
+        const shiftStartMinutes = toMinutes(shift.clockIn);
+        let shiftEndMinutes = toMinutes(shift.clockOut);
+        if (shiftEndMinutes < shiftStartMinutes) {
+            shiftEndMinutes += 24 * 60;
+        }
+
+        let breakStartMinutes = toMinutes(shift.breakStart);
+        let breakEndMinutes = toMinutes(shift.breakEnd);
+        if (breakStartMinutes < shiftStartMinutes) {
+            breakStartMinutes += 24 * 60;
+        }
+        if (breakEndMinutes < shiftStartMinutes) {
+            breakEndMinutes += 24 * 60;
+        }
+        if (breakEndMinutes < breakStartMinutes) {
+            breakEndMinutes += 24 * 60;
+        }
 
         if (breakEndMinutes <= breakStartMinutes) {
             issues.push({ field: "breakEnd", message: "Break end must be later than break start." });
         }
 
-        const shiftMinutes = Math.max(0, toMinutes(shift.clockOut) - toMinutes(shift.clockIn));
-        if (breakEndMinutes - breakStartMinutes > shiftMinutes) {
-            issues.push({ field: "breakEnd", message: "Break length cannot exceed the total shift length." });
+        if (shift.clockIn && shift.clockOut && shiftEndMinutes > shiftStartMinutes) {
+            if (breakStartMinutes < shiftStartMinutes || breakStartMinutes >= shiftEndMinutes) {
+                issues.push({ field: "breakStart", message: "Break start must be during the shift." });
+            }
+            if (breakEndMinutes > shiftEndMinutes || breakEndMinutes <= shiftStartMinutes) {
+                issues.push({ field: "breakEnd", message: "Break end must be during the shift." });
+            }
         }
     }
 
@@ -582,9 +604,9 @@ function renderPreviousShifts() {
         card.querySelector(".card-sales").textContent = formatCurrency(getSalesTotal(shift));
         card.querySelector(".card-tips").textContent = formatCurrency(getNetTips(shift));
         card.querySelector(".card-clock-in").textContent = formatTime(shift.clockIn);
-        card.querySelector(".card-clock-out").textContent = formatTime(shift.clockOut);
+        card.querySelector(".card-clock-out").textContent = formatClockOut(shift);
         card.querySelector(".card-break").textContent = shift.breakStart && shift.breakEnd
-            ? `${formatTime(shift.breakStart)} - ${formatTime(shift.breakEnd)}`
+            ? `${formatTime(shift.breakStart)} - ${formatBreakEnd(shift)}`
             : "None";
         card.querySelector(".card-notes").textContent = shift.notes ? shift.notes : "No notes recorded.";
         fragment.appendChild(cardNode);
@@ -700,9 +722,9 @@ function exportFilteredShifts() {
         shift.mealPeriod,
         shift.job,
         shift.clockIn,
-        shift.clockOut,
+        `${shift.clockOut}${isOvernightShift(shift) ? " (+1 day)" : ""}`,
         shift.breakStart,
-        shift.breakEnd,
+        `${shift.breakEnd}${isOvernightBreak(shift) ? " (+1 day)" : ""}`,
         (getDurationMinutes(shift) / 60).toFixed(2),
         shift.foodSales,
         shift.bawSales,
@@ -929,6 +951,24 @@ function formatTime(value) {
         hour: "numeric",
         minute: "2-digit",
     });
+}
+
+function isOvernightShift(shift) {
+    return Boolean(shift.clockIn && shift.clockOut
+        && toMinutes(shift.clockOut) < toMinutes(shift.clockIn));
+}
+
+function isOvernightBreak(shift) {
+    return Boolean(shift.breakStart && shift.breakEnd
+        && toMinutes(shift.breakEnd) < toMinutes(shift.breakStart));
+}
+
+function formatClockOut(shift) {
+    return `${formatTime(shift.clockOut)}${isOvernightShift(shift) ? " (next day)" : ""}`;
+}
+
+function formatBreakEnd(shift) {
+    return `${formatTime(shift.breakEnd)}${isOvernightBreak(shift) ? " (next day)" : ""}`;
 }
 
 function toNumber(value) {

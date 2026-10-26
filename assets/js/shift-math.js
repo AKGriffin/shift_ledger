@@ -37,11 +37,26 @@
         }
 
         const startMinutes = toMinutes(shift.clockIn);
-        const endMinutes = toMinutes(shift.clockOut);
+        let endMinutes = toMinutes(shift.clockOut);
+        if (endMinutes < startMinutes) {
+            endMinutes += 24 * 60;
+        }
+
         let breakMinutes = 0;
 
         if (shift.breakStart && shift.breakEnd) {
-            breakMinutes = Math.max(0, toMinutes(shift.breakEnd) - toMinutes(shift.breakStart));
+            let breakStartMinutes = toMinutes(shift.breakStart);
+            let breakEndMinutes = toMinutes(shift.breakEnd);
+            if (breakStartMinutes < startMinutes) {
+                breakStartMinutes += 24 * 60;
+            }
+            if (breakEndMinutes < startMinutes) {
+                breakEndMinutes += 24 * 60;
+            }
+            if (breakEndMinutes < breakStartMinutes) {
+                breakEndMinutes += 24 * 60;
+            }
+            breakMinutes = Math.max(0, breakEndMinutes - breakStartMinutes);
         }
 
         return Math.max(0, endMinutes - startMinutes - breakMinutes);

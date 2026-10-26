@@ -5,7 +5,6 @@ This is a lightweight view of where Shift Ledger is headed, not a promise or a r
 ## Now
 
 - [ ] **Rework double-shift reporting** - Let a double record its lunch and dinner portions with independent shift reports. Support a report for both, one, neither, or only for the whole double with no per-shift breakdown, and clearly mark which figures are missing or combined. Review other report combinations before settling the model.
-- [ ] **Handle shifts that cross midnight** - Define how a shift that ends the next day is entered, validated (clock-out earlier than clock-in), displayed, and counted in daily, weekly, and monthly totals, while keeping existing records unchanged.
 - [ ] **Track automatic gratuity separately and include it in tips** - Add an optional auto-gratuity field, update net-tip calculations and totals, and carry it through editing, history, CSV export, backup/restore, and legacy records without changing existing values.
 - [ ] **Redesign previous-shift browsing** - Replace the heavy nested-card appearance with a clearer, lighter history list; move filters into an accessible dialog or sheet while keeping sort easy to find and usable on mobile.
 - [ ] **Make PWA refresh and update behavior reliable** - Ensure refreshes and app restarts preserve saved shifts, and make new app versions activate or become available predictably without requiring users to fully close the app.
@@ -54,3 +53,4 @@ This is a lightweight view of where Shift Ledger is headed, not a promise or a r
 - [x] Dashboard period summaries and previous-shift cards use a two-column heading-and-statistics layout.
 - [x] Number fields in the shift form select their contents on focus, so values like 0 can be replaced without deleting.
 - [x] Shift-form validation identifies affected fields, marks invalid inputs, and links an error summary beside the form actions.
+- [x] Overnight shifts use the recorded date as their start date; earlier clock-out and break-end times are treated as next-day times, and the full shift is grouped under its start date in totals and filters.

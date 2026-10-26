@@ -16,6 +16,7 @@ The service worker caches the app shell and static assets. When deploying an upd
 
 - Record, edit, and delete shifts
 - Track clock-in/out times, breaks, sales, tips, and notes
+- Log overnight shifts by recording the date the shift starts; an earlier clock-out (or break end) is treated as the next day. The full shift is grouped under its start date in summaries and history filters.
 - Review all-time, current-week, and current-month totals
 - Filter shift history by date range and job; sort by date, sales, or tips
 - Export the currently filtered shifts as a CSV file
