@@ -85,6 +85,15 @@ function createMatchers(actual, negate = false) {
             const hasLength = actual !== null && actual !== undefined && typeof actual.length === "number";
             assert(hasLength && actual.length === expected, `Expected ${format(actual)} ${negate ? "not " : ""}to have length ${expected}.`, negate);
         },
+        toBeGreaterThan(expected) {
+            assert(actual > expected, `Expected ${format(actual)} ${negate ? "not " : ""}to be greater than ${format(expected)}.`, negate);
+        },
+        toBeGreaterThanOrEqual(expected) {
+            assert(actual >= expected, `Expected ${format(actual)} ${negate ? "not " : ""}to be greater than or equal to ${format(expected)}.`, negate);
+        },
+        toBeLessThanOrEqual(expected) {
+            assert(actual <= expected, `Expected ${format(actual)} ${negate ? "not " : ""}to be less than or equal to ${format(expected)}.`, negate);
+        },
         toBeInstanceOf(expected) {
             assert(actual instanceof expected, `Expected ${format(actual)} ${negate ? "not " : ""}to be an instance of ${expected.name}.`, negate);
         },

@@ -1,10 +1,8 @@
-import { finishTests } from "./assert.js";
 import "./shift-math.test.js";
-import "./script.test.js";
+import "./layout.test.js";
+import "./shift-form.test.js";
+import "./history.test.js";
+import "./settings.test.js";
+import { finishTests } from "./assert.js";
 
-finishTests().catch((error) => {
-    const report = document.getElementById("test-results");
-    if (report) {
-        report.textContent = error.message;
-    }
-});
+await finishTests();

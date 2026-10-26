@@ -57,10 +57,14 @@ CSV exports include the values currently shown by the filters. Keep exported fil
 │       ├── script.js
 │       └── shift-math.js
 ├── tests/
+│   ├── app-harness.js
 │   ├── assert.js
+│   ├── history.test.js
 │   ├── index.html
+│   ├── layout.test.js
 │   ├── run-tests.js
-│   ├── script.test.js
+│   ├── settings.test.js
+│   ├── shift-form.test.js
 │   └── shift-math.test.js
 └── README.md
 ```
