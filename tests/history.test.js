@@ -53,10 +53,13 @@ describe("Previous shifts", () => {
         openView("previous-shifts");
         const serverCard = () => elements(".shift-card")
             .find((card) => card.querySelector(".card-job").textContent === "Server");
+        const expoCard = () => elements(".shift-card")
+            .find((card) => card.querySelector(".card-job").textContent === "Expo");
 
         expect(serverCard().querySelector(".card-food-sales").parentElement.hidden).toBe(false);
         expect(serverCard().querySelector(".card-na-bev-sales").parentElement.hidden).toBe(true);
         expect(serverCard().querySelector(".card-auto-gratuity").parentElement.hidden).toBe(false);
+        expect(expoCard().querySelector(".card-auto-gratuity").parentElement.hidden).toBe(true);
 
         openView("settings");
         change("#setting-zero-details", "show");

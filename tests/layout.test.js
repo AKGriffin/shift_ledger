@@ -90,14 +90,14 @@ describe("New shift layout", () => {
         expect(top("#shift-tip-out-received")).toBeGreaterThan(top("#shift-tip-out-paid"));
     }));
 
-    test("stacks the form cards on a phone without horizontal overflow", () => withApp({ width: 390, height: 844 }, ({ doc, element, win, openView }) => {
+    test("stacks the form cards on a phone without horizontal overflow", () => withApp({ width: 390, height: 844 }, ({ doc, element, elements, win, openView }) => {
         openView("new-shift");
 
         const top = (selector) => element(selector).getBoundingClientRect().top;
 
         expect(top("#shift-meal-period")).toBeGreaterThan(top("#shift-date"));
         expect(top("#break-card-title")).toBeGreaterThan(top("#shift-clock-out"));
-        expect(top("#sales-card-title")).toBeGreaterThan(top("#shift-date"));
+        expect(elements("#single-report-fields fieldset:first-child .sub-card")).toHaveLength(0);
         expect(top("#shift-additional-sales")).toBeGreaterThan(top("#shift-food-sales"));
         expect(top("#shift-liquor-sales")).toBeGreaterThan(top("#shift-additional-sales"));
         expect(top("#tipout-card-title")).toBeGreaterThan(top("#shift-auto-gratuity"));
