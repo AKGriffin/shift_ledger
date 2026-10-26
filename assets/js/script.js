@@ -19,6 +19,7 @@ const state = {
     currentView: null,
     editingShiftId: null,
 };
+let formStatusTimeout = null;
 
 const navButtons = document.querySelectorAll("[data-view]");
 const formStatus = document.getElementById("form-status");
@@ -456,9 +457,26 @@ function createShiftId() {
 }
 
 function setStatus(message, isError = false) {
+    if (formStatusTimeout !== null) {
+        window.clearTimeout(formStatusTimeout);
+        formStatusTimeout = null;
+    }
+
     formStatus.textContent = message;
     formStatus.classList.toggle("error", isError);
     formStatus.hidden = !message;
+
+    if (message && !isError) {
+        const timeoutId = window.setTimeout(() => {
+            if (formStatusTimeout !== timeoutId) {
+                return;
+            }
+            formStatus.textContent = "";
+            formStatus.hidden = true;
+            formStatusTimeout = null;
+        }, 6000);
+        formStatusTimeout = timeoutId;
+    }
 }
 
 // Older saves stored notes as one string; newer ones store a list of notes.

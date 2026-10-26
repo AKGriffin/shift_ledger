@@ -73,6 +73,40 @@ describe("Saving shifts", () => {
         expect(savedShifts()[0].autoGratuity).toBe(7);
     }));
 
+    test("automatically clears a success notice after six seconds", () => withApp((harness) => {
+        const originalSetTimeout = harness.win.setTimeout;
+        const originalClearTimeout = harness.win.clearTimeout;
+        let scheduledNotice = null;
+        let nextTimeoutId = 0;
+        const clearedTimeouts = [];
+        harness.win.setTimeout = (callback, delay) => {
+            scheduledNotice = { callback, delay, id: ++nextTimeoutId };
+            return nextTimeoutId;
+        };
+        harness.win.clearTimeout = (id) => clearedTimeouts.push(id);
+
+        try {
+            harness.saveShift();
+            const firstNotice = scheduledNotice;
+            harness.saveShift({ job: "Expo" });
+
+            expect(harness.element("#form-status").hidden).toBe(false);
+            expect(scheduledNotice.delay).toBe(6000);
+            expect(clearedTimeouts).toEqual([firstNotice.id]);
+
+            firstNotice.callback();
+            expect(harness.element("#form-status").hidden).toBe(false);
+
+            scheduledNotice.callback();
+
+            expect(harness.element("#form-status").hidden).toBe(true);
+            expect(harness.element("#form-status").textContent).toBe("");
+        } finally {
+            harness.win.setTimeout = originalSetTimeout;
+            harness.win.clearTimeout = originalClearTimeout;
+        }
+    }));
+
     test("adds each new shift to the totals", () => withApp(({ element, saveShift, savedShifts }) => {
         saveShift({ date: "2026-10-20", foodSales: 100, ccTips: 20, cashTips: 5, tipOutPaid: 3, tipOutReceived: 2 });
         saveShift({ date: "2026-10-21", job: "Expo", foodSales: 200, ccTips: 50, cashTips: 10 });
