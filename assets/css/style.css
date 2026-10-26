@@ -1122,7 +1122,7 @@ textarea {
     display: flex;
     min-width: 0;
     align-items: center;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 10px 14px;
 }
 
@@ -1226,7 +1226,7 @@ textarea {
 }
 
 .history-status {
-    margin: 4px 0 0;
+    margin: 12px 0 0;
     color: var(--muted);
     font-size: 0.9rem;
 }
@@ -1749,7 +1749,8 @@ textarea {
     }
 
     .history-sort {
-        flex: 1 1 100%;
+        flex: 1 1 auto;
+        min-width: 0;
     }
 
     .history-sort select {
@@ -1757,12 +1758,7 @@ textarea {
     }
 
     .history-actions {
-        width: 100%;
-    }
-
-    .history-actions > * {
-        flex: 1 1 0;
-        min-width: 0;
+        flex: 0 0 auto;
     }
 
     .history-filter-dialog {
