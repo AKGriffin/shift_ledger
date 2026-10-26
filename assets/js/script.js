@@ -941,9 +941,12 @@ function renderPreviousShifts() {
         });
         card.querySelector(".card-clock-in").textContent = formatTime(shift.clockIn);
         card.querySelector(".card-clock-out").textContent = formatClockOut(shift);
-        card.querySelector(".card-break").textContent = shift.breakStart && shift.breakEnd
+        const hasBreak = Boolean(shift.breakStart && shift.breakEnd);
+        const breakValue = card.querySelector(".card-break");
+        breakValue.textContent = hasBreak
             ? `${formatTime(shift.breakStart)} - ${formatBreakEnd(shift)}`
             : "None";
+        breakValue.parentElement.hidden = state.settings.zeroDetails === "hide" && !hasBreak;
         const notesEl = card.querySelector(".card-notes");
         const notes = getNotes(shift);
         if (notes.length > 0) {

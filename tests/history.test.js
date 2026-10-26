@@ -59,6 +59,7 @@ describe("Previous shifts", () => {
         expect(serverCard().querySelector(".card-food-sales").parentElement.hidden).toBe(false);
         expect(serverCard().querySelector(".card-na-bev-sales").parentElement.hidden).toBe(true);
         expect(serverCard().querySelector(".card-auto-gratuity").parentElement.hidden).toBe(false);
+        expect(serverCard().querySelector(".card-break").parentElement.hidden).toBe(true);
         expect(expoCard().querySelector(".card-auto-gratuity").parentElement.hidden).toBe(true);
 
         openView("settings");
@@ -67,6 +68,8 @@ describe("Previous shifts", () => {
 
         expect(savedSettings().zeroDetails).toBe("show");
         expect(serverCard().querySelector(".card-na-bev-sales").parentElement.hidden).toBe(false);
+        expect(serverCard().querySelector(".card-break").parentElement.hidden).toBe(false);
+        expect(serverCard().querySelector(".card-break").textContent).toBe("None");
     }));
 
     test("shows the breakdown under each total on desktop and expands it on mobile", () => withApp({
@@ -277,6 +280,7 @@ describe("Previous shifts", () => {
         expect(element(".card-clock-in").textContent).toBe("10:00 PM");
         expect(element(".card-clock-out").textContent).toBe("6:00 AM (next day)");
         expect(element(".card-break").textContent).toBe("11:30 PM - 12:30 AM (next day)");
+        expect(element(".card-break").parentElement.hidden).toBe(false);
         expect(element(".card-hours").textContent).toBe("7h 0m");
     }));
 });
