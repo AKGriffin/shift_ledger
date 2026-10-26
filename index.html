@@ -271,15 +271,7 @@
                 <div class="panel">
                     <div class="panel-header panel-header-stack">
                         <h2>Previous shifts</h2>
-                        <div class="toolbar">
-                            <label class="field inline-field">
-                                <span>From</span>
-                                <input type="date" id="filter-date-from">
-                            </label>
-                            <label class="field inline-field">
-                                <span>To</span>
-                                <input type="date" id="filter-date-to">
-                            </label>
+                        <div class="history-toolbar">
                             <label class="field inline-field">
                                 <span>Sort</span>
                                 <select id="sort-by">
@@ -289,7 +281,34 @@
                                     <option value="tips-desc">Tips: high to low</option>
                                 </select>
                             </label>
-                            <label class="field inline-field">
+                            <div class="history-actions">
+                                <button type="button" id="open-history-filters" class="secondary-button"
+                                    aria-haspopup="dialog" aria-controls="history-filter-dialog" aria-expanded="false">
+                                    Filters <span id="active-filter-count" class="filter-count" hidden></span>
+                                </button>
+                                <button type="button" id="export-csv" class="primary-button">Export CSV</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <dialog id="history-filter-dialog" class="history-filter-dialog" aria-labelledby="history-filter-title">
+                        <div class="filter-dialog-header">
+                            <div>
+                                <h3 id="history-filter-title">Filter shifts</h3>
+                                <p>Changes update the list as you make them.</p>
+                            </div>
+                            <button type="button" id="close-history-filters" class="ghost-button" aria-label="Close filters">×</button>
+                        </div>
+                        <div class="history-filter-fields">
+                            <label class="field">
+                                <span>From</span>
+                                <input type="date" id="filter-date-from" autofocus>
+                            </label>
+                            <label class="field">
+                                <span>To</span>
+                                <input type="date" id="filter-date-to">
+                            </label>
+                            <label class="field">
                                 <span>Job</span>
                                 <select id="filter-job">
                                     <option value="all">All jobs</option>
@@ -297,10 +316,12 @@
                                     <option value="Expo">Expo</option>
                                 </select>
                             </label>
-                            <button type="button" id="clear-filters" class="ghost-button">Clear filters</button>
-                            <button type="button" id="export-csv" class="primary-button">Export CSV</button>
                         </div>
-                    </div>
+                        <div class="filter-dialog-actions">
+                            <button type="button" id="clear-filters" class="ghost-button">Clear filters</button>
+                            <button type="button" id="done-history-filters" class="primary-button">Done</button>
+                        </div>
+                    </dialog>
 
                     <p id="history-status" class="history-status" role="status" aria-live="polite"></p>
                     <div id="shift-list" class="shift-list"></div>

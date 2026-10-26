@@ -4,7 +4,6 @@ This is a lightweight view of where Shift Ledger is headed, not a promise or a r
 
 ## Now
 
-- [ ] **Redesign previous-shift browsing** - Replace the heavy nested-card appearance with a clearer, lighter history list; move filters into an accessible dialog or sheet while keeping sort easy to find and usable on mobile.
 - [ ] **Make PWA refresh and update behavior reliable** - Ensure refreshes and app restarts preserve saved shifts, and make new app versions activate or become available predictably without requiring users to fully close the app.
 - [ ] **Improve mobile navigation and reachability** - Keep in-app back/forward navigation predictable instead of unexpectedly leaving the app, and place frequently used mobile actions where they are easier to reach one-handed.
 - [ ] **Model workplaces, roles, and shift templates** - Separate restaurants/workplaces from the positions worked there. A workplace owns its roles; each role can have a reusable shift template. Define how existing `job` values and saved shifts migrate without losing history.
@@ -54,3 +53,4 @@ This is a lightweight view of where Shift Ledger is headed, not a promise or a r
 - [x] Overnight shifts use the recorded date as their start date; earlier clock-out and break-end times are treated as next-day times, and the full shift is grouped under its start date in totals and filters.
 - [x] Double shifts can record lunch, dinner, and whole-double reports independently; totals avoid double-counting, and history labels incomplete, combined, and legacy reports.
 - [x] Auto-gratuity is stored separately from other tips, included in net tip totals, and carried through edits, double reports, CSV, backups, and records created before the field existed.
+- [x] Previous shifts use a lighter single-column list, with sorting kept visible and date/job filters in an accessible dialog.

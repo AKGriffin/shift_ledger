@@ -34,4 +34,20 @@ describe("Mobile menu", () => {
         expect(elements(".period-metric")).toHaveLength(8);
         expect(doc.documentElement.scrollWidth).toBeLessThanOrEqual(win.innerWidth);
     }));
+
+    test("keeps mobile history controls and its filter dialog within the viewport", () => withApp({
+        width: 390,
+        height: 844,
+    }, ({ doc, win, element, openView }) => {
+        openView("previous-shifts");
+
+        expect(doc.documentElement.scrollWidth).toBeLessThanOrEqual(win.innerWidth);
+        expect(element("#sort-by").getBoundingClientRect().width).toBeGreaterThan(0);
+
+        element("#open-history-filters").click();
+        const bounds = element("#history-filter-dialog").getBoundingClientRect();
+
+        expect(bounds.left).toBeGreaterThanOrEqual(0);
+        expect(bounds.right).toBeLessThanOrEqual(win.innerWidth);
+    }));
 });

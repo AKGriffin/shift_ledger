@@ -28,16 +28,40 @@ describe("Dashboard summaries", () => {
 });
 
 describe("Previous shifts", () => {
-    test("lists every saved shift with its summary metrics", () => withApp({ shifts: seededShifts() }, ({ elements, openView, style }) => {
+    test("lists every saved shift with its summary metrics", () => withApp({ shifts: seededShifts() }, ({ doc, elements, openView, style }) => {
         openView("previous-shifts");
         const serverCard = elements(".shift-card")
             .find((card) => card.querySelector(".card-job").textContent === "Server");
 
         expect(elements(".shift-card")).toHaveLength(2);
         expect(serverCard).toBeDefined();
+        expect(style(doc.querySelector("#shift-list")).gridTemplateColumns.split(" ")).toHaveLength(1);
         expect(style(serverCard.querySelector(".shift-card-summary")).gridTemplateColumns.split(" ")).toHaveLength(2);
         expect(serverCard.querySelectorAll(".card-primary-metrics p")).toHaveLength(5);
         expect(serverCard.querySelector(".card-auto-gratuity").textContent).toBe("$7.00");
+    }));
+
+    test("keeps sorting visible and opens an accessible filter dialog", () => withApp({
+        shifts: seededShifts(),
+    }, ({ doc, element, openView }) => {
+        openView("previous-shifts");
+        const openButton = element("#open-history-filters");
+        const dialog = element("#history-filter-dialog");
+
+        expect(element("#sort-by").closest("dialog")).toBeNull();
+        expect(dialog.open).toBe(false);
+        expect(openButton.getAttribute("aria-haspopup")).toBe("dialog");
+
+        openButton.click();
+
+        expect(dialog.open).toBe(true);
+        expect(openButton.getAttribute("aria-expanded")).toBe("true");
+        expect(doc.activeElement.id).toBe("filter-date-from");
+        element("#close-history-filters").click();
+
+        expect(dialog.open).toBe(false);
+        expect(openButton.getAttribute("aria-expanded")).toBe("false");
+        expect(doc.activeElement.id).toBe("open-history-filters");
     }));
 
     test("renders notes as text instead of markup", () => withApp({ shifts: seededShifts() }, ({ elements, openView }) => {
@@ -51,6 +75,7 @@ describe("Previous shifts", () => {
 
     test("filters shifts by job", () => withApp({ shifts: seededShifts() }, ({ element, elements, openView, change }) => {
         openView("previous-shifts");
+        element("#open-history-filters").click();
         change("#filter-job", "Expo");
 
         expect(elements(".shift-card")).toHaveLength(1);
@@ -59,6 +84,7 @@ describe("Previous shifts", () => {
 
     test("filters shifts by date range", () => withApp({ shifts: seededShifts() }, ({ element, elements, openView, change }) => {
         openView("previous-shifts");
+        element("#open-history-filters").click();
         change("#filter-date-from", "2026-10-21");
 
         expect(elements(".shift-card")).toHaveLength(1);
@@ -68,11 +94,31 @@ describe("Previous shifts", () => {
 
     test("reports an invalid date range instead of listing shifts", () => withApp({ shifts: seededShifts() }, ({ element, elements, openView, change }) => {
         openView("previous-shifts");
+        element("#open-history-filters").click();
         change("#filter-date-from", "2026-10-22");
         change("#filter-date-to", "2026-10-20");
 
         expect(elements(".shift-card")).toHaveLength(0);
         expect(element("#history-status").textContent).toBe("The start date must be on or before the end date.");
+    }));
+
+    test("shows active filter count and preserves sort when clearing filters", () => withApp({
+        shifts: seededShifts(),
+    }, ({ element, elements, openView, change }) => {
+        openView("previous-shifts");
+        change("#sort-by", "sales-desc");
+        element("#open-history-filters").click();
+        change("#filter-date-from", "2026-10-21");
+        change("#filter-job", "Expo");
+
+        expect(element("#active-filter-count").textContent).toBe("2 active");
+        expect(element("#clear-filters").disabled).toBe(false);
+        element("#clear-filters").click();
+
+        expect(element("#active-filter-count").hidden).toBe(true);
+        expect(element("#clear-filters").disabled).toBe(true);
+        expect(element("#sort-by").value).toBe("sales-desc");
+        expect(elements(".shift-card")).toHaveLength(2);
     }));
 
     test("sorts by sales from high to low", () => withApp({ shifts: seededShifts() }, ({ elements, openView, change }) => {

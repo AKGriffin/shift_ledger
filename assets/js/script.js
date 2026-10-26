@@ -20,6 +20,10 @@ const sortBySelect = document.getElementById("sort-by");
 const filterJobSelect = document.getElementById("filter-job");
 const filterDateFrom = document.getElementById("filter-date-from");
 const filterDateTo = document.getElementById("filter-date-to");
+const historyFilterDialog = document.getElementById("history-filter-dialog");
+const openHistoryFiltersButton = document.getElementById("open-history-filters");
+const activeFilterCount = document.getElementById("active-filter-count");
+const clearFiltersButton = document.getElementById("clear-filters");
 const historyStatus = document.getElementById("history-status");
 const weekSummary = document.getElementById("week-summary");
 const monthSummary = document.getElementById("month-summary");
@@ -124,7 +128,27 @@ function bindEvents() {
     filterJobSelect.addEventListener("change", renderPreviousShifts);
     filterDateFrom.addEventListener("change", renderPreviousShifts);
     filterDateTo.addEventListener("change", renderPreviousShifts);
-    document.getElementById("clear-filters").addEventListener("click", clearHistoryFilters);
+    openHistoryFiltersButton.addEventListener("click", () => {
+        if (!historyFilterDialog.open) {
+            historyFilterDialog.showModal();
+        }
+        openHistoryFiltersButton.setAttribute("aria-expanded", "true");
+    });
+    historyFilterDialog.addEventListener("close", () => {
+        openHistoryFiltersButton.setAttribute("aria-expanded", "false");
+        if (state.currentView === "previous-shifts") {
+            openHistoryFiltersButton.focus();
+        }
+    });
+    historyFilterDialog.addEventListener("cancel", () => openHistoryFiltersButton.setAttribute("aria-expanded", "false"));
+    document.getElementById("close-history-filters").addEventListener("click", closeHistoryFilterDialog);
+    document.getElementById("done-history-filters").addEventListener("click", closeHistoryFilterDialog);
+    historyFilterDialog.addEventListener("click", (event) => {
+        if (event.target === historyFilterDialog) {
+            closeHistoryFilterDialog();
+        }
+    });
+    clearFiltersButton.addEventListener("click", clearHistoryFilters);
     document.getElementById("export-csv").addEventListener("click", exportFilteredShifts);
     shiftList.addEventListener("click", handleListAction);
     styleSetting.addEventListener("change", () => updateSetting("visualStyle", styleSetting.value));
@@ -147,6 +171,9 @@ function bindEvents() {
 
 function showView(viewName) {
     state.currentView = viewName;
+    if (historyFilterDialog.open && viewName !== "previous-shifts") {
+        closeHistoryFilterDialog(false);
+    }
     const isMobileHome = mobileLayout.matches && viewName === "mobile-home";
     appShell.classList.toggle("is-mobile-home", isMobileHome);
     document.body.classList.toggle("is-mobile-home", isMobileHome);
@@ -168,6 +195,16 @@ function showView(viewName) {
             }
         }
     });
+}
+
+function closeHistoryFilterDialog(restoreFocus = true) {
+    if (historyFilterDialog.open) {
+        historyFilterDialog.close();
+    }
+    openHistoryFiltersButton.setAttribute("aria-expanded", "false");
+    if (restoreFocus) {
+        openHistoryFiltersButton.focus();
+    }
 }
 
 function handleLayoutChange(event) {
@@ -620,6 +657,7 @@ function renderDashboard() {
 }
 
 function renderPreviousShifts() {
+    updateFilterControls();
     const fromDate = filterDateFrom.value;
     const toDate = filterDateTo.value;
     const filtered = getFilteredShifts();
@@ -750,8 +788,16 @@ function clearHistoryFilters() {
     filterDateFrom.value = "";
     filterDateTo.value = "";
     filterJobSelect.value = "all";
-    sortBySelect.value = "date-desc";
     renderPreviousShifts();
+}
+
+function updateFilterControls() {
+    const count = Number(Boolean(filterDateFrom.value))
+        + Number(Boolean(filterDateTo.value))
+        + Number(filterJobSelect.value !== "all");
+    activeFilterCount.textContent = `${count} active`;
+    activeFilterCount.hidden = count === 0;
+    clearFiltersButton.disabled = count === 0;
 }
 
 function exportFilteredShifts() {

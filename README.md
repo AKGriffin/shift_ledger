@@ -21,6 +21,7 @@ The service worker caches the app shell and static assets. When deploying an upd
 - Log overnight shifts by recording the date the shift starts; an earlier clock-out (or break end) is treated as the next day. The full shift is grouped under its start date in summaries and history filters.
 - Review all-time, current-week, and current-month totals
 - Filter shift history by date range and job; sort by date, sales, or tips
+- Keep sorting in reach and manage date/job filters in an accessible dialog
 - Export the currently filtered shifts as a CSV file
 - Choose among seven visual styles—Minimalist, Material, Neo-brutalist, Cyberpunk/Synthwave, Glassmorphism, Modern Skeuomorphism, and High-Contrast—independently from system, light, or dark mode; set the week start day and currency
 - Review appearance and data preferences in responsive settings cards, with a work-setup roadmap for future restaurant, role, and shift-template management
