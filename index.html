@@ -42,39 +42,6 @@
             </section>
 
         <main>
-            <section id="mobile-home" class="view is-hidden mobile-home">
-                <div class="mobile-welcome">
-                    <div class="mobile-brand">
-                        <img class="brand-mark" src="assets/icons/icon.svg" alt="">
-                        <h1>Shift Ledger</h1>
-                    </div>
-                    <p class="eyebrow">Your personal work log</p>
-                    <p>Keep your shifts, hours, sales, and tips in one place.</p>
-                </div>
-                <nav class="mobile-menu" aria-label="App menu">
-                    <button type="button" class="mobile-menu-button" data-view="dashboard">
-                        <span class="menu-icon" aria-hidden="true">01</span>
-                        <span><strong>Dashboard</strong><small>Your totals and recent shifts</small></span>
-                        <span class="menu-arrow" aria-hidden="true">›</span>
-                    </button>
-                    <button type="button" class="mobile-menu-button" data-view="new-shift">
-                        <span class="menu-icon" aria-hidden="true">02</span>
-                        <span><strong>New Shift</strong><small>Log a shift and tips</small></span>
-                        <span class="menu-arrow" aria-hidden="true">›</span>
-                    </button>
-                    <button type="button" class="mobile-menu-button" data-view="previous-shifts">
-                        <span class="menu-icon" aria-hidden="true">03</span>
-                        <span><strong>Previous Shifts</strong><small>Search and review your history</small></span>
-                        <span class="menu-arrow" aria-hidden="true">›</span>
-                    </button>
-                    <button type="button" class="mobile-menu-button" data-view="settings">
-                        <span class="menu-icon" aria-hidden="true">04</span>
-                        <span><strong>Settings</strong><small>Preferences and data tools</small></span>
-                        <span class="menu-arrow" aria-hidden="true">›</span>
-                    </button>
-                </nav>
-            </section>
-            <button type="button" id="back-to-menu" class="back-to-menu ghost-button">‹ App menu</button>
             <section id="dashboard" class="view is-visible">
                 <div class="panel dashboard-heading">
                     <div>
@@ -513,6 +480,24 @@
                 </div>
             </section>
         </main>
+        <nav class="mobile-bottom-nav" aria-label="Quick navigation">
+            <button type="button" class="mobile-bottom-nav-button" data-view="dashboard" aria-label="Dashboard">
+                <span aria-hidden="true">⌂</span>
+                <small>Dashboard</small>
+            </button>
+            <button type="button" class="mobile-bottom-nav-button" data-view="new-shift" aria-label="New shift">
+                <span aria-hidden="true">+</span>
+                <small>New shift</small>
+            </button>
+            <button type="button" class="mobile-bottom-nav-button" data-view="previous-shifts" aria-label="Previous shifts">
+                <span aria-hidden="true">≡</span>
+                <small>History</small>
+            </button>
+            <button type="button" class="mobile-bottom-nav-button" data-view="settings" aria-label="Settings">
+                <span aria-hidden="true">⚙</span>
+                <small>Settings</small>
+            </button>
+        </nav>
         </div>
     </div>
 

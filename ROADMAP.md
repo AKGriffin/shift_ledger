@@ -6,7 +6,7 @@ This is a lightweight view of where Shift Ledger is headed, not a promise or a r
 
 - [x] **Make PWA refresh and update behavior reliable** - Refreshes preserve saved shifts, updates are checked when the app returns online or to the foreground, and active versions offer a manual reload without discarding unsaved shift changes.
 - [x] **Make mobile Back and Forward predictable** - Browser navigation revisits app views instead of immediately leaving the app, and unfinished form values stay in place when moving between views.
-- [ ] **Improve one-handed mobile reachability** - Place frequently used actions where they are easier to reach without making the mobile interface feel crowded.
+- [x] **Improve one-handed mobile reachability** - Keep the four main views available from a compact, fixed bottom navigation on mobile.
 - [ ] **Model workplaces, roles, and shift templates** - Separate restaurants/workplaces from the positions worked there. A workplace owns its roles; each role can have a reusable shift template. Define how existing `job` values and saved shifts migrate without losing history.
 - [ ] **Manage workplaces and roles in Settings** - Let users add, rename, and archive a workplace and its roles. Make clear what happens to historical shifts when an item is archived.
 - [ ] **Add pay-period settings and use roles and templates when logging a shift** - Configure a workplace's pay period, select a workplace and role when logging, and start from that role's editable shift template.
@@ -49,6 +49,7 @@ This is a lightweight view of where Shift Ledger is headed, not a promise or a r
 - [x] Seven visual styles, each supporting system, light, and dark color modes.
 - [x] Responsive settings cards with a Jobs & roles direction preview.
 - [x] Mobile app menu fits common phone screens and scrolls only when space is insufficient.
+- [x] Mobile bottom navigation replaces the app menu: phones open to the dashboard and keep the main views within thumb reach.
 - [x] App icon replaces the text monogram in the header, with the brand kept on one line.
 - [x] Dashboard visually refreshed to match the other sections: header card, accented stat cards, tiled period metrics, and labeled recent-activity values.
 - [x] Dashboard period summaries and previous-shift cards use a two-column heading-and-statistics layout.

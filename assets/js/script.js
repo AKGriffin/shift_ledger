@@ -95,14 +95,12 @@ const statEls = {
 
 const recentShiftsEl = document.getElementById("recent-shifts");
 const template = document.getElementById("shift-card-template");
-const appShell = document.querySelector(".app-shell");
 const styleSetting = document.getElementById("setting-style");
 const modeSetting = document.getElementById("setting-mode");
 const weekStartSetting = document.getElementById("setting-week-start");
 const zeroDetailsSetting = document.getElementById("setting-zero-details");
 const currencySetting = document.getElementById("setting-currency");
 const dashboardCustomizeDialog = document.getElementById("dashboard-customize-dialog");
-const mobileLayout = window.matchMedia("(max-width: 720px)");
 const systemTheme = window.matchMedia("(prefers-color-scheme: dark)");
 
 bindEvents();
@@ -179,7 +177,6 @@ function bindEvents() {
         });
     });
 
-    document.getElementById("back-to-menu").addEventListener("click", () => showView("mobile-home"));
     window.addEventListener("popstate", handlePopState);
     form.addEventListener("submit", handleFormSubmit);
     form.addEventListener("input", markShiftFormDirty);
@@ -277,7 +274,6 @@ function bindEvents() {
     });
     document.getElementById("backup-file").addEventListener("change", importBackup);
     document.getElementById("clear-all-data").addEventListener("click", clearAllShifts);
-    mobileLayout.addEventListener("change", handleLayoutChange);
     systemTheme.addEventListener("change", () => {
         if (state.settings.colorMode === "system") {
             applyTheme();
@@ -303,9 +299,6 @@ function showView(viewName, { historyAction = "push" } = {}) {
     if (historyFilterDialog.open && viewName !== "previous-shifts") {
         closeHistoryFilterDialog(false);
     }
-    const isMobileHome = mobileLayout.matches && viewName === "mobile-home";
-    appShell.classList.toggle("is-mobile-home", isMobileHome);
-    document.body.classList.toggle("is-mobile-home", isMobileHome);
 
     document.querySelectorAll(".view").forEach((section) => {
         const visible = section.id === viewName;
@@ -318,8 +311,7 @@ function showView(viewName, { historyAction = "push" } = {}) {
         notesList.querySelectorAll(".note-input").forEach(autosizeNote);
     }
 
-    document.getElementById("back-to-menu").hidden = !mobileLayout.matches || viewName === "mobile-home";
-    document.querySelectorAll(".main-nav [data-view]").forEach((button) => {
+    document.querySelectorAll(".main-nav [data-view], .mobile-bottom-nav [data-view]").forEach((button) => {
         if (button.tagName === "BUTTON") {
             if (button.dataset.view === viewName) {
                 button.setAttribute("aria-current", "page");
@@ -337,7 +329,7 @@ function handlePopState(event) {
         return;
     }
 
-    showView(mobileLayout.matches ? "mobile-home" : "dashboard", { historyAction: "replace" });
+    showView("dashboard", { historyAction: "replace" });
 }
 
 function getInitialView() {
@@ -346,7 +338,7 @@ function getInitialView() {
         return historyView;
     }
 
-    return mobileLayout.matches ? "mobile-home" : "dashboard";
+    return "dashboard";
 }
 
 function closeHistoryFilterDialog(restoreFocus = true) {
@@ -356,16 +348,6 @@ function closeHistoryFilterDialog(restoreFocus = true) {
     openHistoryFiltersButton.setAttribute("aria-expanded", "false");
     if (restoreFocus) {
         openHistoryFiltersButton.focus();
-    }
-}
-
-function handleLayoutChange(event) {
-    if (event.matches && state.currentView === "dashboard") {
-        showView("mobile-home", { historyAction: "replace" });
-    } else if (!event.matches && state.currentView === "mobile-home") {
-        showView("dashboard", { historyAction: "replace" });
-    } else {
-        showView(state.currentView, { historyAction: "replace" });
     }
 }
 

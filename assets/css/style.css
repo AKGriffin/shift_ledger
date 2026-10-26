@@ -381,11 +381,6 @@ body {
     color: var(--text);
 }
 
-body.is-mobile-home {
-    height: 100%;
-    overflow: hidden;
-}
-
 button,
 input,
 select,
@@ -540,14 +535,8 @@ main {
     min-width: 0;
 }
 
-.back-to-menu,
-.mobile-home {
+.mobile-bottom-nav {
     display: none;
-}
-
-.back-to-menu:not([hidden]) {
-    display: inline-flex;
-    margin-bottom: 16px;
 }
 
 .view {
@@ -556,10 +545,6 @@ main {
 
 .view.is-visible {
     display: block;
-}
-
-.mobile-home.is-visible {
-    display: none;
 }
 
 .panel {
@@ -1912,15 +1897,6 @@ textarea {
         padding: 0;
     }
 
-    .app-shell.is-mobile-home {
-        height: 100vh;
-        height: 100dvh;
-        min-height: 0;
-        overflow-x: hidden;
-        overflow-y: auto;
-        overscroll-behavior-y: contain;
-    }
-
     .sidebar {
         display: none;
     }
@@ -1928,7 +1904,50 @@ textarea {
     .app-content {
         width: 100%;
         max-width: none;
-        padding: 0 16px 32px;
+        padding: 0 16px calc(96px + env(safe-area-inset-bottom));
+    }
+
+    .mobile-bottom-nav {
+        position: fixed;
+        z-index: 10;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        padding: 8px 8px max(8px, env(safe-area-inset-bottom));
+        border-top: 1px solid var(--border);
+        background: var(--panel);
+        box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .mobile-bottom-nav-button {
+        display: grid;
+        min-width: 0;
+        min-height: 56px;
+        align-content: center;
+        justify-items: center;
+        gap: 2px;
+        padding: 4px 2px;
+        border: 0;
+        border-radius: 12px;
+        background: transparent;
+        color: var(--muted);
+        font-size: 1.2rem;
+    }
+
+    .mobile-bottom-nav-button small {
+        overflow: hidden;
+        max-width: 100%;
+        font-size: 0.68rem;
+        font-weight: 600;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .mobile-bottom-nav-button[aria-current="page"] {
+        background: var(--panel-alt);
+        color: var(--primary-dark);
     }
 
     .app-update-notice {
@@ -1940,135 +1959,30 @@ textarea {
         flex-wrap: wrap;
     }
 
-    .app-shell.is-mobile-home .app-content {
-        display: flex;
-        height: 100%;
-        min-height: 0;
-        flex-direction: column;
-        padding-bottom: 0;
-    }
-
-    .app-shell.is-mobile-home main {
-        display: flex;
-        flex: 1;
-        flex-direction: column;
-    }
-
-    .back-to-menu:not([hidden]) {
-        margin-top: 16px;
-    }
-
-    .mobile-home.is-visible {
-        display: flex;
-        flex: 1;
-        min-height: 0;
-        flex-direction: column;
-        justify-content: center;
-        padding: clamp(18px, 5vh, 36px) 4px max(16px, env(safe-area-inset-bottom));
-    }
-
-    .mobile-welcome {
-        display: grid;
-        justify-items: start;
-        gap: 8px;
-        margin-bottom: clamp(16px, 3vh, 24px);
-    }
-
     .dashboard-heading {
-        align-items: flex-start;
-        flex-direction: column;
-        gap: 16px;
         margin: 8px 0 18px;
     }
 
-    .dashboard-heading .primary-button {
-        width: auto;
+    .dashboard-heading p:last-child,
+    #open-dashboard-customize {
+        display: none;
+    }
+
+    #dashboard {
+        padding-bottom: 64px;
     }
 
     .dashboard-heading-actions {
-        width: 100%;
+        position: fixed;
+        z-index: 9;
+        right: 16px;
+        bottom: calc(84px + env(safe-area-inset-bottom));
     }
 
-    .dashboard-heading-actions > button {
-        flex: 1;
-    }
-
-    .mobile-brand {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        min-width: 0;
-    }
-
-    .mobile-welcome .brand-mark {
-        width: 52px;
-        height: 52px;
-        border-radius: 16px;
-    }
-
-    .mobile-welcome .eyebrow,
-    .mobile-welcome h1,
-    .mobile-welcome p {
-        margin: 0;
-    }
-
-    .mobile-welcome h1 {
-        font-size: clamp(1.6rem, 7vw, 2.5rem);
-        white-space: nowrap;
-    }
-
-    .mobile-welcome p:last-child {
-        max-width: 30rem;
-        color: var(--muted);
-        line-height: 1.6;
-    }
-
-    .mobile-menu {
-        display: grid;
-        gap: clamp(8px, 1.4vh, 12px);
-    }
-
-    .mobile-menu-button {
-        display: grid;
-        grid-template-columns: 44px minmax(0, 1fr) 20px;
-        align-items: center;
-        gap: 14px;
-        width: 100%;
-        padding: 12px;
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        background: var(--panel);
-        box-shadow: var(--shadow);
-        color: var(--text);
-        text-align: left;
-    }
-
-    .mobile-menu-button > span:nth-child(2) {
-        display: grid;
-        gap: 4px;
-    }
-
-    .mobile-menu-button small {
-        color: var(--muted);
-        font-size: 0.82rem;
-    }
-
-    .menu-icon {
-        display: grid;
-        width: 42px;
-        height: 42px;
-        place-items: center;
-        border-radius: 13px;
-        background: var(--panel-alt);
-        color: var(--primary);
-        font-size: 0.78rem;
-        font-weight: 800;
-    }
-
-    .menu-arrow {
-        color: var(--muted);
-        font-size: 1.6rem;
-        text-align: right;
+    .dashboard-heading-actions .primary-button {
+        padding: 0.85rem 1.3rem;
+        border-radius: 999px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
     }
 
     .panel-header {
@@ -2188,26 +2102,6 @@ textarea {
     .ghost-button,
     .danger-button {
         max-width: 100%;
-    }
-}
-
-@media (max-width: 720px) and (max-height: 640px) {
-    .mobile-home.is-visible {
-        padding-top: 12px;
-        padding-bottom: 10px;
-    }
-
-    .mobile-welcome {
-        gap: 6px;
-        margin-bottom: 12px;
-    }
-
-    .mobile-menu {
-        gap: 8px;
-    }
-
-    .mobile-menu-button {
-        padding: 10px;
     }
 }
 
@@ -2355,7 +2249,6 @@ textarea {
 :root[data-style="neo-brutalist"] .stat-card,
 :root[data-style="neo-brutalist"] .period-card,
 :root[data-style="neo-brutalist"] .shift-card,
-:root[data-style="neo-brutalist"] .mobile-menu-button,
 :root[data-style="neo-brutalist"] fieldset {
     border: 2px solid var(--border);
     border-radius: 4px;
@@ -2477,8 +2370,7 @@ textarea {
 }
 
 :root[data-style="cyberpunk"] .nav-button[aria-current="page"],
-:root[data-style="cyberpunk"] .pill,
-:root[data-style="cyberpunk"] .menu-icon {
+:root[data-style="cyberpunk"] .pill {
     border-color: var(--primary);
     background: var(--panel-alt);
     color: var(--primary-dark);
@@ -2634,8 +2526,7 @@ textarea {
 :root[data-style="high-contrast"] .accent-blue,
 :root[data-style="high-contrast"] .accent-green,
 :root[data-style="high-contrast"] .accent-gold,
-:root[data-style="high-contrast"] .accent-purple,
-:root[data-style="high-contrast"] .menu-icon {
+:root[data-style="high-contrast"] .accent-purple {
     background: var(--panel-alt);
     color: var(--text);
 }
