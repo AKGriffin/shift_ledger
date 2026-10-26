@@ -49,6 +49,22 @@ describe("Previous shifts", () => {
         expect(serverCard.querySelector(".card-food-sales").textContent).toBe("$100.00");
     }));
 
+    test("hides zero-value breakdown lines unless the setting shows them", () => withApp({ shifts: seededShifts() }, ({ elements, openView, change, savedSettings }) => {
+        openView("previous-shifts");
+        const serverCard = () => elements(".shift-card")
+            .find((card) => card.querySelector(".card-job").textContent === "Server");
+
+        expect(serverCard().querySelector(".card-food-sales").parentElement.hidden).toBe(false);
+        expect(serverCard().querySelector(".card-na-bev-sales").parentElement.hidden).toBe(true);
+
+        openView("settings");
+        change("#setting-zero-details", "show");
+        openView("previous-shifts");
+
+        expect(savedSettings().zeroDetails).toBe("show");
+        expect(serverCard().querySelector(".card-na-bev-sales").parentElement.hidden).toBe(false);
+    }));
+
     test("shows the breakdown under each total on desktop and expands it on mobile", () => withApp({
         width: 390,
         height: 800,

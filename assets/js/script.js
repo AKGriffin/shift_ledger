@@ -88,6 +88,7 @@ const appShell = document.querySelector(".app-shell");
 const styleSetting = document.getElementById("setting-style");
 const modeSetting = document.getElementById("setting-mode");
 const weekStartSetting = document.getElementById("setting-week-start");
+const zeroDetailsSetting = document.getElementById("setting-zero-details");
 const currencySetting = document.getElementById("setting-currency");
 const mobileLayout = window.matchMedia("(max-width: 720px)");
 const systemTheme = window.matchMedia("(prefers-color-scheme: dark)");
@@ -188,6 +189,7 @@ function bindEvents() {
     modeSetting.addEventListener("change", () => updateSetting("colorMode", modeSetting.value));
     weekStartSetting.addEventListener("change", () => updateSetting("weekStartsOn", weekStartSetting.value));
     currencySetting.addEventListener("change", () => updateSetting("currency", currencySetting.value));
+    zeroDetailsSetting.addEventListener("change", () => updateSetting("zeroDetails", zeroDetailsSetting.value));
     document.getElementById("export-backup").addEventListener("click", exportBackup);
     document.getElementById("import-backup").addEventListener("click", () => {
         document.getElementById("backup-file").click();
@@ -259,6 +261,7 @@ function initializeSettings() {
     modeSetting.value = state.settings.colorMode;
     weekStartSetting.value = state.settings.weekStartsOn;
     currencySetting.value = state.settings.currency;
+    zeroDetailsSetting.value = state.settings.zeroDetails;
     applyTheme();
 }
 
@@ -280,7 +283,7 @@ function updateSetting(name, value) {
         applyTheme();
     } else if (name === "weekStartsOn") {
         renderPeriodSummaries();
-    } else if (name === "currency") {
+    } else if (name === "currency" || name === "zeroDetails") {
         renderDashboard();
         renderPreviousShifts();
     }
@@ -315,6 +318,7 @@ function loadSettings() {
         colorMode: "system",
         weekStartsOn: "monday",
         currency: "USD",
+        zeroDetails: "hide",
     };
 
     try {
@@ -351,6 +355,9 @@ function loadSettings() {
             currency: ["USD", "CAD", "GBP", "EUR"].includes(stored.currency)
                 ? stored.currency
                 : defaults.currency,
+            zeroDetails: ["hide", "show"].includes(stored.zeroDetails)
+                ? stored.zeroDetails
+                : defaults.zeroDetails,
         };
     } catch (error) {
         console.error("Unable to read saved settings:", error);
@@ -896,7 +903,9 @@ function renderPreviousShifts() {
         card.querySelector(".card-auto-gratuity").textContent = formatCurrency(getAutoGratuity(shift));
         const breakdown = getFinancialBreakdown(shift);
         Object.entries(CARD_BREAKDOWN_SELECTORS).forEach(([field, selector]) => {
-            card.querySelector(selector).textContent = formatCurrency(breakdown[field]);
+            const value = card.querySelector(selector);
+            value.textContent = formatCurrency(breakdown[field]);
+            value.parentElement.hidden = state.settings.zeroDetails === "hide" && !breakdown[field];
         });
         card.querySelector(".card-clock-in").textContent = formatTime(shift.clockIn);
         card.querySelector(".card-clock-out").textContent = formatClockOut(shift);

@@ -97,8 +97,9 @@ describe("New shift layout", () => {
 
         expect(top("#shift-meal-period")).toBeGreaterThan(top("#shift-date"));
         expect(top("#break-card-title")).toBeGreaterThan(top("#clock-card-title"));
-        expect(top("#additional-card-title")).toBeGreaterThan(top("#food-card-title"));
-        expect(top("#beverage-card-title")).toBeGreaterThan(top("#additional-card-title"));
+        expect(top("#sales-card-title")).toBeGreaterThan(top("#shift-date"));
+        expect(top("#shift-additional-sales")).toBeGreaterThan(top("#shift-food-sales"));
+        expect(top("#shift-liquor-sales")).toBeGreaterThan(top("#shift-additional-sales"));
         expect(top("#tipout-card-title")).toBeGreaterThan(top("#earned-card-title"));
         expect(top("#single-report-fields fieldset:last-child")).toBeGreaterThan(top("#single-report-fields fieldset:first-child"));
         expect(doc.documentElement.scrollWidth).toBeLessThanOrEqual(win.innerWidth);

@@ -1585,6 +1585,10 @@ textarea {
     min-width: 0;
 }
 
+.card-substats p[hidden] {
+    display: none;
+}
+
 .card-substats span {
     color: var(--muted);
 }

@@ -204,22 +204,16 @@
                         <fieldset>
                             <legend>Sales</legend>
                             <div class="sub-card-grid">
-                                <div class="sub-card" role="group" aria-labelledby="food-card-title">
-                                    <h4 class="sub-card-title" id="food-card-title">Food</h4>
+                                <div class="sub-card" role="group" aria-labelledby="sales-card-title">
+                                    <h4 class="sub-card-title" id="sales-card-title">Sales breakdown</h4>
                                     <label class="field">
                                         <span>Food</span>
                                         <input type="number" id="shift-food-sales" min="0" step="0.01" value="0">
                                     </label>
-                                </div>
-                                <div class="sub-card" role="group" aria-labelledby="additional-card-title">
-                                    <h4 class="sub-card-title" id="additional-card-title">Additional</h4>
                                     <label class="field">
                                         <span>Additional</span>
                                         <input type="number" id="shift-additional-sales" min="0" step="0.01" value="0">
                                     </label>
-                                </div>
-                                <div class="sub-card" role="group" aria-labelledby="beverage-card-title">
-                                    <h4 class="sub-card-title" id="beverage-card-title">Beverage</h4>
                                     <label class="field">
                                         <span>Beer &amp; wine</span>
                                         <input type="number" id="shift-baw-sales" min="0" step="0.01" value="0">
@@ -410,6 +404,13 @@
                                         <option value="EUR">Euro (EUR)</option>
                                     </select>
                                 </label>
+                                <label class="field">
+                                    <span>Zero amounts in shift details</span>
+                                    <select id="setting-zero-details">
+                                        <option value="hide">Hide</option>
+                                        <option value="show">Show</option>
+                                    </select>
+                                </label>
                             </div>
                             <p class="settings-description">Choose a visual style and set its color mode independently.</p>
                             <p class="settings-description">Currency changes how amounts are displayed; it does not convert existing values.</p>
@@ -541,20 +542,9 @@
                     <section class="report-data-group" role="group" aria-label="Sales">
                         <h4>Sales</h4>
                         <div class="report-field-subgroup">
-                            <h5>Food</h5>
                             <div class="report-field-grid">
                                 <label class="field"><span>Food</span><input type="number" min="0" step="0.01" value="0" data-report-field="foodSales"></label>
-                            </div>
-                        </div>
-                        <div class="report-field-subgroup">
-                            <h5>Additional</h5>
-                            <div class="report-field-grid">
                                 <label class="field"><span>Additional</span><input type="number" min="0" step="0.01" value="0" data-report-field="additionalSales"></label>
-                            </div>
-                        </div>
-                        <div class="report-field-subgroup">
-                            <h5>Beverage</h5>
-                            <div class="report-field-grid">
                                 <label class="field"><span>Beer &amp; wine</span><input type="number" min="0" step="0.01" value="0" data-report-field="bawSales"></label>
                                 <label class="field"><span>Liquor</span><input type="number" min="0" step="0.01" value="0" data-report-field="liquorSales"></label>
                                 <label class="field"><span>NA beverage</span><input type="number" min="0" step="0.01" value="0" data-report-field="naBevSales"></label>
