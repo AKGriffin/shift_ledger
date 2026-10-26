@@ -69,9 +69,10 @@ describe("New shift layout", () => {
         expect(top("#shift-date")).toBe(top("#shift-meal-period"));
         expect(top("#shift-meal-period")).toBe(top("#shift-job"));
         expect(cardTop("clock-card-title")).toBe(cardTop("break-card-title"));
+        expect(cardTop("food-card-title")).toBe(cardTop("additional-card-title"));
         expect(cardTop("food-card-title")).toBe(cardTop("beverage-card-title"));
         expect(cardTop("earned-card-title")).toBe(cardTop("tipout-card-title"));
-        expect(top("#single-report-fields fieldset:first-child")).toBe(top("#single-report-fields fieldset:last-child"));
+        expect(top("#single-report-fields fieldset:last-child")).toBeGreaterThan(top("#single-report-fields fieldset:first-child"));
     }));
 
     test("stacks the inputs inside each sub card", () => withApp({ width: 1400, height: 1000 }, ({ element, openView }) => {
@@ -92,7 +93,8 @@ describe("New shift layout", () => {
 
         expect(top("#shift-meal-period")).toBeGreaterThan(top("#shift-date"));
         expect(top("#break-card-title")).toBeGreaterThan(top("#clock-card-title"));
-        expect(top("#beverage-card-title")).toBeGreaterThan(top("#food-card-title"));
+        expect(top("#additional-card-title")).toBeGreaterThan(top("#food-card-title"));
+        expect(top("#beverage-card-title")).toBeGreaterThan(top("#additional-card-title"));
         expect(top("#tipout-card-title")).toBeGreaterThan(top("#earned-card-title"));
         expect(top("#single-report-fields fieldset:last-child")).toBeGreaterThan(top("#single-report-fields fieldset:first-child"));
         expect(doc.documentElement.scrollWidth).toBeLessThanOrEqual(win.innerWidth);

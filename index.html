@@ -205,11 +205,14 @@
                             <legend>Sales</legend>
                             <div class="sub-card-grid">
                                 <div class="sub-card" role="group" aria-labelledby="food-card-title">
-                                    <h4 class="sub-card-title" id="food-card-title">Food &amp; other</h4>
+                                    <h4 class="sub-card-title" id="food-card-title">Food</h4>
                                     <label class="field">
                                         <span>Food</span>
                                         <input type="number" id="shift-food-sales" min="0" step="0.01" value="0">
                                     </label>
+                                </div>
+                                <div class="sub-card" role="group" aria-labelledby="additional-card-title">
+                                    <h4 class="sub-card-title" id="additional-card-title">Additional</h4>
                                     <label class="field">
                                         <span>Additional</span>
                                         <input type="number" id="shift-additional-sales" min="0" step="0.01" value="0">
@@ -538,12 +541,25 @@
                 <div class="report-details-grid">
                     <section class="report-data-group" role="group" aria-label="Sales">
                         <h4>Sales</h4>
-                        <div class="report-field-grid">
-                            <label class="field"><span>Food</span><input type="number" min="0" step="0.01" value="0" data-report-field="foodSales"></label>
-                            <label class="field"><span>Additional</span><input type="number" min="0" step="0.01" value="0" data-report-field="additionalSales"></label>
-                            <label class="field"><span>Beer &amp; wine</span><input type="number" min="0" step="0.01" value="0" data-report-field="bawSales"></label>
-                            <label class="field"><span>Liquor</span><input type="number" min="0" step="0.01" value="0" data-report-field="liquorSales"></label>
-                            <label class="field"><span>NA beverage</span><input type="number" min="0" step="0.01" value="0" data-report-field="naBevSales"></label>
+                        <div class="report-field-subgroup">
+                            <h5>Food</h5>
+                            <div class="report-field-grid">
+                                <label class="field"><span>Food</span><input type="number" min="0" step="0.01" value="0" data-report-field="foodSales"></label>
+                            </div>
+                        </div>
+                        <div class="report-field-subgroup">
+                            <h5>Additional</h5>
+                            <div class="report-field-grid">
+                                <label class="field"><span>Additional</span><input type="number" min="0" step="0.01" value="0" data-report-field="additionalSales"></label>
+                            </div>
+                        </div>
+                        <div class="report-field-subgroup">
+                            <h5>Beverage</h5>
+                            <div class="report-field-grid">
+                                <label class="field"><span>Beer &amp; wine</span><input type="number" min="0" step="0.01" value="0" data-report-field="bawSales"></label>
+                                <label class="field"><span>Liquor</span><input type="number" min="0" step="0.01" value="0" data-report-field="liquorSales"></label>
+                                <label class="field"><span>NA beverage</span><input type="number" min="0" step="0.01" value="0" data-report-field="naBevSales"></label>
+                            </div>
                         </div>
                     </section>
                     <section class="report-data-group" role="group" aria-label="Tips">
