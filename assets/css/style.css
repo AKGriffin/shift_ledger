@@ -1347,8 +1347,16 @@ textarea {
     justify-self: start;
 }
 
-@container (max-width: 359px) {
-    .shift-card-summary {
+@container (max-width: 400px) {
+    .card-toggle {
+        display: inline-flex;
+    }
+
+    .shift-card:not(.is-expanded) .card-substats {
+        display: none;
+    }
+
+    .shift-card.is-expanded .shift-card-summary {
         grid-template-columns: minmax(0, 1fr);
     }
 }
@@ -1707,18 +1715,6 @@ textarea {
 
     .card-stat strong {
         font-size: 1rem;
-    }
-
-    .card-toggle {
-        display: inline-flex;
-    }
-
-    .shift-card:not(.is-expanded) .card-substats {
-        display: none;
-    }
-
-    .shift-card.is-expanded .shift-card-summary {
-        grid-template-columns: minmax(0, 1fr);
     }
 
     .form-actions > *,

@@ -70,6 +70,18 @@ describe("Previous shifts", () => {
         expect(style(substats).display).toBe("none");
     }));
 
+    test("keeps totals side by side with details visible at tablet width", () => withApp({
+        width: 700,
+        height: 900,
+        shifts: seededShifts(),
+    }, ({ element, openView, style }) => {
+        openView("previous-shifts");
+
+        expect(style(element(".shift-card-summary")).gridTemplateColumns.split(" ")).toHaveLength(3);
+        expect(style(element(".card-toggle")).display).toBe("none");
+        expect(style(element(".card-stat-sales .card-substats")).display).not.toBe("none");
+    }));
+
     test("always shows sub-lists without a toggle on desktop", () => withApp({
         width: 1400,
         height: 900,
