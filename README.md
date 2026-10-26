@@ -15,7 +15,7 @@ The service worker caches the app shell and static assets. When deploying an upd
 ## Features
 
 - Record, edit, and delete shifts
-- Track clock-in/out times, breaks, sales, tips, and notes
+- Track clock-in/out times, breaks, sales, tips, and multiple shift notes
 - Record auto-gratuity separately from other tips; it is included in net tip totals and preserved in backups and CSV exports.
 - For doubles, save lunch and dinner reports independently, a whole-double report, any combination, or no report. Totals avoid double-counting and history labels partial or combined figures; older doubles remain treated as combined reports.
 - Log overnight shifts by recording the date the shift starts; an earlier clock-out (or break end) is treated as the next day. The full shift is grouped under its start date in summaries and history filters.
@@ -23,7 +23,7 @@ The service worker caches the app shell and static assets. When deploying an upd
 - Filter shift history by date range and job; sort by date, sales, or tips
 - Keep sorting in reach and manage date/job filters in an accessible dialog
 - Export the currently filtered shifts as a CSV file
-- Choose among seven visual styles—Minimalist, Material, Neo-brutalist, Cyberpunk/Synthwave, Glassmorphism, Modern Skeuomorphism, and High-Contrast—independently from system, light, or dark mode; set the week start day and currency
+- Choose among seven visual styles—Minimalist, Material, Neo-brutalist, Cyberpunk/Synthwave, Glassmorphism, Modern Skeuomorphism, and High-Contrast—independently from system, light, or dark mode; set the week start day, currency, and whether zero-value shift details are shown
 - Review appearance and data preferences in responsive settings cards, with a work-setup roadmap for future restaurant, role, and shift-template management
 - Import or download a complete JSON data backup
 

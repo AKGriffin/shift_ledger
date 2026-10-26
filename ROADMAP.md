@@ -55,3 +55,7 @@ This is a lightweight view of where Shift Ledger is headed, not a promise or a r
 - [x] Auto-gratuity is stored separately from other tips, included in net tip totals, and carried through edits, double reports, CSV, backups, and records created before the field existed.
 - [x] Previous shifts use a lighter single-column list, with sorting kept visible and date/job filters in an accessible dialog.
 - [x] Previous shifts have a standalone header card and responsive per-shift cards grouped into time clock, sales and tips, with an expandable sales/tips breakdown.
+- [x] New and edited shifts use a vertically stacked, width-limited form; sales are grouped directly under Sales, with dedicated sub-cards only for Break and Tip out.
+- [x] Shift notes support multiple entries, with blank rows prevented from multiplying and ignored when saving.
+- [x] Previous-shift details can hide zero-value sales and tip breakdowns, auto-gratuity, and unrecorded breaks, with a setting to show them again.
+- [x] Successful status notices dismiss automatically; errors remain visible until replaced.
