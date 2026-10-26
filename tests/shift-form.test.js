@@ -149,11 +149,18 @@ describe("Shift notes", () => {
         harness.fire(input, "input");
     };
 
-    test("starts with one empty note and adds more on request", () => withApp((harness) => {
+    test("starts with one empty note and adds more only after one is filled in", () => withApp((harness) => {
         harness.openView("new-shift");
 
         expect(harness.elements(".note-input")).toHaveLength(1);
         harness.element("#add-note").click();
+        expect(harness.elements(".note-input")).toHaveLength(1);
+        expect(harness.doc.activeElement).toBe(harness.element(".note-input"));
+
+        typeNote(harness, 0, "One");
+        harness.element("#add-note").click();
+        expect(harness.elements(".note-input")).toHaveLength(2);
+        typeNote(harness, 1, "Two");
         harness.element("#add-note").click();
         expect(harness.elements(".note-input")).toHaveLength(3);
         expect(harness.elements(".note-input")[2].getAttribute("aria-label")).toBe("Note 3");
@@ -161,10 +168,12 @@ describe("Shift notes", () => {
 
     test("saves each note separately and ignores blank ones", () => withApp((harness) => {
         harness.openView("new-shift");
-        harness.element("#add-note").click();
-        harness.element("#add-note").click();
         typeNote(harness, 0, "  Large party  ");
-        typeNote(harness, 2, "Slow close");
+        harness.element("#add-note").click();
+        harness.element("#add-note").click();
+        typeNote(harness, 1, "   ");
+        harness.element("#add-note").click();
+        typeNote(harness, 1, "Slow close");
         harness.fillForm({ date: "2026-10-20", mealPeriod: "Dinner", job: "Server", clockIn: "16:00", clockOut: "22:00" });
         harness.submitForm();
 
@@ -175,11 +184,16 @@ describe("Shift notes", () => {
         expect(items).toEqual(["Large party", "Slow close"]);
     }));
 
-    test("Enter adds the next note and Backspace on an empty note removes it", () => withApp((harness) => {
+    test("Enter adds the next note only when the current one has text, and Backspace on an empty note removes it", () => withApp((harness) => {
         harness.openView("new-shift");
+        const pressEnter = (target) => target.dispatchEvent(new harness.win.KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
         const first = harness.element(".note-input");
         first.focus();
-        first.dispatchEvent(new harness.win.KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
+        pressEnter(first);
+        expect(harness.elements(".note-input")).toHaveLength(1);
+
+        typeNote(harness, 0, "Something");
+        pressEnter(first);
 
         expect(harness.elements(".note-input")).toHaveLength(2);
         expect(harness.doc.activeElement).toBe(harness.elements(".note-input")[1]);
@@ -192,8 +206,8 @@ describe("Shift notes", () => {
 
     test("removes a note with its button and keeps one empty row when all are removed", () => withApp((harness) => {
         harness.openView("new-shift");
-        harness.element("#add-note").click();
         typeNote(harness, 0, "One");
+        harness.element("#add-note").click();
         typeNote(harness, 1, "Two");
 
         harness.elements(".note-remove")[0].click();

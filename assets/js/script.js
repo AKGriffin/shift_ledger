@@ -134,7 +134,7 @@ function bindEvents() {
             delete event.target.dataset.selectedOnFocus;
         }
     });
-    addNoteButton.addEventListener("click", () => addNoteRow("", { focus: true }));
+    addNoteButton.addEventListener("click", handleAddNote);
     notesList.addEventListener("click", handleNoteRemove);
     notesList.addEventListener("input", (event) => autosizeNote(event.target));
     notesList.addEventListener("keydown", handleNoteKeydown);
@@ -537,6 +537,15 @@ function removeNoteRow(row, { focusPrevious = false } = {}) {
     neighbor.querySelector(".note-input").focus();
 }
 
+function handleAddNote() {
+    const blank = [...notesList.querySelectorAll(".note-input")].find((input) => input.value.trim() === "");
+    if (blank) {
+        blank.focus();
+    } else {
+        addNoteRow("", { focus: true });
+    }
+}
+
 function handleNoteRemove(event) {
     const button = event.target.closest(".note-remove");
     if (button) {
@@ -553,7 +562,9 @@ function handleNoteKeydown(event) {
 
     if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
         event.preventDefault();
-        addNoteRow("", { focus: true, after: row });
+        if (input.value.trim() !== "") {
+            addNoteRow("", { focus: true, after: row });
+        }
     } else if (event.key === "Backspace" && input.value === "" && notesList.children.length > 1) {
         event.preventDefault();
         removeNoteRow(row, { focusPrevious: true });
