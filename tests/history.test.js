@@ -74,6 +74,27 @@ describe("Previous shifts", () => {
         expect(tipsToggle.getAttribute("aria-expanded")).toBe("false");
     }));
 
+    test("expands and collapses every mobile breakdown at once", () => withApp({
+        width: 390,
+        height: 800,
+        shifts: seededShifts(),
+    }, ({ element, openView, style }) => {
+        openView("previous-shifts");
+        const expandAll = element(".card-expand-all");
+        const toggles = [...element(".shift-card").querySelectorAll(".card-stat-toggle")];
+
+        expect(style(expandAll).display).not.toBe("none");
+        expect(expandAll.textContent).toBe("Show all details");
+        expandAll.click();
+        expect(expandAll.textContent).toBe("Hide all details");
+        expect(toggles.every((toggle) => toggle.getAttribute("aria-expanded") === "true")).toBe(true);
+        expect([...element(".shift-card").querySelectorAll(".card-substats")]
+            .every((substats) => style(substats).display !== "none")).toBe(true);
+        expandAll.click();
+        expect(expandAll.textContent).toBe("Show all details");
+        expect(toggles.every((toggle) => toggle.getAttribute("aria-expanded") === "false")).toBe(true);
+    }));
+
     test("keeps totals side by side with details visible at tablet width", () => withApp({
         width: 700,
         height: 900,
@@ -141,6 +162,7 @@ describe("Previous shifts", () => {
         const openButton = element("#open-history-filters");
         const dialog = element("#history-filter-dialog");
 
+        expect(doc.querySelector("#previous-shifts #export-csv")).toBeNull();
         expect(element("#sort-by").closest("dialog")).toBeNull();
         expect(dialog.open).toBe(false);
         expect(openButton.getAttribute("aria-haspopup")).toBe("dialog");

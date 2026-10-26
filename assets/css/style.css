@@ -1388,9 +1388,18 @@ textarea {
     display: none;
 }
 
+.card-expand-all {
+    display: none;
+    justify-self: start;
+}
+
 @container (max-width: 400px) {
     .shift-card-summary {
         grid-template-columns: minmax(0, 1fr);
+    }
+
+    .card-expand-all {
+        display: inline-flex;
     }
 
     .card-stat-head {

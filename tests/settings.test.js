@@ -17,6 +17,7 @@ describe("Settings page", () => {
 
         expect(elements(".settings-card")).toHaveLength(3);
         expect(element("#work-setup-title").textContent).toBe("Jobs & roles");
+        expect(element("#export-csv").textContent).toBe("Download CSV");
         expect(element(".work-setup-flow").textContent.replace(/\s+/g, " ").trim())
             .toContain("Restaurants › Roles › Shift templates");
     }));

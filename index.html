@@ -289,7 +289,6 @@
                                     aria-haspopup="dialog" aria-controls="history-filter-dialog" aria-expanded="false">
                                     Filters <span id="active-filter-count" class="filter-count" hidden></span>
                                 </button>
-                                <button type="button" id="export-csv" class="secondary-button">Export CSV</button>
                             </div>
                         </div>
                     </div>
@@ -417,9 +416,10 @@
                                     <h2 id="data-title">Your data</h2>
                                 </div>
                             </div>
-                            <p class="settings-description">Your shift records are saved in this browser on this device. Export a backup before clearing browser data or moving devices.</p>
+                            <p class="settings-description">Your shift records are saved in this browser on this device. Download a backup or CSV copy before clearing browser data or moving devices.</p>
                             <div class="settings-actions">
                                 <button type="button" id="export-backup" class="secondary-button">Download backup</button>
+                                <button type="button" id="export-csv" class="secondary-button">Download CSV</button>
                                 <button type="button" id="import-backup" class="secondary-button">Restore backup</button>
                                 <input type="file" id="backup-file" accept="application/json,.json" hidden>
                                 <button type="button" id="clear-all-data" class="danger-button">Delete all shifts</button>
@@ -453,6 +453,8 @@
                     </div>
                 </div>
             </div>
+
+            <button type="button" class="card-expand-all ghost-button" aria-expanded="false">Show all details</button>
 
             <div class="card-primary-metrics shift-card-summary">
                 <div class="card-stat card-stat-hours">

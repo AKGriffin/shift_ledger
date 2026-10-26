@@ -160,7 +160,7 @@ function bindEvents() {
         }
     });
     clearFiltersButton.addEventListener("click", clearHistoryFilters);
-    document.getElementById("export-csv").addEventListener("click", exportFilteredShifts);
+    document.getElementById("export-csv").addEventListener("click", exportShiftsCsv);
     shiftList.addEventListener("click", handleListAction);
     document.addEventListener("click", (event) => {
         if (!event.target.closest(".card-menu")) {
@@ -357,6 +357,21 @@ function closeCardMenus(except = null) {
     });
 }
 
+function setCardStatExpanded(toggle, expanded) {
+    const stat = toggle.closest(".card-stat");
+    toggle.setAttribute("aria-expanded", String(expanded));
+    toggle.setAttribute("aria-label", toggle.getAttribute("aria-label").replace(/^(Show|Hide)/, expanded ? "Hide" : "Show"));
+    stat.classList.toggle("is-expanded", expanded);
+}
+
+function updateExpandAllButton(card) {
+    const toggles = [...card.querySelectorAll(".card-stat-toggle")];
+    const expanded = toggles.every((toggle) => toggle.getAttribute("aria-expanded") === "true");
+    const button = card.querySelector(".card-expand-all");
+    button.setAttribute("aria-expanded", String(expanded));
+    button.textContent = expanded ? "Hide all details" : "Show all details";
+}
+
 function handleListAction(event) {
     const button = event.target.closest("button");
     if (!button) {
@@ -382,11 +397,16 @@ function handleListAction(event) {
     closeCardMenus();
 
     if (button.classList.contains("card-stat-toggle")) {
-        const stat = button.closest(".card-stat");
         const expanded = button.getAttribute("aria-expanded") !== "true";
-        button.setAttribute("aria-expanded", String(expanded));
-        button.setAttribute("aria-label", button.getAttribute("aria-label").replace(/^(Show|Hide)/, expanded ? "Hide" : "Show"));
-        stat.classList.toggle("is-expanded", expanded);
+        setCardStatExpanded(button, expanded);
+        updateExpandAllButton(card);
+        return;
+    }
+
+    if (button.classList.contains("card-expand-all")) {
+        const expanded = button.getAttribute("aria-expanded") !== "true";
+        card.querySelectorAll(".card-stat-toggle").forEach((toggle) => setCardStatExpanded(toggle, expanded));
+        updateExpandAllButton(card);
         return;
     }
 
@@ -865,15 +885,10 @@ function updateFilterControls() {
     clearFiltersButton.disabled = count === 0;
 }
 
-function exportFilteredShifts() {
-    if (filterDateFrom.value && filterDateTo.value && filterDateFrom.value > filterDateTo.value) {
-        setStatus("Choose a valid date range before exporting.", true);
-        return;
-    }
-
-    const shifts = getFilteredShifts();
+function exportShiftsCsv() {
+    const shifts = state.shifts;
     if (shifts.length === 0) {
-        setStatus("There are no shifts in the current filter to export.", true);
+        setStatus("There are no shifts to export.", true);
         return;
     }
 
