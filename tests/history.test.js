@@ -49,18 +49,54 @@ describe("Previous shifts", () => {
         expect(serverCard.querySelector(".card-food-sales").textContent).toBe("$100.00");
     }));
 
-    test("expands and collapses the sales and tips breakdown", () => withApp({ shifts: seededShifts() }, ({ element, openView }) => {
+    test("shows the breakdown under each total on desktop and expands it on mobile", () => withApp({
+        width: 390,
+        height: 800,
+        shifts: seededShifts(),
+    }, ({ element, openView, style }) => {
         openView("previous-shifts");
         const toggle = element(".card-toggle");
-        const details = element(".card-details");
+        const card = element(".shift-card");
+        const substats = element(".card-stat-sales .card-substats");
 
-        expect(details.hidden).toBe(true);
+        expect(style(toggle).display).not.toBe("none");
+        expect(toggle.getAttribute("aria-expanded")).toBe("false");
+        expect(style(substats).display).toBe("none");
+        toggle.click();
+        expect(card.classList.contains("is-expanded")).toBe(true);
+        expect(toggle.getAttribute("aria-expanded")).toBe("true");
+        expect(style(substats).display).not.toBe("none");
+        toggle.click();
+        expect(style(substats).display).toBe("none");
+    }));
+
+    test("always shows sub-lists without a toggle on desktop", () => withApp({
+        width: 1400,
+        height: 900,
+        shifts: seededShifts(),
+    }, ({ element, openView, style }) => {
+        openView("previous-shifts");
+
+        expect(style(element(".card-toggle")).display).toBe("none");
+        expect(style(element(".card-stat-tips .card-substats")).display).not.toBe("none");
+        expect(element(".card-stat-hours .card-clock-in")).not.toBeNull();
+    }));
+
+    test("hides edit and delete behind a card menu", () => withApp({ shifts: seededShifts() }, ({ doc, element, openView }) => {
+        openView("previous-shifts");
+        const toggle = element(".card-menu-toggle");
+        const menu = element(".card-menu-list");
+
+        expect(menu.hidden).toBe(true);
         expect(toggle.getAttribute("aria-expanded")).toBe("false");
         toggle.click();
-        expect(details.hidden).toBe(false);
+        expect(menu.hidden).toBe(false);
         expect(toggle.getAttribute("aria-expanded")).toBe("true");
-        toggle.click();
-        expect(details.hidden).toBe(true);
+        expect(doc.activeElement.classList.contains("edit-shift")).toBe(true);
+        element("#sort-by").click();
+        doc.body.click();
+        expect(menu.hidden).toBe(true);
+        expect(toggle.getAttribute("aria-expanded")).toBe("false");
     }));
 
     test("shows shifts as separate cards in multiple columns on wide screens", () => withApp({

@@ -162,6 +162,21 @@ function bindEvents() {
     clearFiltersButton.addEventListener("click", clearHistoryFilters);
     document.getElementById("export-csv").addEventListener("click", exportFilteredShifts);
     shiftList.addEventListener("click", handleListAction);
+    document.addEventListener("click", (event) => {
+        if (!event.target.closest(".card-menu")) {
+            closeCardMenus();
+        }
+    });
+    shiftList.addEventListener("keydown", (event) => {
+        if (event.key !== "Escape") {
+            return;
+        }
+        const openToggle = shiftList.querySelector(".card-menu-toggle[aria-expanded='true']");
+        if (openToggle) {
+            closeCardMenus();
+            openToggle.focus();
+        }
+    });
     styleSetting.addEventListener("change", () => updateSetting("visualStyle", styleSetting.value));
     modeSetting.addEventListener("change", () => updateSetting("colorMode", modeSetting.value));
     weekStartSetting.addEventListener("change", () => updateSetting("weekStartsOn", weekStartSetting.value));
@@ -332,6 +347,16 @@ function loadSettings() {
     }
 }
 
+function closeCardMenus(except = null) {
+    shiftList.querySelectorAll(".card-menu-toggle[aria-expanded='true']").forEach((toggle) => {
+        if (toggle === except) {
+            return;
+        }
+        toggle.setAttribute("aria-expanded", "false");
+        toggle.nextElementSibling.hidden = true;
+    });
+}
+
 function handleListAction(event) {
     const button = event.target.closest("button");
     if (!button) {
@@ -343,12 +368,24 @@ function handleListAction(event) {
         return;
     }
 
+    if (button.classList.contains("card-menu-toggle")) {
+        const open = button.getAttribute("aria-expanded") !== "true";
+        closeCardMenus(button);
+        button.setAttribute("aria-expanded", String(open));
+        button.nextElementSibling.hidden = !open;
+        if (open) {
+            button.nextElementSibling.querySelector("button").focus();
+        }
+        return;
+    }
+
+    closeCardMenus();
+
     if (button.classList.contains("card-toggle")) {
-        const details = card.querySelector(".card-details");
         const expanded = button.getAttribute("aria-expanded") !== "true";
         button.setAttribute("aria-expanded", String(expanded));
-        details.hidden = !expanded;
-        button.textContent = expanded ? "Hide sales & tips breakdown" : "Show sales & tips breakdown";
+        card.classList.toggle("is-expanded", expanded);
+        button.textContent = expanded ? "Hide details" : "Show details";
         return;
     }
 

@@ -439,55 +439,55 @@
                     <h3 class="card-title"><span class="card-job"></span></h3>
                     <p class="card-report-status" hidden></p>
                 </div>
-                <span class="pill card-meal"></span>
+                <div class="card-header-side">
+                    <span class="pill card-meal"></span>
+                    <div class="card-menu">
+                        <button type="button" class="card-menu-toggle ghost-button" aria-haspopup="menu" aria-expanded="false" aria-label="Shift actions">&#8942;</button>
+                        <div class="card-menu-list" role="menu" hidden>
+                            <button type="button" class="edit-shift" role="menuitem">Edit</button>
+                            <button type="button" class="delete-shift" role="menuitem">Delete</button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="card-primary-metrics shift-card-summary">
-                <p class="card-stat card-stat-hours"><span class="card-stat-label">Hours</span> <strong class="card-hours"></strong></p>
-                <p class="card-stat card-stat-sales"><span class="card-stat-label">Sales</span> <strong class="card-sales"></strong></p>
-                <p class="card-stat card-stat-tips"><span class="card-stat-label">Net tips</span> <strong class="card-tips"></strong></p>
-            </div>
-
-            <div class="card-groups">
-                <section class="card-group card-breakdown" aria-label="Time clock">
-                    <h4>Time clock</h4>
-                    <p><span>Clock in</span> <strong class="card-clock-in"></strong></p>
-                    <p><span>Clock out</span> <strong class="card-clock-out"></strong></p>
-                    <p><span>Break</span> <strong class="card-break"></strong></p>
-                </section>
-            </div>
-
-            <button type="button" class="card-toggle ghost-button" aria-expanded="false">Show sales &amp; tips breakdown</button>
-
-            <div class="card-details card-groups" hidden>
-                <section class="card-group" aria-label="Sales">
-                    <h4>Sales</h4>
-                    <p><span>Food</span> <strong class="card-food-sales"></strong></p>
-                    <p><span>Beer &amp; wine</span> <strong class="card-baw-sales"></strong></p>
-                    <p><span>Liquor</span> <strong class="card-liquor-sales"></strong></p>
-                    <p><span>NA bev</span> <strong class="card-na-bev-sales"></strong></p>
-                    <p><span>Additional</span> <strong class="card-additional-sales"></strong></p>
-                </section>
-                <section class="card-group" aria-label="Tips">
-                    <h4>Tips</h4>
-                    <div class="card-subgroup" role="group" aria-label="Tips received">
-                        <p><span>Credit card</span> <strong class="card-cc-tips"></strong></p>
-                        <p><span>Cash</span> <strong class="card-cash-tips"></strong></p>
-                        <p><span>Auto-gratuity</span> <strong class="card-auto-gratuity"></strong></p>
+                <div class="card-stat card-stat-hours">
+                    <span class="card-stat-label">Hours</span>
+                    <strong class="card-hours"></strong>
+                    <div class="card-substats" role="group" aria-label="Time clock">
+                        <p><span>In</span> <strong class="card-clock-in"></strong></p>
+                        <p><span>Out</span> <strong class="card-clock-out"></strong></p>
+                        <p><span>Break</span> <strong class="card-break"></strong></p>
                     </div>
-                    <div class="card-subgroup" role="group" aria-label="Tip outs">
-                        <p><span>Paid out</span> <strong class="card-tips-paid-out"></strong></p>
+                </div>
+                <div class="card-stat card-stat-sales">
+                    <span class="card-stat-label">Sales</span>
+                    <strong class="card-sales"></strong>
+                    <div class="card-substats" role="group" aria-label="Sales breakdown">
+                        <p><span>Food</span> <strong class="card-food-sales"></strong></p>
+                        <p><span>Beer/wine</span> <strong class="card-baw-sales"></strong></p>
+                        <p><span>Liquor</span> <strong class="card-liquor-sales"></strong></p>
+                        <p><span>NA bev</span> <strong class="card-na-bev-sales"></strong></p>
+                        <p><span>Additional</span> <strong class="card-additional-sales"></strong></p>
+                    </div>
+                </div>
+                <div class="card-stat card-stat-tips">
+                    <span class="card-stat-label">Net tips</span>
+                    <strong class="card-tips"></strong>
+                    <div class="card-substats" role="group" aria-label="Tips breakdown">
+                        <p><span>Card</span> <strong class="card-cc-tips"></strong></p>
+                        <p><span>Cash</span> <strong class="card-cash-tips"></strong></p>
+                        <p><span>Auto-grat.</span> <strong class="card-auto-gratuity"></strong></p>
+                        <p class="card-substat-divider"><span>Tipped out</span> <strong class="card-tips-paid-out"></strong></p>
                         <p><span>Received</span> <strong class="card-tip-out-received"></strong></p>
                     </div>
-                </section>
+                </div>
             </div>
+
+            <button type="button" class="card-toggle ghost-button" aria-expanded="false">Show details</button>
 
             <p class="card-notes"></p>
-
-            <div class="card-actions">
-                <button type="button" class="edit-shift secondary-button">Edit</button>
-                <button type="button" class="delete-shift ghost-button">Delete</button>
-            </div>
         </article>
     </template>
 

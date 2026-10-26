@@ -1213,7 +1213,7 @@ textarea {
 
 .shift-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr));
     align-items: start;
     gap: 18px;
 }
@@ -1223,6 +1223,7 @@ textarea {
 }
 
 .shift-card {
+    container-type: inline-size;
     min-width: 0;
     display: grid;
     gap: 14px;
@@ -1289,8 +1290,7 @@ textarea {
     border-top-color: var(--purple);
 }
 
-.card-stat-label,
-.card-group h4 {
+.card-stat-label {
     color: var(--muted);
     font-size: 0.75rem;
     font-weight: 700;
@@ -1304,60 +1304,53 @@ textarea {
     line-height: 1.2;
 }
 
-.card-groups {
+.card-substats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 12px;
+    gap: 4px;
+    margin: 4px 0 0;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    font-size: 0.85rem;
 }
 
-.card-group {
-    display: grid;
-    align-content: start;
-    gap: 6px;
-    min-width: 0;
-    padding: 12px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-}
-
-.card-group h4 {
-    margin: 0 0 2px;
-}
-
-.card-group p {
+.card-substats p {
     display: flex;
     justify-content: space-between;
-    gap: 10px;
+    gap: 8px;
     margin: 0;
     min-width: 0;
-    overflow-wrap: anywhere;
 }
 
-.card-group p span {
+.card-substats span {
     color: var(--muted);
 }
 
-.card-group p strong {
+.card-stat .card-substats strong {
+    font-size: 0.85rem;
+    font-weight: 600;
     text-align: right;
+    white-space: nowrap;
 }
 
-.card-subgroup {
-    display: grid;
-    gap: 6px;
+.card-substats span {
+    overflow-wrap: normal;
 }
 
-.card-subgroup + .card-subgroup {
-    margin-top: 6px;
-    padding-top: 8px;
+.card-substats .card-substat-divider {
+    margin-top: 4px;
+    padding-top: 6px;
     border-top: 1px dashed var(--border);
 }
 
-.card-details[hidden] {
+.card-toggle {
     display: none;
+    justify-self: start;
 }
 
-.card-toggle {
-    justify-self: start;
+@container (max-width: 359px) {
+    .shift-card-summary {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }
 
 .card-notes {
@@ -1366,11 +1359,60 @@ textarea {
     line-height: 1.5;
 }
 
-.card-actions {
+.card-header-side {
     display: flex;
-    gap: 10px;
-    padding-top: 12px;
-    border-top: 1px solid var(--border);
+    align-items: center;
+    gap: 6px;
+}
+
+.card-menu {
+    position: relative;
+}
+
+.card-menu-toggle {
+    min-width: 36px;
+    min-height: 36px;
+    padding: 0;
+    font-size: 1.3rem;
+    line-height: 1;
+}
+
+.card-menu-list {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    z-index: 5;
+    display: grid;
+    min-width: 120px;
+    padding: 6px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--panel);
+    box-shadow: var(--shadow);
+}
+
+.card-menu-list[hidden] {
+    display: none;
+}
+
+.card-menu-list button {
+    padding: 10px 12px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.card-menu-list button:hover,
+.card-menu-list button:focus-visible {
+    background: var(--panel-alt);
+}
+
+.card-menu-list .delete-shift {
+    color: var(--danger);
 }
 
 .empty-state {
@@ -1665,6 +1707,18 @@ textarea {
 
     .card-stat strong {
         font-size: 1rem;
+    }
+
+    .card-toggle {
+        display: inline-flex;
+    }
+
+    .shift-card:not(.is-expanded) .card-substats {
+        display: none;
+    }
+
+    .shift-card.is-expanded .shift-card-summary {
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .form-actions > *,
