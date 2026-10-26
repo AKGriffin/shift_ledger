@@ -12,7 +12,32 @@
         return Number(value.toFixed(2));
     }
 
+    function getFinancialReports(shift) {
+        if (!shift.reports || typeof shift.reports !== "object") {
+            return null;
+        }
+
+        const { lunch, dinner, whole } = shift.reports;
+        if (lunch && dinner) {
+            return [lunch, dinner];
+        }
+        if (whole) {
+            return [whole];
+        }
+        return [lunch, dinner].filter(Boolean);
+    }
+
     function getSalesTotal(shift) {
+        const reports = getFinancialReports(shift);
+        if (reports) {
+            return round(reports.reduce((sum, report) => sum
+                + (Number(report.foodSales) || 0)
+                + (Number(report.bawSales) || 0)
+                + (Number(report.liquorSales) || 0)
+                + (Number(report.naBevSales) || 0)
+                + (Number(report.additionalSales) || 0), 0));
+        }
+
         return round(
             (Number(shift.foodSales) || 0)
             + (Number(shift.bawSales) || 0)
@@ -23,6 +48,15 @@
     }
 
     function getNetTips(shift) {
+        const reports = getFinancialReports(shift);
+        if (reports) {
+            return round(reports.reduce((sum, report) => sum
+                + (Number(report.ccTips) || 0)
+                + (Number(report.cashTips) || 0)
+                + (Number(report.tipOutReceived) || 0)
+                - (Number(report.tipsPaidOut) || 0), 0));
+        }
+
         return round(
             (Number(shift.ccTips) || 0)
             + (Number(shift.cashTips) || 0)

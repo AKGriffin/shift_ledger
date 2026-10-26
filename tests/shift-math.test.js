@@ -17,6 +17,16 @@ describe("sales totals", () => {
         expect(getSalesTotal({ foodSales: 10.105 })).toBe(10.11);
         expect(getSalesTotal({})).toBe(0);
     });
+
+    test("adds both individual double reports when available", () => {
+        expect(getSalesTotal({
+            reports: {
+                lunch: { foodSales: 100 },
+                dinner: { foodSales: 200 },
+                whole: { foodSales: 500 },
+            },
+        })).toBe(300);
+    });
 });
 
 describe("net tips", () => {
@@ -31,6 +41,21 @@ describe("net tips", () => {
 
     test("defaults missing tip amounts to zero", () => {
         expect(getNetTips({})).toBe(0);
+    });
+
+    test("uses a whole-double report when an individual report is missing", () => {
+        expect(getNetTips({
+            reports: {
+                lunch: { ccTips: 20 },
+                dinner: null,
+                whole: { ccTips: 60, tipsPaidOut: 5 },
+            },
+        })).toBe(55);
+    });
+
+    test("returns zero for an explicit double with no reports", () => {
+        expect(getNetTips({ ccTips: 50, reports: { lunch: null, dinner: null, whole: null } })).toBe(0);
+        expect(getSalesTotal({ foodSales: 100, reports: { lunch: null, dinner: null, whole: null } })).toBe(0);
     });
 });
 

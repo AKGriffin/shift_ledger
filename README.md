@@ -16,6 +16,7 @@ The service worker caches the app shell and static assets. When deploying an upd
 
 - Record, edit, and delete shifts
 - Track clock-in/out times, breaks, sales, tips, and notes
+- For doubles, save lunch and dinner reports independently, a whole-double report, any combination, or no report. Totals avoid double-counting and history labels partial or combined figures; older doubles remain treated as combined reports.
 - Log overnight shifts by recording the date the shift starts; an earlier clock-out (or break end) is treated as the next day. The full shift is grouped under its start date in summaries and history filters.
 - Review all-time, current-week, and current-month totals
 - Filter shift history by date range and job; sort by date, sales, or tips
@@ -30,7 +31,7 @@ See [ROADMAP.md](./ROADMAP.md) for planned improvements and the longer-term dire
 
 ## Tests
 
-Serve the project directory with a static web server, then open `/tests/` in the browser. The browser test page checks shared shift calculations and runs an end-to-end app workflow for validation, saving, editing, filtering, settings, and deleting shifts. It reports the pass/fail summary on the page and in the console. App workflow tests use a hidden iframe and restore the browser's existing shift data and settings afterward.
+Serve the project directory with a static web server, then open `/tests/` in the browser. The browser test page checks shared shift calculations and runs focused app workflows for validation, saving, editing, doubles reporting, filtering, settings, and deleting shifts. It reports the pass/fail summary on the page and in the console. App workflow tests use a hidden iframe and restore the browser's existing shift data and settings afterward.
 
 ## Data and privacy
 
@@ -59,6 +60,7 @@ CSV exports include the values currently shown by the filters. Keep exported fil
 ├── tests/
 │   ├── app-harness.js
 │   ├── assert.js
+│   ├── double-shifts.test.js
 │   ├── history.test.js
 │   ├── index.html
 │   ├── layout.test.js

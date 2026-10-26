@@ -189,6 +189,7 @@
                             </div>
                         </fieldset>
 
+                        <div id="single-report-fields">
                         <fieldset>
                             <legend>Sales</legend>
                             <div class="form-grid">
@@ -236,6 +237,13 @@
                                 </label>
                             </div>
                         </fieldset>
+                        </div>
+
+                        <section id="double-report-fields" hidden aria-labelledby="double-report-heading">
+                            <h3 id="double-report-heading">Double-shift reports</h3>
+                            <p>Record the reports you have. A missing report is different from a report with zero sales or tips.</p>
+                            <div id="double-report-list" class="double-report-list"></div>
+                        </section>
 
                         <label class="field notes-field">
                             <span>Shift notes</span>
@@ -407,6 +415,7 @@
                     </div>
                     <span class="pill card-meal"></span>
                 </div>
+                <p class="card-report-status" hidden></p>
 
                 <div class="card-primary-metrics">
                     <div class="card-meta">
@@ -434,6 +443,29 @@
                 <button type="button" class="delete-shift ghost-button">Delete</button>
             </div>
         </article>
+    </template>
+
+    <template id="double-report-template">
+        <div class="double-report">
+            <label class="report-toggle">
+                <input type="checkbox" data-report-toggle>
+                <span data-report-label></span>
+            </label>
+            <fieldset data-report-fields disabled>
+                <legend>Report details</legend>
+                <div class="form-grid">
+                    <label class="field"><span>Food</span><input type="number" min="0" step="0.01" value="0" data-report-field="foodSales"></label>
+                    <label class="field"><span>Beer &amp; wine</span><input type="number" min="0" step="0.01" value="0" data-report-field="bawSales"></label>
+                    <label class="field"><span>Liquor</span><input type="number" min="0" step="0.01" value="0" data-report-field="liquorSales"></label>
+                    <label class="field"><span>NA beverage</span><input type="number" min="0" step="0.01" value="0" data-report-field="naBevSales"></label>
+                    <label class="field"><span>Additional</span><input type="number" min="0" step="0.01" value="0" data-report-field="additionalSales"></label>
+                    <label class="field"><span>CC tips</span><input type="number" min="0" step="0.01" value="0" data-report-field="ccTips"></label>
+                    <label class="field"><span>Cash tips</span><input type="number" min="0" step="0.01" value="0" data-report-field="cashTips"></label>
+                    <label class="field"><span>Tips paid out</span><input type="number" min="0" step="0.01" value="0" data-report-field="tipsPaidOut"></label>
+                    <label class="field"><span>Tip out received</span><input type="number" min="0" step="0.01" value="0" data-report-field="tipOutReceived"></label>
+                </div>
+            </fieldset>
+        </div>
     </template>
 
     <script src="assets/js/shift-math.js"></script>

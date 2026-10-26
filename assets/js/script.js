@@ -25,6 +25,17 @@ const weekSummary = document.getElementById("week-summary");
 const monthSummary = document.getElementById("month-summary");
 const weekDateRange = document.getElementById("week-date-range");
 const monthDateRange = document.getElementById("month-date-range");
+const doubleReportList = document.getElementById("double-report-list");
+const doubleReportTemplate = document.getElementById("double-report-template");
+const reportPeriods = [
+    ["lunch", "Lunch report"],
+    ["dinner", "Dinner report"],
+    ["whole", "Whole-double report"],
+];
+const reportAmountFields = [
+    "foodSales", "bawSales", "liquorSales", "naBevSales", "additionalSales",
+    "ccTips", "cashTips", "tipsPaidOut", "tipOutReceived",
+];
 
 const fields = {
     date: document.getElementById("shift-date"),
@@ -64,6 +75,7 @@ const mobileLayout = window.matchMedia("(max-width: 720px)");
 const systemTheme = window.matchMedia("(prefers-color-scheme: dark)");
 
 bindEvents();
+initializeDoubleReports();
 initializeSettings();
 renderDashboard();
 renderPreviousShifts();
@@ -93,6 +105,8 @@ function bindEvents() {
     document.getElementById("back-to-menu").addEventListener("click", () => showView("mobile-home"));
     form.addEventListener("submit", handleFormSubmit);
     form.addEventListener("change", updateValidationErrors);
+    fields.mealPeriod.addEventListener("change", updateMealPeriodFields);
+    doubleReportList.addEventListener("change", handleDoubleReportToggle);
     form.addEventListener("focusin", selectNumberOnFocus);
     form.addEventListener("mouseup", (event) => {
         if (event.target.type === "number" && event.target.dataset.selectedOnFocus) {
@@ -311,6 +325,7 @@ function setStatus(message, isError = false) {
 
 function resetForm(shouldClearStatus = true) {
     form.reset();
+    updateMealPeriodFields();
     state.editingShiftId = null;
     formTitle.textContent = "New Shift";
     Object.values(fields).forEach((field) => {
@@ -329,6 +344,7 @@ function populateForm(shift) {
     state.editingShiftId = shift.id;
     fields.date.value = shift.date || "";
     fields.mealPeriod.value = shift.mealPeriod || "";
+    updateMealPeriodFields();
     fields.job.value = shift.job || "";
     fields.clockIn.value = shift.clockIn || "";
     fields.clockOut.value = shift.clockOut || "";
@@ -344,6 +360,17 @@ function populateForm(shift) {
     fields.tipOutPaid.value = Number(shift.tipsPaidOut || 0).toFixed(2);
     fields.tipOutReceived.value = Number(shift.tipOutReceived || 0).toFixed(2);
     fields.notes.value = shift.notes || "";
+    reportPeriods.forEach(([period]) => {
+        const report = shift.reports?.[period];
+        const reportNode = getReportNode(period);
+        const toggle = reportNode.querySelector("[data-report-toggle]");
+        toggle.checked = Boolean(report);
+        reportAmountFields.forEach((field) => {
+            const input = reportNode.querySelector(`[data-report-field="${field}"]`);
+            input.value = Number(report?.[field] || 0).toFixed(2);
+        });
+        setReportInputsEnabled(reportNode, toggle.checked);
+    });
 }
 
 function handleFormSubmit(event) {
@@ -400,6 +427,21 @@ function readFormValues() {
         tipOutReceived: toNumber(fields.tipOutReceived.value),
         notes: fields.notes.value.trim(),
     };
+
+    if (baseline.mealPeriod === "Double") {
+        reportAmountFields.forEach((field) => {
+            baseline[field] = 0;
+        });
+        baseline.reports = Object.fromEntries(reportPeriods.map(([period]) => {
+            const reportNode = getReportNode(period);
+            const enabled = reportNode.querySelector("[data-report-toggle]").checked;
+            const values = Object.fromEntries(reportAmountFields.map((field) => [
+                field,
+                enabled ? toNumber(reportNode.querySelector(`[data-report-field="${field}"]`).value) : 0,
+            ]));
+            return [period, enabled ? values : null];
+        }));
+    }
 
     return baseline;
 }
@@ -555,7 +597,9 @@ function renderDashboard() {
         const date = document.createElement("strong");
         date.textContent = formatDate(shift.date);
         const description = document.createElement("span");
-        description.textContent = `${shift.job} · ${shift.mealPeriod}`;
+        description.textContent = shift.mealPeriod === "Double"
+            ? `${shift.job} · Double · ${getDoubleReportStatus(shift)}`
+            : `${shift.job} · ${shift.mealPeriod}`;
         details.append(date, description);
 
         const metrics = document.createElement("div");
@@ -599,6 +643,13 @@ function renderPreviousShifts() {
         card.querySelector(".card-date").textContent = formatDate(shift.date);
         card.querySelector(".card-title").textContent = `${shift.job} shift`;
         card.querySelector(".card-meal").textContent = shift.mealPeriod;
+        const reportStatus = card.querySelector(".card-report-status");
+        if (shift.mealPeriod === "Double") {
+            reportStatus.textContent = getDoubleReportStatus(shift);
+            reportStatus.hidden = false;
+        } else {
+            reportStatus.hidden = true;
+        }
         card.querySelector(".card-job").textContent = shift.job;
         card.querySelector(".card-hours").textContent = formatDuration(getDurationMinutes(shift));
         card.querySelector(".card-sales").textContent = formatCurrency(getSalesTotal(shift));
@@ -715,30 +766,37 @@ function exportFilteredShifts() {
         "Date", "Meal period", "Job", "Clock in", "Clock out", "Break start", "Break end",
         "Hours worked", "Food sales", "Beer and wine sales", "Liquor sales", "NA beverage sales",
         "Additional sales", "Total sales", "CC tips", "Cash tips", "Tips paid out",
-        "Tip out received", "Net tips", "Notes",
+        "Tip out received", "Net tips", "Report coverage",
+        ...reportPeriods.flatMap(([, label]) => reportAmountFields.map((field) => `${label} ${formatReportFieldName(field)}`)),
+        "Notes",
     ];
-    const rows = shifts.map((shift) => [
-        shift.date,
-        shift.mealPeriod,
-        shift.job,
-        shift.clockIn,
-        `${shift.clockOut}${isOvernightShift(shift) ? " (+1 day)" : ""}`,
-        shift.breakStart,
-        `${shift.breakEnd}${isOvernightBreak(shift) ? " (+1 day)" : ""}`,
-        (getDurationMinutes(shift) / 60).toFixed(2),
-        shift.foodSales,
-        shift.bawSales,
-        shift.liquorSales,
-        shift.naBevSales,
-        shift.additionalSales,
-        getSalesTotal(shift),
-        shift.ccTips,
-        shift.cashTips,
-        shift.tipsPaidOut,
-        shift.tipOutReceived,
-        getNetTips(shift),
-        shift.notes,
-    ]);
+    const rows = shifts.map((shift) => {
+        const isDouble = shift.mealPeriod === "Double";
+        const reports = getCsvReports(shift);
+        return [
+            shift.date,
+            shift.mealPeriod,
+            shift.job,
+            shift.clockIn,
+            `${shift.clockOut}${isOvernightShift(shift) ? " (+1 day)" : ""}`,
+            shift.breakStart,
+            `${shift.breakEnd}${isOvernightBreak(shift) ? " (+1 day)" : ""}`,
+            (getDurationMinutes(shift) / 60).toFixed(2),
+            ...(isDouble ? Array(5).fill("") : [
+                shift.foodSales, shift.bawSales, shift.liquorSales, shift.naBevSales, shift.additionalSales,
+            ]),
+            getSalesTotal(shift),
+            ...(isDouble ? Array(4).fill("") : [
+                shift.ccTips, shift.cashTips, shift.tipsPaidOut, shift.tipOutReceived,
+            ]),
+            getNetTips(shift),
+            isDouble ? getDoubleReportStatus(shift) : "",
+            ...reportPeriods.flatMap(([period]) => reportAmountFields.map((field) => (
+                reports[period] ? reports[period][field] : ""
+            ))),
+            shift.notes,
+        ];
+    });
     const csv = [headers, ...rows]
         .map((row) => row.map(escapeCsvValue).join(","))
         .join("\r\n");
@@ -824,6 +882,35 @@ function normalizeImportedShift(shift, index) {
         }
         normalized[field] = amount;
     });
+
+    if (Object.hasOwn(shift, "reports")) {
+        if (!shift.reports || typeof shift.reports !== "object" || Array.isArray(shift.reports)) {
+            throw new Error(`Backup shift ${index + 1} has invalid report data.`);
+        }
+        const reports = {};
+        for (const [period, report] of Object.entries(shift.reports)) {
+            if (!["lunch", "dinner", "whole"].includes(period)) {
+                throw new Error(`Backup shift ${index + 1} has an unknown report period.`);
+            }
+            if (report === null) {
+                reports[period] = null;
+                continue;
+            }
+            if (!report || typeof report !== "object" || Array.isArray(report)) {
+                throw new Error(`Backup shift ${index + 1} has invalid ${period} report data.`);
+            }
+            const normalizedReport = {};
+            reportAmountFields.forEach((field) => {
+                const amount = Number(report[field] ?? 0);
+                if (!Number.isFinite(amount) || amount < 0) {
+                    throw new Error(`Backup shift ${index + 1} has an invalid ${period} ${field} amount.`);
+                }
+                normalizedReport[field] = amount;
+            });
+            reports[period] = normalizedReport;
+        }
+        normalized.reports = reports;
+    }
 
     if (typeof normalized.notes !== "string") {
         normalized.notes = "";
@@ -915,6 +1002,81 @@ function formatDuration(totalMinutes) {
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
     return `${hours}h ${minutes}m`;
+}
+
+function initializeDoubleReports() {
+    reportPeriods.forEach(([period, label]) => {
+        const reportNode = doubleReportTemplate.content.firstElementChild.cloneNode(true);
+        reportNode.dataset.reportPeriod = period;
+        reportNode.querySelector("[data-report-label]").textContent = label;
+        doubleReportList.appendChild(reportNode);
+    });
+    updateMealPeriodFields();
+}
+
+function updateMealPeriodFields() {
+    const isDouble = fields.mealPeriod.value === "Double";
+    document.getElementById("single-report-fields").hidden = isDouble;
+    document.getElementById("double-report-fields").hidden = !isDouble;
+    reportPeriods.forEach(([period]) => {
+        const reportNode = getReportNode(period);
+        setReportInputsEnabled(reportNode, reportNode.querySelector("[data-report-toggle]").checked);
+    });
+}
+
+function getReportNode(period) {
+    const node = doubleReportList.querySelector(`[data-report-period="${period}"]`);
+    if (!node) {
+        throw new Error(`Double-shift report section not found: ${period}`);
+    }
+    return node;
+}
+
+function setReportInputsEnabled(reportNode, enabled) {
+    reportNode.querySelector("[data-report-fields]").disabled = !enabled;
+}
+
+function handleDoubleReportToggle(event) {
+    if (!event.target.matches("[data-report-toggle]")) {
+        return;
+    }
+    setReportInputsEnabled(event.target.closest(".double-report"), event.target.checked);
+}
+
+function getDoubleReportStatus(shift) {
+    if (!Object.hasOwn(shift, "reports")) {
+        return "Whole-double report (legacy combined data)";
+    }
+
+    const reports = shift.reports || {};
+    const hasLunch = Boolean(reports.lunch);
+    const hasDinner = Boolean(reports.dinner);
+    const hasWhole = Boolean(reports.whole);
+
+    if (hasLunch && hasDinner) {
+        return hasWhole
+            ? "Lunch and dinner reports (whole-double report also saved)"
+            : "Lunch and dinner reports";
+    }
+    if (hasWhole && hasLunch) return "Whole-double totals; lunch detail also saved";
+    if (hasWhole && hasDinner) return "Whole-double totals; dinner detail also saved";
+    if (hasWhole) return "Whole-double report";
+    if (hasLunch) return "Partial report: lunch only";
+    if (hasDinner) return "Partial report: dinner only";
+    return "No sales or tip reports";
+}
+
+function getCsvReports(shift) {
+    if (shift.mealPeriod === "Double" && !Object.hasOwn(shift, "reports")) {
+        return { lunch: null, dinner: null, whole: Object.fromEntries(
+            reportAmountFields.map((field) => [field, Number(shift[field]) || 0])
+        ) };
+    }
+    return shift.reports || {};
+}
+
+function formatReportFieldName(field) {
+    return field.replace(/([A-Z])/g, " $1").replace(/^./, (letter) => letter.toUpperCase());
 }
 
 function formatCurrency(amount) {
