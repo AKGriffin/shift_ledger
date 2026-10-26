@@ -14,6 +14,7 @@ This is a lightweight view of where Shift Ledger is headed, not a promise or a r
 
 ## Next
 
+- [ ] **Add configurable text size** - Offer Default, Large, and Larger text sizes in Settings by scaling one root size that all `rem`-based text follows, while still respecting the browser or system font setting. Verify the key phone views (bottom navigation, dashboard, shift form, history, dialogs) at every size without overflow or clipped text.
 - [ ] **Make success and error notices dismiss reliably** - Ensure timed notices close while the app remains open, and that navigation, refresh, or visibility changes do not leave stale notices behind.
 - [ ] **Strengthen and clarify the test suite** - Improve the lightweight assertion-based tests with expressive assertions, focused behavior coverage, and clear failure output, following useful patterns from flat_map_framework without adding unnecessary test dependencies.
 - [ ] **Add undo and redo while editing forms** - Let users step back and forward through changes in the shift form, working with keyboard shortcuts and accessible controls without interfering with native input undo.
@@ -25,7 +26,8 @@ This is a lightweight view of where Shift Ledger is headed, not a promise or a r
 - [ ] **Offer a guided shift-entry flow** - Add an optional step-by-step mode for logging a shift while preserving the current form for users who prefer it.
 - [ ] **Make dashboard labels adaptable** - Let users reduce descriptive text in dense views, with a discoverable way to reveal it on demand. Consider separate compact/expanded preferences for small and large screens, and ensure labels remain accessible without relying on hover.
 - [x] **Customize dashboard sections and core stats** - Let users show or hide all-time totals, period summaries, and recent activity, and choose which core stats appear, from Settings or the dashboard's Customize dialog.
-- [ ] **Expand dashboard customization** - Add period selection, section ordering, job filters, compact or detailed density, and optional tips per hour, average sales per shift, and tip % of sales.
+- [ ] **Expand dashboard customization** - Add section ordering, job filters, compact or detailed density, and optional tips per hour, average sales per shift, and tip % of sales.
+- [ ] **Add flexible dashboard period summaries** - Let users add any number of period cards, each set to a period type (week, month, year, all time, or a custom range) and which one (this, last, or a chosen period). Choose which stats appear in the top banner, keep the existing stat toggles applying to every card, and use a compact picker on phones. Migrate the current This week and This month cards as the defaults.
 - [ ] **Expand dashboard insights** - Add useful trends and visualizations only where they clarify hours, sales, tips, or comparisons across time periods.
 - [ ] **Add thoughtful feedback and bug reporting** - Provide a clear way to report a problem or request a feature, without including shift or personal data unless the user explicitly chooses to share it.
 - [ ] **Strengthen data reliability** - Validate imported and stored records consistently, handle storage failures clearly, and add coverage for backup restore and invalid data.

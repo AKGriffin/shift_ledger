@@ -452,7 +452,7 @@ button {
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--muted);
-    font-size: 0.7rem;
+    font-size: 0.78rem;
     font-weight: 700;
 }
 
@@ -753,7 +753,7 @@ main {
 .summary-heading {
     margin: 0 0 12px;
     color: var(--muted);
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -781,7 +781,7 @@ main {
     display: block;
     color: var(--muted);
     margin-bottom: 8px;
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     text-transform: uppercase;
     font-weight: 700;
     letter-spacing: 0.05em;
@@ -887,7 +887,7 @@ main {
 .period-metric span {
     min-width: 0;
     color: var(--muted);
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     font-weight: 700;
     letter-spacing: 0.05em;
     text-transform: uppercase;
@@ -949,7 +949,7 @@ main {
 
 .recent-metric small {
     color: var(--muted);
-    font-size: 0.7rem;
+    font-size: 0.78rem;
     font-weight: 700;
     letter-spacing: 0.05em;
     text-transform: uppercase;
@@ -1632,7 +1632,7 @@ textarea {
     background: rgba(42, 109, 246, 0.08);
     color: var(--primary-dark);
     font-weight: 700;
-    font-size: 0.72rem;
+    font-size: 0.78rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
@@ -1660,7 +1660,7 @@ textarea {
 
 .card-stat-label {
     color: var(--muted);
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     font-weight: 700;
     letter-spacing: 0.05em;
     text-transform: uppercase;
@@ -1904,7 +1904,7 @@ textarea {
     .app-content {
         width: 100%;
         max-width: none;
-        padding: 0 16px calc(96px + env(safe-area-inset-bottom));
+        padding: 0 16px calc(104px + env(safe-area-inset-bottom));
     }
 
     .mobile-bottom-nav {
@@ -1924,7 +1924,7 @@ textarea {
     .mobile-bottom-nav-button {
         display: grid;
         min-width: 0;
-        min-height: 56px;
+        min-height: 62px;
         align-content: center;
         justify-items: center;
         gap: 2px;
@@ -1933,13 +1933,13 @@ textarea {
         border-radius: 12px;
         background: transparent;
         color: var(--muted);
-        font-size: 1.2rem;
+        font-size: 1.45rem;
     }
 
     .mobile-bottom-nav-button small {
         overflow: hidden;
         max-width: 100%;
-        font-size: 0.68rem;
+        font-size: 0.8rem;
         font-weight: 600;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -1974,12 +1974,25 @@ textarea {
     }
 
     .summary-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 12px;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 10px;
     }
 
     .stat-card {
-        padding: 16px 14px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 12px;
+        padding: 14px;
+    }
+
+    .stat-card span {
+        margin-bottom: 0;
+    }
+
+    .stat-card strong {
+        font-size: 1.1rem;
+        text-align: right;
     }
 
     .period-grid {
@@ -1988,6 +2001,20 @@ textarea {
 
     .period-card {
         grid-template-columns: minmax(0, 1fr);
+    }
+
+    .period-metrics {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .period-metric {
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .period-metric strong {
+        text-align: right;
     }
 
     .recent-item {
@@ -2113,14 +2140,6 @@ textarea {
 }
 
 @media (max-width: 420px) {
-    .summary-grid {
-        grid-template-columns: minmax(0, 1fr);
-    }
-
-    .period-metrics {
-        grid-template-columns: 1fr 1fr;
-    }
-
     .panel {
         padding: 15px;
     }

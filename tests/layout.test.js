@@ -42,6 +42,27 @@ describe("Mobile navigation", () => {
         expect(style(element(".dashboard-heading p:last-child")).display).toBe("none");
     }));
 
+    test("stacks dashboard summary stats as label-and-value rows on phones", () => withApp({
+        width: 390,
+        height: 844,
+    }, ({ element, elements, doc, win }) => {
+        const cards = elements("#dashboard .stat-card");
+        const metrics = elements("#week-summary .period-metric");
+
+        [cards, metrics].forEach((group) => {
+            group.slice(1).forEach((item, index) => {
+                expect(item.getBoundingClientRect().top).toBeGreaterThan(group[index].getBoundingClientRect().top);
+                expect(item.getBoundingClientRect().left).toBe(group[index].getBoundingClientRect().left);
+            });
+            const label = group[0].querySelector("span").getBoundingClientRect();
+            const value = group[0].querySelector("strong").getBoundingClientRect();
+            expect(value.left).toBeGreaterThan(label.right - 1);
+            expect(Math.abs(value.top - label.top)).toBeLessThanOrEqual(label.height);
+        });
+        expect(element("#week-summary").getBoundingClientRect().width).toBeGreaterThan(0);
+        expect(doc.documentElement.scrollWidth).toBeLessThanOrEqual(win.innerWidth);
+    }));
+
     test("hides the bottom navigation on wide screens", () => withApp({ width: 1200, height: 800 }, ({ element, style }) => {
         expect(style(element(".mobile-bottom-nav")).display).toBe("none");
     }));
