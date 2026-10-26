@@ -60,34 +60,41 @@ describe("New shift layout", () => {
         expect(element(".form-header-card").contains(element("#shift-form"))).toBe(false);
     }));
 
-    test("groups form cards side by side when there is room", () => withApp({ width: 1400, height: 1000 }, ({ element, openView }) => {
+    test("lays out the entry cards in columns when there is room", () => withApp({ width: 1400, height: 1000 }, ({ element, openView }) => {
         openView("new-shift");
 
-        const general = element(".form-context-grid fieldset:first-child").getBoundingClientRect();
-        const time = element(".form-context-grid fieldset:last-child").getBoundingClientRect();
-        const sales = element("#single-report-fields fieldset:first-child").getBoundingClientRect();
-        const tips = element("#single-report-fields fieldset:last-child").getBoundingClientRect();
-        const date = element("#shift-date").closest(".field").getBoundingClientRect();
-        const mealPeriod = element("#shift-meal-period").closest(".field").getBoundingClientRect();
-        const foodSales = element("#shift-food-sales").closest(".field").getBoundingClientRect();
-        const beerWineSales = element("#shift-baw-sales").closest(".field").getBoundingClientRect();
+        const top = (selector) => element(selector).getBoundingClientRect().top;
+        const cardTop = (id) => element(`#${id}`).getBoundingClientRect().top;
 
-        expect(general.top).toBe(time.top);
-        expect(sales.top).toBe(tips.top);
-        expect(mealPeriod.top).toBeGreaterThan(date.top);
-        expect(beerWineSales.top).toBeGreaterThan(foodSales.top);
+        expect(top("#shift-date")).toBe(top("#shift-meal-period"));
+        expect(top("#shift-meal-period")).toBe(top("#shift-job"));
+        expect(cardTop("clock-card-title")).toBe(cardTop("break-card-title"));
+        expect(cardTop("food-card-title")).toBe(cardTop("beverage-card-title"));
+        expect(cardTop("earned-card-title")).toBe(cardTop("tipout-card-title"));
+        expect(top("#single-report-fields fieldset:first-child")).toBe(top("#single-report-fields fieldset:last-child"));
+    }));
+
+    test("stacks the inputs inside each sub card", () => withApp({ width: 1400, height: 1000 }, ({ element, openView }) => {
+        openView("new-shift");
+
+        const top = (selector) => element(selector).getBoundingClientRect().top;
+
+        expect(top("#shift-clock-out")).toBeGreaterThan(top("#shift-clock-in"));
+        expect(top("#shift-cash-tips")).toBeGreaterThan(top("#shift-cc-tips"));
+        expect(top("#shift-auto-gratuity")).toBeGreaterThan(top("#shift-cash-tips"));
+        expect(top("#shift-tip-out-received")).toBeGreaterThan(top("#shift-tip-out-paid"));
     }));
 
     test("stacks the form cards on a phone without horizontal overflow", () => withApp({ width: 390, height: 844 }, ({ doc, element, win, openView }) => {
         openView("new-shift");
 
-        const general = element(".form-context-grid fieldset:first-child").getBoundingClientRect();
-        const time = element(".form-context-grid fieldset:last-child").getBoundingClientRect();
-        const sales = element("#single-report-fields fieldset:first-child").getBoundingClientRect();
-        const tips = element("#single-report-fields fieldset:last-child").getBoundingClientRect();
+        const top = (selector) => element(selector).getBoundingClientRect().top;
 
-        expect(time.top).toBeGreaterThan(general.top);
-        expect(tips.top).toBeGreaterThan(sales.top);
+        expect(top("#shift-meal-period")).toBeGreaterThan(top("#shift-date"));
+        expect(top("#break-card-title")).toBeGreaterThan(top("#clock-card-title"));
+        expect(top("#beverage-card-title")).toBeGreaterThan(top("#food-card-title"));
+        expect(top("#tipout-card-title")).toBeGreaterThan(top("#earned-card-title"));
+        expect(top("#single-report-fields fieldset:last-child")).toBeGreaterThan(top("#single-report-fields fieldset:first-child"));
         expect(doc.documentElement.scrollWidth).toBeLessThanOrEqual(win.innerWidth);
     }));
 });
