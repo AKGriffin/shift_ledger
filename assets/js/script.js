@@ -306,6 +306,7 @@ function showView(viewName, { historyAction = "push" } = {}) {
         }
     }
 
+    const viewChanged = state.currentView !== viewName;
     state.currentView = viewName;
     if (historyFilterDialog.open && viewName !== "previous-shifts") {
         closeHistoryFilterDialog(false);
@@ -317,6 +318,10 @@ function showView(viewName, { historyAction = "push" } = {}) {
         section.classList.toggle("is-hidden", !visible);
         section.hidden = !visible;
     });
+
+    if (viewChanged) {
+        window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    }
 
     if (viewName === "new-shift") {
         notesList.querySelectorAll(".note-input").forEach(autosizeNote);

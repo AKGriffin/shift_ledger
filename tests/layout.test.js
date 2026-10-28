@@ -75,6 +75,21 @@ describe("Mobile navigation", () => {
         });
     }));
 
+    test("starts at the top when switching views", () => withApp({
+        width: 390,
+        height: 500,
+    }, ({ win, element, openView }) => {
+        win.scrollTo(0, 200);
+        expect(win.scrollY).toBeGreaterThan(0);
+
+        openView("settings");
+        expect(win.scrollY).toBe(0);
+
+        win.scrollTo(0, 200);
+        element('.mobile-bottom-nav [data-view="dashboard"]').click();
+        expect(win.scrollY).toBe(0);
+    }));
+
     test("stacks dashboard summary stats as label-and-value rows on phones", () => withApp({
         width: 390,
         height: 844,
