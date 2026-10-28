@@ -218,6 +218,8 @@
                         </fieldset>
                     </div>
 
+                    <p id="role-no-reports-note" class="field-hint" hidden>This role doesn't track sales or tip reports, so this shift is saved without them.</p>
+
                     <div id="single-report-toggle" class="no-report-toggle">
                         <label class="report-toggle">
                             <input type="checkbox" id="shift-no-report" aria-describedby="shift-no-report-hint">
@@ -597,6 +599,13 @@
                 <div class="field">
                     <label for="template-break-end">Break end</label>
                     <input type="time" id="template-break-end" aria-describedby="template-error">
+                </div>
+                <div class="field">
+                    <label class="report-toggle">
+                        <input type="checkbox" id="template-no-reports" aria-describedby="template-no-reports-hint">
+                        <span>This role doesn't track sales or tip reports</span>
+                    </label>
+                    <small id="template-no-reports-hint" class="field-hint">Shifts for this role hide the report fields and are saved as "No report".</small>
                 </div>
                 <span class="field-error" id="template-error" hidden></span>
                 <div class="filter-dialog-actions">

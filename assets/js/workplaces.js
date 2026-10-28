@@ -99,6 +99,9 @@
                 if (template) {
                     normalizedRole.template = template;
                 }
+                if (role.tracksReports === false) {
+                    normalizedRole.tracksReports = false;
+                }
                 return normalizedRole;
             });
             const normalizedWorkplace = {
@@ -246,6 +249,19 @@
         return { item: found.item };
     }
 
+    function setTracksReports(data, roleId, tracksReports) {
+        const found = locate(data, "role", roleId);
+        if (!found) {
+            return { error: "That role no longer exists." };
+        }
+        if (tracksReports === false) {
+            found.item.tracksReports = false;
+        } else {
+            delete found.item.tracksReports;
+        }
+        return { item: found.item };
+    }
+
     function setPayPeriod(data, workplaceId, payPeriod) {
         const found = locate(data, "workplace", workplaceId);
         if (!found) {
@@ -337,6 +353,7 @@
         emptyData,
         isInUse,
         setTemplate,
+        setTracksReports,
         setPayPeriod,
         linkShifts,
         load,

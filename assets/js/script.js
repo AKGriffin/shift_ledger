@@ -901,6 +901,7 @@ function renderRoleOptions() {
 function applyRoleTemplate() {
     const hint = document.getElementById("shift-role-hint");
     hint.textContent = "";
+    updateMealPeriodFields();
     const match = findRole(fields.role.value);
     if (!match?.role.template) {
         return;
@@ -929,6 +930,7 @@ function applyRoleTemplate() {
 
 function handleWorkplaceFieldChange() {
     renderRoleOptions();
+    updateMealPeriodFields();
     document.getElementById("shift-role-hint").textContent = "";
 }
 
@@ -939,6 +941,7 @@ function resetForm(shouldClearStatus = true) {
     setNoteRows([]);
     state.editingShiftId = null;
     renderWorkplaceFields();
+    updateMealPeriodFields();
     document.getElementById("shift-role-hint").textContent = "";
     formTitle.textContent = "New Shift";
     Object.values(fields).forEach((field) => {
@@ -991,6 +994,7 @@ function populateForm(shift) {
         });
         setReportInputsEnabled(reportNode, toggle.checked);
     });
+    updateMealPeriodFields();
 }
 
 function markShiftFormDirty() {
@@ -1067,11 +1071,14 @@ function readFormValues() {
         }
     }
 
-    if (baseline.mealPeriod !== "Double" && document.getElementById("shift-no-report").checked) {
+    const skipReports = !roleTracksReports();
+    if (skipReports || (baseline.mealPeriod !== "Double" && document.getElementById("shift-no-report").checked)) {
         reportAmountFields.forEach((field) => {
             baseline[field] = 0;
         });
-        baseline.noReport = true;
+        if (baseline.mealPeriod !== "Double") {
+            baseline.noReport = true;
+        }
     }
 
     if (baseline.mealPeriod === "Double") {
@@ -1080,7 +1087,7 @@ function readFormValues() {
         });
         baseline.reports = Object.fromEntries(reportPeriods.map(([period]) => {
             const reportNode = getReportNode(period);
-            const enabled = reportNode.querySelector("[data-report-toggle]").checked;
+            const enabled = !skipReports && reportNode.querySelector("[data-report-toggle]").checked;
             const values = Object.fromEntries(reportAmountFields.map((field) => [
                 field,
                 enabled ? toNumber(reportNode.querySelector(`[data-report-field="${field}"]`).value) : 0,
@@ -1817,18 +1824,16 @@ function formatPayPeriod(payPeriod) {
     return `Pay period: ${labels[payPeriod.type]}, starting ${start}`;
 }
 
-function formatTemplate(template) {
-    if (!template) {
-        return "No template";
-    }
-    const parts = [template.mealPeriod];
-    if (template.clockIn || template.clockOut) {
+function formatTemplate(template, tracksReports) {
+    const parts = [template?.mealPeriod];
+    if (template?.clockIn || template?.clockOut) {
         parts.push(`${template.clockIn || "?"}–${template.clockOut || "?"}`);
     }
-    if (template.breakStart) {
+    if (template?.breakStart) {
         parts.push(`break ${template.breakStart}–${template.breakEnd}`);
     }
-    return `Template: ${parts.filter(Boolean).join(", ")}`;
+    const text = template ? `Template: ${parts.filter(Boolean).join(", ")}` : "No template";
+    return tracksReports === false ? `${text} · No sales or tip reports` : text;
 }
 
 function createWorkplaceItem(workplace) {
@@ -1869,7 +1874,7 @@ function createWorkplaceItem(workplace) {
         if (role.archived) {
             roleItem.append(createArchivedPill());
         }
-        roleItem.append(createItemActions("role", role), createItemSummary(formatTemplate(role.template)));
+        roleItem.append(createItemActions("role", role), createItemSummary(formatTemplate(role.template, role.tracksReports)));
         roles.append(roleItem);
     });
 
@@ -1982,6 +1987,7 @@ function askForTemplate(role) {
         breakEnd: document.getElementById("template-break-end"),
     };
     const errorElement = document.getElementById("template-error");
+    const noReportsInput = document.getElementById("template-no-reports");
     return runFormDialog({
         dialog: document.getElementById("template-dialog"),
         form: document.getElementById("template-form"),
@@ -1992,6 +1998,7 @@ function askForTemplate(role) {
                 input.value = role.template?.[key] || "";
             });
             showDialogError(errorElement, "");
+            noReportsInput.checked = role.tracksReports === false;
             inputs.mealPeriod.focus();
         },
         onSubmit: () => {
@@ -2001,7 +2008,10 @@ function askForTemplate(role) {
                 showDialogError(errorElement, check.error);
                 return undefined;
             }
-            return { value: Object.values(value).some(Boolean) ? value : null };
+            return {
+                value: Object.values(value).some(Boolean) ? value : null,
+                tracksReports: !noReportsInput.checked,
+            };
         },
     });
 }
@@ -2115,8 +2125,11 @@ async function handleWorkplaceAction(event) {
             button.focus();
             return;
         }
-        result = commitWorkplaces((draft) => window.Workplaces.setTemplate(draft, id, template.value));
-        message = template.value ? `Saved the template for ${entry.name}.` : `Cleared the template for ${entry.name}.`;
+        result = commitWorkplaces((draft) => {
+            const saved = window.Workplaces.setTemplate(draft, id, template.value);
+            return saved.error ? saved : window.Workplaces.setTracksReports(draft, id, template.tracksReports);
+        });
+        message = `Saved the template and report settings for ${entry.name}.`;
     } else if (action === "pay-period") {
         const payPeriod = await askForPayPeriod(entry);
         if (payPeriod === null) {
@@ -2368,15 +2381,21 @@ function initializeDoubleReports() {
     updateMealPeriodFields();
 }
 
+function roleTracksReports() {
+    return findRole(fields.role.value)?.role.tracksReports !== false;
+}
+
 function updateMealPeriodFields() {
     const isDouble = fields.mealPeriod.value === "Double";
+    const tracks = roleTracksReports();
     const noReport = document.getElementById("shift-no-report").checked;
-    document.getElementById("single-report-toggle").hidden = isDouble;
-    document.getElementById("single-report-fields").hidden = isDouble;
+    document.getElementById("role-no-reports-note").hidden = tracks;
+    document.getElementById("single-report-toggle").hidden = isDouble || !tracks;
+    document.getElementById("single-report-fields").hidden = isDouble || !tracks;
     document.querySelectorAll("#single-report-fields fieldset").forEach((fieldset) => {
         fieldset.disabled = noReport;
     });
-    document.getElementById("double-report-fields").hidden = !isDouble;
+    document.getElementById("double-report-fields").hidden = !isDouble || !tracks;
     reportPeriods.forEach(([period]) => {
         const reportNode = getReportNode(period);
         setReportInputsEnabled(reportNode, reportNode.querySelector("[data-report-toggle]").checked);

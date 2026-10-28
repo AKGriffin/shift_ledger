@@ -54,6 +54,16 @@ describe("Workplaces data module", () => {
         expect(Workplaces.validateName("x".repeat(61), data.workplaces, "workplace")).toContain("60");
     });
 
+    test("setTracksReports stores only false and survives normalization", () => {
+        const data = sampleData();
+        Workplaces.setTracksReports(data, "r-1", false);
+        expect(data.workplaces[0].roles[0].tracksReports).toBe(false);
+        expect(Workplaces.normalizeData(data).workplaces[0].roles[0].tracksReports).toBe(false);
+        Workplaces.setTracksReports(data, "r-1", true);
+        expect(data.workplaces[0].roles[0].tracksReports).toBeUndefined();
+        expect(Workplaces.setTracksReports(data, "nope", false).error).toBeTruthy();
+    });
+
     test("adds, renames, archives and deletes", () => {
         const data = sampleData();
         const role = Workplaces.addRole(data, "wp-1", "Host").item;
@@ -307,6 +317,76 @@ describe("Shift form workplace mode", () => {
         expect(saved.job).toBe("Bartender");
     }));
 
+    test("a role without reports hides the report fields and saves without them", () => withApp({
+        workplaces: (() => {
+            const data = sampleData();
+            data.workplaces[0].roles[1].tracksReports = false;
+            return data;
+        })(),
+    }, ({ element, change, fillForm, submitForm, openView, savedShifts }) => {
+        openView("new-shift");
+        expect(element("#single-report-fields").hidden).toBe(false);
+        change("#shift-role", "r-2");
+        expect(element("#single-report-fields").hidden).toBe(true);
+        expect(element("#single-report-toggle").hidden).toBe(true);
+        expect(element("#role-no-reports-note").hidden).toBe(false);
+        fillForm({ date: "2026-10-22", mealPeriod: "Dinner", workplace: "wp-1", role: "r-2", clockIn: "16:00", clockOut: "22:00", foodSales: "50" });
+        submitForm();
+        const [saved] = savedShifts();
+        expect(saved.noReport).toBe(true);
+        expect(saved.foodSales).toBe(0);
+
+        openView("new-shift");
+        change("#shift-meal-period", "Double");
+        expect(element("#double-report-fields").hidden).toBe(false);
+        change("#shift-role", "r-2");
+        expect(element("#double-report-fields").hidden).toBe(true);
+        change("#shift-role", "r-1");
+        expect(element("#double-report-fields").hidden).toBe(false);
+    }));
+
+    test("the Settings template dialog toggles tracksReports", () => withApp({ workplaces: sampleData() }, async ({ win, element, openView, fire, savedWorkplaces }) => {
+        openView("settings");
+        element('button[data-action="template"][data-id="r-1"]').click();
+        element("#template-no-reports").checked = true;
+        fire(element("#template-form"), "submit");
+        await tick(win);
+        expect(savedWorkplaces().workplaces[0].roles[0].tracksReports).toBe(false);
+        expect(element(".role-item").textContent).toContain("No sales or tip reports");
+    }));
+});
+
+describe("Editing shifts without a role", () => {
+    test("keeps the old job as a no-role option and can move it to a role", () => withApp({
+        workplaces: sampleData(),
+        shifts: [makeShift({ id: 33, job: "Expo" })],
+    }, ({ element, openView, fire, change, savedShifts }) => {
+        openView("previous-shifts");
+        fire(element('.shift-card[data-shift-id="33"] .card-menu-toggle'), "click");
+        fire(element('.shift-card[data-shift-id="33"] .edit-shift'), "click");
+        expect(element("#form-title").textContent).toBe("Edit Shift");
+        expect(element("#shift-role").value).toBe("__legacy__");
+        expect(element("#shift-role").textContent).toContain("Expo");
+
+        fire(element("#shift-form"), "submit");
+        expect(savedShifts()[0].job).toBe("Expo");
+        expect(savedShifts()[0].roleId).toBeUndefined();
+    }));
+
+    test("saving with a chosen role links the shift", () => withApp({
+        workplaces: sampleData(),
+        shifts: [makeShift({ id: 34, job: "Expo" })],
+    }, ({ element, openView, fire, change, savedShifts }) => {
+        openView("previous-shifts");
+        fire(element('.shift-card[data-shift-id="34"] .card-menu-toggle'), "click");
+        fire(element('.shift-card[data-shift-id="34"] .edit-shift'), "click");
+        change("#shift-workplace", "wp-1");
+        change("#shift-role", "r-1");
+        fire(element("#shift-form"), "submit");
+        expect(savedShifts()[0].job).toBe("Server");
+        expect(savedShifts()[0].roleId).toBe("r-1");
+        expect(savedShifts()[0].workplaceId).toBe("wp-1");
+    }));
 });
 
 describe("Backup with workplaces", () => {
