@@ -64,6 +64,7 @@ const cancelFormButton = document.getElementById("cancel-form");
 const shiftList = document.getElementById("shift-list");
 const sortBySelect = document.getElementById("sort-by");
 const filterJobSelect = document.getElementById("filter-job");
+const filterWorkplaceSelect = document.getElementById("filter-workplace");
 const filterDateFrom = document.getElementById("filter-date-from");
 const filterDateTo = document.getElementById("filter-date-to");
 const historyFilterDialog = document.getElementById("history-filter-dialog");
@@ -147,7 +148,7 @@ if (loadNotice) {
     setStatus(loadNotice, true);
 }
 if (!workplaceLoad.exists) {
-    openWorkplaceSetup();
+    openWorkplaceSetup({ firstRun: true });
 }
 registerServiceWorker();
 
@@ -253,6 +254,7 @@ function bindEvents() {
     });
     sortBySelect.addEventListener("change", renderPreviousShifts);
     filterJobSelect.addEventListener("change", renderPreviousShifts);
+    filterWorkplaceSelect.addEventListener("change", renderPreviousShifts);
     filterDateFrom.addEventListener("change", renderPreviousShifts);
     filterDateTo.addEventListener("change", renderPreviousShifts);
     openHistoryFiltersButton.addEventListener("click", () => {
@@ -327,6 +329,8 @@ function bindEvents() {
     document.getElementById("open-workplace-setup").addEventListener("click", openWorkplaceSetup);
     workplaceList.addEventListener("click", handleWorkplaceAction);
     setupForm.addEventListener("submit", handleSetupSubmit);
+    wireRoleList(setupRoles, document.getElementById("add-setup-role"));
+    wireRoleList(document.getElementById("add-roles-list"), document.getElementById("add-roles-more"));
     document.getElementById("skip-workplace-setup").addEventListener("click", () => setupDialog.close());
     setupDialog.addEventListener("close", handleSetupClose);
     systemTheme.addEventListener("change", () => {
@@ -1327,7 +1331,7 @@ function renderPreviousShifts() {
         const reportStatusText = getReportStatus(shift);
         reportStatus.textContent = reportStatusText;
         reportStatus.hidden = !reportStatusText;
-        card.querySelector(".card-job").textContent = shift.job;
+        card.querySelector(".card-job").textContent = [shift.job, getWorkplaceName(shift.workplaceId)].filter(Boolean).join(" · ");
         card.querySelector(".card-hours").textContent = formatDuration(getDurationMinutes(shift));
         card.querySelector(".card-sales").textContent = formatReportAmount(shift, getSalesTotal(shift));
         card.querySelector(".card-tips").textContent = formatReportAmount(shift, getNetTips(shift));
@@ -1426,11 +1430,13 @@ function getFilteredShifts() {
     const fromDate = filterDateFrom.value;
     const toDate = filterDateTo.value;
     const jobFilter = filterJobSelect.value;
+    const workplaceFilter = filterWorkplaceSelect.value;
     const sortMode = sortBySelect.value;
 
     return state.shifts
         .filter((shift) => (!fromDate || shift.date >= fromDate)
             && (!toDate || shift.date <= toDate)
+            && (workplaceFilter === "all" || shift.workplaceId === workplaceFilter)
             && (jobFilter === "all" || shift.job === jobFilter))
         .sort((a, b) => {
             switch (sortMode) {
@@ -1451,11 +1457,57 @@ function clearHistoryFilters() {
     filterDateFrom.value = "";
     filterDateTo.value = "";
     filterJobSelect.value = "all";
+    filterWorkplaceSelect.value = "all";
     renderPreviousShifts();
 }
 
+function getWorkplaceName(workplaceId) {
+    return workplaceId ? state.workplaces.workplaces.find((entry) => entry.id === workplaceId)?.name || "" : "";
+}
+
+function fillFilterSelect(select, allLabel, options) {
+    const current = select.value;
+    const entries = [["all", allLabel], ...options];
+    if (current !== "all" && !entries.some(([value]) => value === current)) {
+        entries.push([current, current]);
+    }
+    select.replaceChildren(...entries.map(([value, label]) => new Option(label, value)));
+    select.value = current;
+    if (select.value !== current) {
+        select.value = "all";
+    }
+}
+
+function populateFilterOptions() {
+    const { workplaces } = state.workplaces;
+    const used = new Set(state.shifts.map((shift) => shift.workplaceId).filter(Boolean));
+    fillFilterSelect(
+        filterWorkplaceSelect,
+        "All workplaces",
+        workplaces
+            .filter((entry) => !entry.archived || used.has(entry.id))
+            .map((entry) => [entry.id, entry.archived ? `${entry.name} (archived)` : entry.name])
+    );
+
+    const jobs = new Set(state.shifts.map((shift) => String(shift.job || "").trim()).filter(Boolean));
+    workplaces.forEach((entry) => entry.roles.forEach((role) => {
+        if (!role.archived) {
+            jobs.add(role.name);
+        }
+    }));
+    fillFilterSelect(filterJobSelect, "All jobs", [...jobs].sort((a, b) => a.localeCompare(b)).map((job) => [job, job]));
+}
+
 function updateFilterControls() {
+    populateFilterOptions();
     const filters = [];
+    if (filterWorkplaceSelect.value !== "all") {
+        filters.push({
+            label: `Workplace: ${filterWorkplaceSelect.selectedOptions[0].textContent}`,
+            input: filterWorkplaceSelect,
+            empty: "all",
+        });
+    }
     if (filterDateFrom.value) {
         filters.push({ label: `From ${formatDate(filterDateFrom.value)}`, input: filterDateFrom, empty: "" });
     }
@@ -1501,7 +1553,7 @@ function exportShiftsCsv() {
     }
 
     const headers = [
-        "Date", "Meal period", "Job", "Clock in", "Clock out", "Break start", "Break end",
+        "Date", "Meal period", "Job", "Workplace", "Clock in", "Clock out", "Break start", "Break end",
         "Hours worked", "Food sales", "Beer and wine sales", "Liquor sales", "NA beverage sales",
         "Additional sales", "Total sales", "CC tips", "Cash tips", "Auto-gratuity", "Tips paid out",
         "Tip out received", "Net tips", "Report coverage",
@@ -1515,6 +1567,7 @@ function exportShiftsCsv() {
             shift.date,
             shift.mealPeriod,
             shift.job,
+            getWorkplaceName(shift.workplaceId),
             shift.clockIn,
             `${shift.clockOut}${isOvernightShift(shift) ? " (+1 day)" : ""}`,
             shift.breakStart,
@@ -1893,6 +1946,7 @@ function renderWorkplaces(focusSelector = null) {
     workplaceList.hidden = workplaces.length === 0;
     workplaceList.replaceChildren(...workplaces.map(createWorkplaceItem));
     renderWorkplaceFields();
+    renderPreviousShifts();
     if (focusSelector) {
         (workplaceList.querySelector(focusSelector) || document.getElementById("add-workplace")).focus();
     }
@@ -2093,18 +2147,24 @@ async function handleWorkplaceAction(event) {
     let nextFocus = focusSelector(action);
 
     if (action === "add-role") {
-        const name = await askForName({
-            title: `Add a role to ${entry.name}`,
-            hint: "A role is the position you work here, such as Server or Bartender.",
-            submitLabel: "Add role",
-            validate: (value) => window.Workplaces.validateName(value, entry.roles, "role"),
-        });
-        if (name === null) {
+        const added = await askForRoles(entry);
+        if (added === null) {
             button.focus();
             return;
         }
-        result = commitWorkplaces((draft) => window.Workplaces.addRole(draft, id, name));
-        message = `Added role “${name}” to ${entry.name}.`;
+        result = commitWorkplaces((draft) => {
+            let last = {};
+            for (const name of added.names) {
+                last = window.Workplaces.addRole(draft, id, name);
+                if (last.error) {
+                    return last;
+                }
+            }
+            return last;
+        });
+        message = added.names.length === 1
+            ? `Added role “${added.names[0]}” to ${entry.name}.`
+            : `Added ${added.names.length} roles to ${entry.name}.`;
     } else if (action === "rename") {
         const name = await askForName({
             title: `Rename ${kind}`,
@@ -2167,21 +2227,144 @@ async function handleWorkplaceAction(event) {
     setStatus(message);
 }
 
-function openWorkplaceSetup() {
+function openWorkplaceSetup(options) {
     if (setupDialog.open) {
         return;
     }
+    const firstRun = options?.firstRun === true;
+    document.getElementById("skip-workplace-setup").textContent = firstRun ? "Skip for now" : "Cancel";
+    document.getElementById("workplace-setup-text").textContent = firstRun
+        ? "Tell Shift Ledger where you work so shifts can be grouped by workplace and role. You can change all of this later in Settings, or skip it for now."
+        : "Tell Shift Ledger where you work so shifts can be grouped by workplace and role.";
     const jobs = window.Workplaces.distinctJobs(state.shifts);
     setupSaved = false;
     setupWorkplaceName.value = "";
-    setupRoles.value = jobs.join(", ");
+    fillRoleList(setupRoles, jobs);
     document.getElementById("setup-roles-hint").textContent = jobs.length
-        ? "Separate roles with commas. These came from your saved shifts, and shifts with matching jobs will be linked to them."
-        : "Separate roles with commas, for example: Server, Bartender. You can add more later.";
+        ? "These came from your saved shifts, and shifts with matching jobs will be linked to them. Press Enter for the next role."
+        : "Add each role you work, for example Server or Bartender. Press Enter for the next role. You can add more later.";
     showFieldError(setupWorkplaceName, document.getElementById("setup-workplace-error"), "");
-    showFieldError(setupRoles, document.getElementById("setup-roles-error"), "");
+    document.getElementById("setup-roles-error").hidden = true;
     setupDialog.showModal();
     setupWorkplaceName.focus();
+}
+
+function addRoleRow(list, value = "", { focus = false, after = null } = {}) {
+    const row = document.createElement("li");
+    row.className = "note-row";
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "note-input";
+    input.value = value;
+    input.maxLength = window.Workplaces.MAX_NAME_LENGTH;
+    input.autocomplete = "off";
+    input.placeholder = "Add a role";
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "ghost-button note-remove";
+    remove.textContent = "✕";
+    row.append(input, remove);
+    if (after) {
+        after.after(row);
+    } else {
+        list.appendChild(row);
+    }
+    labelRoleRows(list);
+    if (focus) {
+        input.focus();
+    }
+}
+
+function labelRoleRows(list) {
+    list.querySelectorAll(".note-row").forEach((row, index) => {
+        row.querySelector(".note-input").setAttribute("aria-label", `Role ${index + 1}`);
+        row.querySelector(".note-remove").setAttribute("aria-label", `Remove role ${index + 1}`);
+    });
+}
+
+function removeRoleRow(list, row, { focusPrevious = false } = {}) {
+    const rows = [...list.querySelectorAll(".note-row")];
+    if (rows.length === 1) {
+        const input = row.querySelector(".note-input");
+        input.value = "";
+        input.focus();
+        return;
+    }
+    const index = rows.indexOf(row);
+    const neighbor = (focusPrevious || index === rows.length - 1 ? rows[index - 1] : rows[index + 1]) || rows[index + 1] || rows[index - 1];
+    row.remove();
+    labelRoleRows(list);
+    neighbor.querySelector(".note-input").focus();
+}
+
+function wireRoleList(list, addButton) {
+    addButton.addEventListener("click", () => {
+        const blank = [...list.querySelectorAll(".note-input")].find((input) => input.value.trim() === "");
+        if (blank) {
+            blank.focus();
+        } else {
+            addRoleRow(list, "", { focus: true });
+        }
+    });
+    list.addEventListener("click", (event) => {
+        const button = event.target.closest(".note-remove");
+        if (button) {
+            removeRoleRow(list, button.closest(".note-row"));
+        }
+    });
+    list.addEventListener("keydown", (event) => {
+        const input = event.target;
+        if (!input.classList.contains("note-input")) {
+            return;
+        }
+        const row = input.closest(".note-row");
+        if (event.key === "Enter" && !event.isComposing) {
+            event.preventDefault();
+            if (input.value.trim() !== "") {
+                addRoleRow(list, "", { focus: true, after: row });
+            }
+        } else if (event.key === "Backspace" && input.value === "" && list.children.length > 1) {
+            event.preventDefault();
+            removeRoleRow(list, row, { focusPrevious: true });
+        }
+    });
+}
+
+function fillRoleList(list, values) {
+    list.replaceChildren();
+    (values.length > 0 ? values : [""]).forEach((value) => addRoleRow(list, value));
+}
+
+function readRoleList(list) {
+    return [...list.querySelectorAll(".note-input")].map((input) => input.value);
+}
+
+function askForRoles(workplace) {
+    const list = document.getElementById("add-roles-list");
+    const errorElement = document.getElementById("add-roles-error");
+    return runFormDialog({
+        dialog: document.getElementById("add-roles-dialog"),
+        form: document.getElementById("add-roles-form"),
+        cancelButton: document.getElementById("cancel-add-roles"),
+        onOpen: () => {
+            document.getElementById("add-roles-title").textContent = `Add roles to ${workplace.name}`;
+            fillRoleList(list, []);
+            showDialogError(errorElement, "");
+            list.querySelector(".note-input").focus();
+        },
+        onSubmit: () => {
+            const parsed = window.Workplaces.parseRoleNames(readRoleList(list).join("\n"));
+            const taken = parsed.names
+                .map((name) => window.Workplaces.validateName(name, workplace.roles, "role"))
+                .find(Boolean);
+            const error = parsed.error || taken || (parsed.names.length === 0 ? "Enter at least one role." : "");
+            if (error) {
+                showDialogError(errorElement, error);
+                return undefined;
+            }
+            return { names: parsed.names };
+        },
+    });
 }
 
 function handleSetupClose() {
@@ -2198,11 +2381,14 @@ function handleSetupClose() {
 function handleSetupSubmit(event) {
     event.preventDefault();
     const nameProblem = window.Workplaces.validateName(setupWorkplaceName.value, state.workplaces.workplaces, "workplace");
-    const roles = window.Workplaces.parseRoleNames(setupRoles.value);
+    const roleInputs = [...setupRoles.querySelectorAll(".note-input")];
+    const roles = window.Workplaces.parseRoleNames(roleInputs.map((input) => input.value).join("\n"));
     showFieldError(setupWorkplaceName, document.getElementById("setup-workplace-error"), nameProblem);
-    showFieldError(setupRoles, document.getElementById("setup-roles-error"), roles.error);
+    const rolesError = document.getElementById("setup-roles-error");
+    rolesError.textContent = roles.error;
+    rolesError.hidden = !roles.error;
     if (nameProblem || roles.error) {
-        (nameProblem ? setupWorkplaceName : setupRoles).focus();
+        (nameProblem ? setupWorkplaceName : roleInputs[0]).focus();
         return;
     }
 

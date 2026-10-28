@@ -1369,6 +1369,19 @@ legend {
     list-style: none;
 }
 
+.setup-roles-field {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.setup-roles-field legend {
+    padding: 0;
+    margin-bottom: 4px;
+    font-weight: 600;
+}
+
 .note-row {
     display: flex;
     align-items: flex-start;

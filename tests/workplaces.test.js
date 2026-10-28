@@ -154,14 +154,29 @@ describe("Workplace setup", () => {
         expect(element("#workplace-setup-dialog").open).toBe(false);
     }));
 
+    test("shows Skip for now on first run and Cancel when opened from Settings", () => withApp({ workplaces: null }, ({ element, openView }) => {
+        expect(element("#skip-workplace-setup").textContent).toBe("Skip for now");
+        element("#skip-workplace-setup").click();
+        openView("settings");
+        element("#open-workplace-setup").click();
+        expect(element("#workplace-setup-dialog").open).toBe(true);
+        expect(element("#skip-workplace-setup").textContent).toBe("Cancel");
+    }));
+
     test("prefills roles from saved jobs, then links shifts and keeps a pre-migration copy", () => withApp({
         workplaces: null,
         shifts: [makeShift({ job: "Server" }), makeShift({ job: "Host" })],
-    }, async ({ win, element, fire, savedShifts, savedWorkplaces }) => {
-        expect(element("#setup-roles").value).toBe("Server, Host");
+    }, async ({ win, element, elements, fire, savedShifts,     savedWorkplaces }) => {
+            const roleValues = () => elements("#setup-roles .note-input").map((input) => input.value);
+            expect(roleValues()).toEqual(["Server", "Host"]);
         const original = localStorage.getItem("shift-ledger-shifts-v1");
         element("#setup-workplace-name").value = "Bistro";
-        element("#setup-roles").value = "Server, Bartender";
+        element("#setup-roles .note-input").value = "Server";
+        elements("#setup-roles .note-input")[1].value = "Bartender";
+        fire(element("#add-setup-role"), "click");
+        elements("#setup-roles .note-input")[2].value = "Host";
+        fire(elements("#setup-roles .note-remove")[2], "click");
+        expect(roleValues()).toEqual(["Server", "Bartender"]);
         fire(element("#workplace-setup-form"), "submit");
         await tick(win);
 
@@ -175,6 +190,16 @@ describe("Workplace setup", () => {
         expect(localStorage.getItem(PRE_WORKPLACES_STORAGE_KEY)).toBe(original);
         expect(element("#workplace-setup-dialog").open).toBe(false);
         expect(element("#workplace-list").textContent).toContain("Bistro");
+    }));
+
+    test("Enter adds a role row and Backspace on an empty row removes it", () => withApp({ workplaces: null }, ({ element, elements, fire, win }) => {
+        const first = element("#setup-roles .note-input");
+        first.value = "Server";
+        first.dispatchEvent(new win.KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
+        expect(elements("#setup-roles .note-input")).toHaveLength(2);
+        const second = elements("#setup-roles .note-input")[1];
+        second.dispatchEvent(new win.KeyboardEvent("keydown", { key: "Backspace", bubbles: true, cancelable: true }));
+        expect(elements("#setup-roles .note-input")).toHaveLength(1);
     }));
 
     test("shows an error and creates nothing when the name is empty", () => withApp({ workplaces: null }, async ({ win, element, fire, savedWorkplaces }) => {
@@ -201,17 +226,32 @@ describe("Workplace manager in Settings", () => {
     }));
 
     test("adds a workplace and a role", () => withApp(async (app) => {
-        const { win, element, openView, savedWorkplaces } = app;
+        const { win, element, elements, fire, openView, savedWorkplaces } = app;
         openView("settings");
         element("#add-workplace").click();
         await submitName(app, "Cafe");
         expect(savedWorkplaces().workplaces[0].name).toBe("Cafe");
 
         element('button[data-action="add-role"]').click();
-        await submitName(app, "Barista");
+        element("#add-roles-list .note-input").value = "Barista";
+        fire(element("#add-roles-more"), "click");
+        elements("#add-roles-list .note-input")[1].value = "Host";
+        fire(element("#add-roles-form"), "submit");
         await tick(win);
-        expect(savedWorkplaces().workplaces[0].roles[0].name).toBe("Barista");
+        expect(savedWorkplaces().workplaces[0].roles).toHaveLength(2);
+        expect(savedWorkplaces().workplaces[0].roles[1].name).toBe("Host");
         expect(element("#workplace-list").textContent).toContain("Barista");
+    }));
+
+    test("rejects an existing role name when adding roles", () => withApp({ workplaces: sampleData() }, async ({ win, element, openView, fire, savedWorkplaces }) => {
+        openView("settings");
+        element('button[data-action="add-role"]').click();
+        element("#add-roles-list .note-input").value = "server";
+        fire(element("#add-roles-form"), "submit");
+        await tick(win);
+        expect(element("#add-roles-dialog").open).toBe(true);
+        expect(element("#add-roles-error").hidden).toBe(false);
+        expect(savedWorkplaces().workplaces[0].roles).toHaveLength(2);
     }));
 
     test("rejects duplicate names inline and keeps the dialog open", () => withApp({ workplaces: sampleData() }, async (app) => {
@@ -386,6 +426,46 @@ describe("Editing shifts without a role", () => {
         expect(savedShifts()[0].job).toBe("Server");
         expect(savedShifts()[0].roleId).toBe("r-1");
         expect(savedShifts()[0].workplaceId).toBe("wp-1");
+    }));
+});
+
+describe("History with workplaces", () => {
+    const twoPlaces = () => {
+        const data = sampleData();
+        data.workplaces.push({ id: "wp-2", name: "Cafe", archived: false, roles: [{ id: "r-3", name: "Barista", archived: false }] });
+        return data;
+    };
+    const shifts = () => [
+        makeShift({ id: 41, date: "2026-10-20", job: "Server", workplaceId: "wp-1", roleId: "r-1" }),
+        makeShift({ id: 42, date: "2026-10-21", job: "Barista", workplaceId: "wp-2", roleId: "r-3" }),
+        makeShift({ id: 43, date: "2026-10-22", job: "Expo" }),
+    ];
+
+    test("cards show the role and workplace, and the filter narrows the list", () => withApp({
+        workplaces: twoPlaces(),
+        shifts: shifts(),
+    }, ({ element, elements, openView, change }) => {
+        openView("previous-shifts");
+        expect(element('.shift-card[data-shift-id="41"] .card-job').textContent).toBe("Server · Bistro");
+        expect(element('.shift-card[data-shift-id="43"] .card-job').textContent).toBe("Expo");
+        expect(elements(".shift-card")).toHaveLength(3);
+
+        change("#filter-workplace", "wp-2");
+        expect(elements(".shift-card")).toHaveLength(1);
+        expect(element(".shift-card").dataset.shiftId).toBe("42");
+        expect(element("#active-filters").textContent).toContain("Workplace: Cafe");
+    }));
+
+    test("the job filter lists roles and past jobs", () => withApp({
+        workplaces: twoPlaces(),
+        shifts: shifts(),
+    }, ({ element, elements, openView, change }) => {
+        openView("previous-shifts");
+        const values = [...element("#filter-job").options].map((option) => option.value);
+        expect(values).toContain("Barista");
+        expect(values).toContain("Expo");
+        change("#filter-job", "Barista");
+        expect(elements(".shift-card")).toHaveLength(1);
     }));
 });
 

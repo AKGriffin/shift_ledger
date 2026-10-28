@@ -12,7 +12,7 @@ The first round of polish, reliability, and accessibility work is done. The next
 - [x] **Manage workplaces and roles in Settings** - Add, rename, archive, and unarchive workplaces and roles, and delete unused ones. Includes the skippable first-run setup dialog, the migration that links existing shifts by `job`, and version 2 backups that carry workplaces. Archived items stay on historical shifts.
 - [x] **Use roles and templates when logging shifts** - Select a workplace and role, start from an editable role template that never overwrites typed values, and configure per-workplace pay periods.
 - [x] **Support roles without shift reports** - A role can be marked as not tracking sales or tip reports; its shifts hide the report fields and save as "No report", leaving sales totals untouched.
-- [ ] **Make history and the dashboard workplace-aware** - Add workplace and role filters to Previous Shifts, show "Role · Workplace" on cards, and let the dashboard and CSV export scope to a workplace.
+- [x] **Make history and the dashboard workplace-aware** - Previous Shifts has a Workplace filter and a Job filter built from your roles and past jobs, cards show "Role · Workplace", and the CSV export includes a Workplace column. A dashboard workplace scope is still to do.
 
 ## Next: everyday polish
 
@@ -56,6 +56,7 @@ These share the dashboard code, so plan them together. Period summaries should b
 
 ## Recently completed
 
+- Workplace filter, role-aware Job filter, "Role · Workplace" cards, and a Workplace CSV column in history.
 - Roles that don't track sales or tip reports (set in the role's template dialog), with the shift form hiding report fields for them.
 - Workplace and role selection in the shift form, with role templates that prefill empty fields only and per-workplace pay periods managed in Settings.
 - Workplaces and roles managed in Settings, with a skippable first-run setup, job-name migration, and version 2 backups.
