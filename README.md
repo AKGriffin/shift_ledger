@@ -29,7 +29,8 @@ The service worker caches the app shell and static assets. When deploying an upd
 - Export all saved shifts as a CSV file
 - Choose among seven visual styles—Minimalist, Material, Neo-brutalist, Cyberpunk/Synthwave, Glassmorphism, Modern Skeuomorphism, and High-Contrast—independently from system, light, or dark mode; set the week start day, currency, and whether zero-value shift details are shown
 - Review appearance, format, dashboard, and data preferences in focused settings cards with short hints for each option
-- Set up workplaces and the roles you work at each one. The first launch offers a setup dialog (skippable), which links existing shifts to roles by job name and keeps a copy of your original shifts. In Settings you can add, rename, archive, and unarchive workplaces and roles, and delete ones no shift uses. Archived items disappear from future choices, but past shifts keep their job name
+- Set up workplaces and the roles you work at each one. The first launch offers a setup dialog (skippable), which links existing shifts to roles by job name and keeps a copy of your original shifts. In Settings you can add, rename, archive, and unarchive workplaces and roles, set a role template, set a workplace pay period, and delete ones no shift uses. Archived items disappear from future choices, but past shifts keep their job name
+- In the shift form, select a workplace and role (when workplaces exist). Choosing a role can prefill empty fields from its template without overwriting values you've already entered
 - Import or download a complete JSON data backup, including your workplaces and roles (older backups still restore and leave your workplaces alone)
 
 ## Project direction

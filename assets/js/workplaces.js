@@ -2,6 +2,55 @@
     const STORAGE_KEY = "shift-ledger-workplaces-v1";
     const RECOVERY_KEY = "shift-ledger-workplaces-v1-recovery";
     const MAX_NAME_LENGTH = 60;
+    const MEAL_PERIODS = ["Lunch", "Dinner", "Double"];
+    const PAY_PERIOD_TYPES = ["weekly", "biweekly", "semimonthly", "monthly"];
+    const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+    function readTemplate(raw) {
+        if (raw === undefined || raw === null) {
+            return null;
+        }
+        if (typeof raw !== "object" || Array.isArray(raw)) {
+            throw new Error("Role template is not valid.");
+        }
+        const template = {};
+        if (raw.mealPeriod) {
+            if (!MEAL_PERIODS.includes(raw.mealPeriod)) {
+                throw new Error("Choose a valid meal period.");
+            }
+            template.mealPeriod = raw.mealPeriod;
+        }
+        for (const field of ["clockIn", "clockOut", "breakStart", "breakEnd"]) {
+            if (raw[field]) {
+                if (typeof raw[field] !== "string" || !TIME_PATTERN.test(raw[field])) {
+                    throw new Error("Use valid times for the template.");
+                }
+                template[field] = raw[field];
+            }
+        }
+        if (Boolean(template.breakStart) !== Boolean(template.breakEnd)) {
+            throw new Error("Set both break times, or leave both empty.");
+        }
+        return Object.keys(template).length > 0 ? template : null;
+    }
+
+    function readPayPeriod(raw) {
+        if (raw === undefined || raw === null) {
+            return null;
+        }
+        if (typeof raw !== "object" || Array.isArray(raw) || !PAY_PERIOD_TYPES.includes(raw.type)) {
+            throw new Error("Choose a valid pay period.");
+        }
+        if (raw.type === "semimonthly" || raw.type === "monthly") {
+            return { type: raw.type };
+        }
+        const match = typeof raw.anchorDate === "string" && /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw.anchorDate);
+        const date = match && new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+        if (!date || date.getMonth() !== Number(match[2]) - 1 || date.getDate() !== Number(match[3])) {
+            throw new Error("Enter the date a pay period starts.");
+        }
+        return { type: raw.type, anchorDate: raw.anchorDate };
+    }
 
     function createId(prefix) {
         return `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
@@ -45,14 +94,24 @@
                     throw new Error("Workplace data is not valid.");
                 }
                 claimId(role.id);
-                return { id: role.id, name: readName(role.name), archived: role.archived === true };
+                const normalizedRole = { id: role.id, name: readName(role.name), archived: role.archived === true };
+                const template = readTemplate(role.template);
+                if (template) {
+                    normalizedRole.template = template;
+                }
+                return normalizedRole;
             });
-            return {
+            const normalizedWorkplace = {
                 id: workplace.id,
                 name: readName(workplace.name),
                 archived: workplace.archived === true,
                 roles,
             };
+            const payPeriod = readPayPeriod(workplace.payPeriod);
+            if (payPeriod) {
+                normalizedWorkplace.payPeriod = payPeriod;
+            }
+            return normalizedWorkplace;
         });
 
         return { version: 1, setupDismissed: raw.setupDismissed === true, workplaces };
@@ -169,6 +228,42 @@
         return { item: found.item };
     }
 
+    function setTemplate(data, roleId, template) {
+        const found = locate(data, "role", roleId);
+        if (!found) {
+            return { error: "That role no longer exists." };
+        }
+        try {
+            const clean = readTemplate(template);
+            if (clean) {
+                found.item.template = clean;
+            } else {
+                delete found.item.template;
+            }
+        } catch (error) {
+            return { error: error.message };
+        }
+        return { item: found.item };
+    }
+
+    function setPayPeriod(data, workplaceId, payPeriod) {
+        const found = locate(data, "workplace", workplaceId);
+        if (!found) {
+            return { error: "That workplace no longer exists." };
+        }
+        try {
+            const clean = readPayPeriod(payPeriod);
+            if (clean) {
+                found.item.payPeriod = clean;
+            } else {
+                delete found.item.payPeriod;
+            }
+        } catch (error) {
+            return { error: error.message };
+        }
+        return { item: found.item };
+    }
+
     function isInUse(shifts, kind, id) {
         const field = kind === "workplace" ? "workplaceId" : "roleId";
         return shifts.some((shift) => shift[field] === id);
@@ -241,6 +336,8 @@
         distinctJobs,
         emptyData,
         isInUse,
+        setTemplate,
+        setPayPeriod,
         linkShifts,
         load,
         locate,

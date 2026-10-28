@@ -87,6 +87,8 @@ const fields = {
     date: document.getElementById("shift-date"),
     mealPeriod: document.getElementById("shift-meal-period"),
     job: document.getElementById("shift-job"),
+    workplace: document.getElementById("shift-workplace"),
+    role: document.getElementById("shift-role"),
     clockIn: document.getElementById("shift-clock-in"),
     clockOut: document.getElementById("shift-clock-out"),
     breakStart: document.getElementById("shift-break-start"),
@@ -319,6 +321,9 @@ function bindEvents() {
     document.getElementById("backup-file").addEventListener("change", importBackup);
     document.getElementById("clear-all-data").addEventListener("click", clearAllShifts);
     document.getElementById("add-workplace").addEventListener("click", addWorkplaceFromSettings);
+    fields.workplace.addEventListener("change", handleWorkplaceFieldChange);
+    fields.role.addEventListener("change", applyRoleTemplate);
+    document.getElementById("pay-period-type").addEventListener("change", updatePayPeriodAnchor);
     document.getElementById("open-workplace-setup").addEventListener("click", openWorkplaceSetup);
     workplaceList.addEventListener("click", handleWorkplaceAction);
     setupForm.addEventListener("submit", handleSetupSubmit);
@@ -819,12 +824,122 @@ function readNotes() {
         .filter(Boolean);
 }
 
+const LEGACY_ROLE = "__legacy__";
+
+function getEditingShift() {
+    return state.editingShiftId === null
+        ? null
+        : state.shifts.find((shift) => shift.id === state.editingShiftId) || null;
+}
+
+function findRole(roleId) {
+    for (const workplace of state.workplaces.workplaces) {
+        const role = workplace.roles.find((entry) => entry.id === roleId);
+        if (role) {
+            return { workplace, role };
+        }
+    }
+    return null;
+}
+
+function isWorkplaceMode() {
+    const editing = getEditingShift();
+    return state.workplaces.workplaces.some((workplace) => !workplace.archived)
+        || Boolean(editing?.roleId && findRole(editing.roleId));
+}
+
+function hasLegacyJob(editing) {
+    return Boolean(editing?.job) && !(editing.roleId && findRole(editing.roleId));
+}
+
+function fillSelect(select, options, value) {
+    select.replaceChildren(...options.map(([optionValue, label]) => {
+        const option = document.createElement("option");
+        option.value = optionValue;
+        option.textContent = label;
+        return option;
+    }));
+    select.value = options.some(([optionValue]) => optionValue === value) ? value : "";
+}
+
+function renderWorkplaceFields() {
+    const mode = isWorkplaceMode();
+    document.getElementById("shift-workplace-field").hidden = !mode;
+    document.getElementById("shift-role-field").hidden = !mode;
+    document.getElementById("shift-job-field").hidden = mode;
+    if (!mode) {
+        return;
+    }
+
+    const editing = getEditingShift();
+    const active = state.workplaces.workplaces.filter((workplace) => !workplace.archived);
+    const current = fields.workplace.value
+        || editing?.workplaceId
+        || (!editing && active.length === 1 ? active[0].id : "");
+    const options = [["", "Select"]];
+    state.workplaces.workplaces
+        .filter((workplace) => !workplace.archived || workplace.id === editing?.workplaceId)
+        .forEach((workplace) => options.push([workplace.id, workplace.archived ? `${workplace.name} (archived)` : workplace.name]));
+    fillSelect(fields.workplace, options, current);
+    renderRoleOptions();
+}
+
+function renderRoleOptions() {
+    const editing = getEditingShift();
+    const workplace = state.workplaces.workplaces.find((entry) => entry.id === fields.workplace.value);
+    const current = fields.role.value || editing?.roleId || (hasLegacyJob(editing) ? LEGACY_ROLE : "");
+    const options = [["", "Select"]];
+    if (hasLegacyJob(editing)) {
+        options.push([LEGACY_ROLE, `${editing.job} (no role)`]);
+    }
+    (workplace?.roles || [])
+        .filter((role) => !role.archived || role.id === editing?.roleId)
+        .forEach((role) => options.push([role.id, role.archived ? `${role.name} (archived)` : role.name]));
+    fillSelect(fields.role, options, current);
+}
+
+function applyRoleTemplate() {
+    const hint = document.getElementById("shift-role-hint");
+    hint.textContent = "";
+    const match = findRole(fields.role.value);
+    if (!match?.role.template) {
+        return;
+    }
+
+    const template = match.role.template;
+    let filled = 0;
+    [
+        [fields.mealPeriod, template.mealPeriod],
+        [fields.clockIn, template.clockIn],
+        [fields.clockOut, template.clockOut],
+        [fields.breakStart, template.breakStart],
+        [fields.breakEnd, template.breakEnd],
+    ].forEach(([field, value]) => {
+        if (value && !field.value) {
+            field.value = value;
+            filled += 1;
+        }
+    });
+    if (filled > 0) {
+        updateMealPeriodFields();
+        markShiftFormDirty();
+        hint.textContent = `Filled ${filled} empty ${filled === 1 ? "field" : "fields"} from the ${match.role.name} template.`;
+    }
+}
+
+function handleWorkplaceFieldChange() {
+    renderRoleOptions();
+    document.getElementById("shift-role-hint").textContent = "";
+}
+
 function resetForm(shouldClearStatus = true) {
     form.reset();
     shiftFormDirty = false;
     updateMealPeriodFields();
     setNoteRows([]);
     state.editingShiftId = null;
+    renderWorkplaceFields();
+    document.getElementById("shift-role-hint").textContent = "";
     formTitle.textContent = "New Shift";
     Object.values(fields).forEach((field) => {
         if (field.tagName === "INPUT" || field.tagName === "TEXTAREA") {
@@ -845,6 +960,10 @@ function populateForm(shift) {
     fields.mealPeriod.value = shift.mealPeriod || "";
     document.getElementById("shift-no-report").checked = shift.noReport === true && shift.mealPeriod !== "Double";
     updateMealPeriodFields();
+    fields.workplace.value = "";
+    fields.role.value = "";
+    renderWorkplaceFields();
+    document.getElementById("shift-role-hint").textContent = "";
     fields.job.value = shift.job || "";
     fields.clockIn.value = shift.clockIn || "";
     fields.clockOut.value = shift.clockOut || "";
@@ -936,6 +1055,18 @@ function readFormValues() {
         notes: readNotes(),
     };
 
+    if (isWorkplaceMode()) {
+        const editing = getEditingShift();
+        const match = findRole(fields.role.value);
+        if (match) {
+            baseline.workplaceId = match.workplace.id;
+            baseline.roleId = match.role.id;
+            baseline.job = editing?.roleId === match.role.id ? editing.job : match.role.name;
+        } else {
+            baseline.job = fields.role.value === LEGACY_ROLE && editing ? editing.job : "";
+        }
+    }
+
     if (baseline.mealPeriod !== "Double" && document.getElementById("shift-no-report").checked) {
         reportAmountFields.forEach((field) => {
             baseline[field] = 0;
@@ -966,7 +1097,11 @@ function validateShift(shift) {
 
     if (!shift.date) issues.push({ field: "date", message: "Date is required." });
     if (!shift.mealPeriod) issues.push({ field: "mealPeriod", message: "Meal period is required." });
-    if (!shift.job) issues.push({ field: "job", message: "Job is required." });
+    if (!shift.job) {
+        issues.push(isWorkplaceMode()
+            ? { field: "role", message: "Choose a workplace and role." }
+            : { field: "job", message: "Job is required." });
+    }
     if (!shift.clockIn) issues.push({ field: "clockIn", message: "Clock in is required." });
     if (!shift.clockOut) issues.push({ field: "clockOut", message: "Clock out is required." });
 
@@ -1634,6 +1769,11 @@ function createItemActions(kind, entry) {
     const data = { kind, id: entry.id };
     const archiveAction = entry.archived ? "unarchive" : "archive";
     const archiveText = entry.archived ? "Unarchive" : "Archive";
+    if (kind === "workplace") {
+        actions.append(createActionButton(`Set pay period for ${entry.name}`, "Pay period", { ...data, action: "pay-period" }));
+    } else {
+        actions.append(createActionButton(`Edit template for role ${entry.name}`, "Template", { ...data, action: "template" }));
+    }
     actions.append(
         createActionButton(`Rename ${kind} ${entry.name}`, "Rename", { ...data, action: "rename" }),
         createActionButton(`${archiveText} ${kind} ${entry.name}`, archiveText, { ...data, action: archiveAction })
@@ -1649,6 +1789,46 @@ function createArchivedPill() {
     pill.className = "pill";
     pill.textContent = "Archived";
     return pill;
+}
+
+function createItemSummary(text) {
+    const summary = document.createElement("span");
+    summary.className = "item-summary";
+    summary.textContent = text;
+    return summary;
+}
+
+function formatPayPeriod(payPeriod) {
+    if (!payPeriod) {
+        return "Pay period: follows your week start setting";
+    }
+    const labels = {
+        weekly: "Weekly",
+        biweekly: "Every two weeks",
+        semimonthly: "Twice a month (1st and 16th)",
+        monthly: "Monthly",
+    };
+    if (!payPeriod.anchorDate) {
+        return `Pay period: ${labels[payPeriod.type]}`;
+    }
+    const [year, month, day] = payPeriod.anchorDate.split("-").map(Number);
+    const start = new Date(year, month - 1, day)
+        .toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+    return `Pay period: ${labels[payPeriod.type]}, starting ${start}`;
+}
+
+function formatTemplate(template) {
+    if (!template) {
+        return "No template";
+    }
+    const parts = [template.mealPeriod];
+    if (template.clockIn || template.clockOut) {
+        parts.push(`${template.clockIn || "?"}–${template.clockOut || "?"}`);
+    }
+    if (template.breakStart) {
+        parts.push(`break ${template.breakStart}–${template.breakEnd}`);
+    }
+    return `Template: ${parts.filter(Boolean).join(", ")}`;
 }
 
 function createWorkplaceItem(workplace) {
@@ -1668,6 +1848,7 @@ function createWorkplaceItem(workplace) {
     }
     head.append(createItemActions("workplace", workplace));
 
+    const summary = createItemSummary(formatPayPeriod(workplace.payPeriod));
     const roles = document.createElement("ul");
     roles.className = "role-list";
     roles.setAttribute("aria-label", `Roles at ${workplace.name}`);
@@ -1688,11 +1869,11 @@ function createWorkplaceItem(workplace) {
         if (role.archived) {
             roleItem.append(createArchivedPill());
         }
-        roleItem.append(createItemActions("role", role));
+        roleItem.append(createItemActions("role", role), createItemSummary(formatTemplate(role.template)));
         roles.append(roleItem);
     });
 
-    item.append(head, roles, createActionButton(
+    item.append(head, summary, roles, createActionButton(
         `Add role to ${workplace.name}`,
         "Add role",
         { action: "add-role", kind: "workplace", id: workplace.id },
@@ -1706,6 +1887,7 @@ function renderWorkplaces(focusSelector = null) {
     workplaceEmpty.hidden = workplaces.length > 0;
     workplaceList.hidden = workplaces.length === 0;
     workplaceList.replaceChildren(...workplaces.map(createWorkplaceItem));
+    renderWorkplaceFields();
     if (focusSelector) {
         (workplaceList.querySelector(focusSelector) || document.getElementById("add-workplace")).focus();
     }
@@ -1752,6 +1934,111 @@ function askForName({ title, hint, value = "", submitLabel, validate }) {
         nameInput.focus();
         nameInput.select();
     });
+}
+
+function runFormDialog({ dialog, form, cancelButton, onOpen, onSubmit }) {
+    return new Promise((resolve) => {
+        let settled = false;
+        const finish = (value) => {
+            if (settled) {
+                return;
+            }
+            settled = true;
+            form.removeEventListener("submit", submit);
+            dialog.removeEventListener("close", cancel);
+            cancelButton.removeEventListener("click", cancel);
+            if (dialog.open) {
+                dialog.close();
+            }
+            resolve(value);
+        };
+        const cancel = () => finish(null);
+        const submit = (event) => {
+            event.preventDefault();
+            const outcome = onSubmit();
+            if (outcome !== undefined) {
+                finish(outcome);
+            }
+        };
+        form.addEventListener("submit", submit);
+        dialog.addEventListener("close", cancel);
+        cancelButton.addEventListener("click", cancel);
+        onOpen();
+        dialog.showModal();
+    });
+}
+
+function showDialogError(element, message) {
+    element.textContent = message;
+    element.hidden = !message;
+}
+
+function askForTemplate(role) {
+    const inputs = {
+        mealPeriod: document.getElementById("template-meal-period"),
+        clockIn: document.getElementById("template-clock-in"),
+        clockOut: document.getElementById("template-clock-out"),
+        breakStart: document.getElementById("template-break-start"),
+        breakEnd: document.getElementById("template-break-end"),
+    };
+    const errorElement = document.getElementById("template-error");
+    return runFormDialog({
+        dialog: document.getElementById("template-dialog"),
+        form: document.getElementById("template-form"),
+        cancelButton: document.getElementById("cancel-template"),
+        onOpen: () => {
+            document.getElementById("template-dialog-title").textContent = `Template for ${role.name}`;
+            Object.entries(inputs).forEach(([key, input]) => {
+                input.value = role.template?.[key] || "";
+            });
+            showDialogError(errorElement, "");
+            inputs.mealPeriod.focus();
+        },
+        onSubmit: () => {
+            const value = Object.fromEntries(Object.entries(inputs).map(([key, input]) => [key, input.value]));
+            const check = window.Workplaces.setTemplate(structuredClone(state.workplaces), role.id, value);
+            if (check.error) {
+                showDialogError(errorElement, check.error);
+                return undefined;
+            }
+            return { value: Object.values(value).some(Boolean) ? value : null };
+        },
+    });
+}
+
+function askForPayPeriod(workplace) {
+    const typeInput = document.getElementById("pay-period-type");
+    const anchorInput = document.getElementById("pay-period-anchor");
+    const errorElement = document.getElementById("pay-period-error");
+    return runFormDialog({
+        dialog: document.getElementById("pay-period-dialog"),
+        form: document.getElementById("pay-period-form"),
+        cancelButton: document.getElementById("cancel-pay-period"),
+        onOpen: () => {
+            document.getElementById("pay-period-dialog-title").textContent = `Pay period for ${workplace.name}`;
+            typeInput.value = workplace.payPeriod?.type || "";
+            anchorInput.value = workplace.payPeriod?.anchorDate || "";
+            updatePayPeriodAnchor();
+            showDialogError(errorElement, "");
+            typeInput.focus();
+        },
+        onSubmit: () => {
+            const value = typeInput.value
+                ? { type: typeInput.value, anchorDate: anchorInput.value }
+                : null;
+            const check = window.Workplaces.setPayPeriod(structuredClone(state.workplaces), workplace.id, value);
+            if (check.error) {
+                showDialogError(errorElement, check.error);
+                return undefined;
+            }
+            return { value };
+        },
+    });
+}
+
+function updatePayPeriodAnchor() {
+    const needsAnchor = ["weekly", "biweekly"].includes(document.getElementById("pay-period-type").value);
+    document.getElementById("pay-period-anchor-field").hidden = !needsAnchor;
 }
 
 async function addWorkplaceFromSettings() {
@@ -1822,6 +2109,22 @@ async function handleWorkplaceAction(event) {
         }
         result = commitWorkplaces((draft) => window.Workplaces.rename(draft, kind, id, name));
         message = `Renamed to “${name}”.`;
+    } else if (action === "template") {
+        const template = await askForTemplate(entry);
+        if (template === null) {
+            button.focus();
+            return;
+        }
+        result = commitWorkplaces((draft) => window.Workplaces.setTemplate(draft, id, template.value));
+        message = template.value ? `Saved the template for ${entry.name}.` : `Cleared the template for ${entry.name}.`;
+    } else if (action === "pay-period") {
+        const payPeriod = await askForPayPeriod(entry);
+        if (payPeriod === null) {
+            button.focus();
+            return;
+        }
+        result = commitWorkplaces((draft) => window.Workplaces.setPayPeriod(draft, id, payPeriod.value));
+        message = `Saved the pay period for ${entry.name}.`;
     } else if (action === "archive" || action === "unarchive") {
         const archived = action === "archive";
         result = commitWorkplaces((draft) => window.Workplaces.setArchived(draft, kind, id, archived));

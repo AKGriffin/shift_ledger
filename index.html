@@ -165,7 +165,18 @@
                                     </select>
                                     <span class="field-error" id="shift-meal-period-error" hidden></span>
                                 </label>
-                                <label class="field">
+                                <label class="field" id="shift-workplace-field" hidden>
+                                    <span>Workplace</span>
+                                    <select id="shift-workplace" aria-describedby="shift-workplace-error"></select>
+                                    <span class="field-error" id="shift-workplace-error" hidden></span>
+                                </label>
+                                <label class="field" id="shift-role-field" hidden>
+                                    <span>Role</span>
+                                    <select id="shift-role" aria-describedby="shift-role-hint shift-role-error"></select>
+                                    <small class="field-hint" id="shift-role-hint" aria-live="polite"></small>
+                                    <span class="field-error" id="shift-role-error" hidden></span>
+                                </label>
+                                <label class="field" id="shift-job-field">
                                     <span>Job</span>
                                     <select id="shift-job" aria-describedby="shift-job-error" required>
                                         <option value="">Select</option>
@@ -475,7 +486,7 @@
                                     <h2 id="work-setup-title">Workplaces &amp; roles</h2>
                                 </div>
                             </div>
-                            <p class="settings-description">Add the places you work and the roles you have at each one. Archive anything you no longer use: archived items leave future choices, while past shifts keep their job name and stay in your history. Only items with no saved shifts can be deleted.</p>
+                            <p class="settings-description">Add the places you work and the roles you have at each one. Set one template per role and a pay period per workplace. Archive anything you no longer use: archived items leave future choices, while past shifts keep their job name and stay in your history. Only items with no saved shifts can be deleted.</p>
                             <div id="workplace-empty" class="workplace-empty" hidden>
                                 <p class="settings-description">No workplaces yet. Set one up from the jobs in your saved shifts, or add one yourself.</p>
                                 <button type="button" id="open-workplace-setup" class="secondary-button" aria-haspopup="dialog">Set up workplaces</button>
@@ -553,6 +564,78 @@
                 </div>
             </form>
         </dialog>
+
+        <dialog id="template-dialog" class="history-filter-dialog" aria-labelledby="template-dialog-title">
+            <form id="template-form" novalidate>
+                <div class="filter-dialog-header">
+                    <div>
+                        <h3 id="template-dialog-title">Role template</h3>
+                        <p>These values prefill a new shift for this role, only in fields you haven't filled in. You can still change everything on the shift. Leave a field empty to skip it.</p>
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="template-meal-period">Meal period</label>
+                    <select id="template-meal-period">
+                        <option value="">No default</option>
+                        <option value="Lunch">Lunch</option>
+                        <option value="Dinner">Dinner</option>
+                        <option value="Double">Double</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="template-clock-in">Clock in</label>
+                    <input type="time" id="template-clock-in">
+                </div>
+                <div class="field">
+                    <label for="template-clock-out">Clock out</label>
+                    <input type="time" id="template-clock-out">
+                </div>
+                <div class="field">
+                    <label for="template-break-start">Break start</label>
+                    <input type="time" id="template-break-start">
+                </div>
+                <div class="field">
+                    <label for="template-break-end">Break end</label>
+                    <input type="time" id="template-break-end" aria-describedby="template-error">
+                </div>
+                <span class="field-error" id="template-error" hidden></span>
+                <div class="filter-dialog-actions">
+                    <button type="button" id="cancel-template" class="ghost-button">Cancel</button>
+                    <button type="submit" class="primary-button">Save template</button>
+                </div>
+            </form>
+        </dialog>
+
+        <dialog id="pay-period-dialog" class="history-filter-dialog" aria-labelledby="pay-period-dialog-title">
+            <form id="pay-period-form" novalidate>
+                <div class="filter-dialog-header">
+                    <div>
+                        <h3 id="pay-period-dialog-title">Pay period</h3>
+                        <p>How often this workplace pays you. If you don't set one, the week start in Settings is used.</p>
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="pay-period-type">Pay period</label>
+                    <select id="pay-period-type">
+                        <option value="">Use the week start setting</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="biweekly">Every two weeks</option>
+                        <option value="semimonthly">Twice a month (1st and 16th)</option>
+                        <option value="monthly">Monthly</option>
+                    </select>
+                </div>
+                <div class="field" id="pay-period-anchor-field" hidden>
+                    <label for="pay-period-anchor">A date a pay period starts</label>
+                    <input type="date" id="pay-period-anchor" aria-describedby="pay-period-error">
+                </div>
+                <span class="field-error" id="pay-period-error" hidden></span>
+                <div class="filter-dialog-actions">
+                    <button type="button" id="cancel-pay-period" class="ghost-button">Cancel</button>
+                    <button type="submit" class="primary-button">Save pay period</button>
+                </div>
+            </form>
+        </dialog>
+
         <nav class="mobile-bottom-nav" aria-label="Quick navigation">
             <button type="button" class="mobile-bottom-nav-button" data-view="dashboard">
                 <span aria-hidden="true">⌂</span>

@@ -17,6 +17,32 @@ const sampleData = () => ({
     }],
 });
 
+const sampleDataWithTemplate = () => ({
+    version: 1,
+    setupDismissed: true,
+    workplaces: [{
+        id: "wp-1",
+        name: "Bistro",
+        archived: false,
+        payPeriod: { type: "weekly", anchorDate: "2026-10-19" },
+        roles: [
+            {
+                id: "r-1",
+                name: "Server",
+                archived: false,
+                template: {
+                    mealPeriod: "Dinner",
+                    clockIn: "16:00",
+                    clockOut: "22:00",
+                    breakStart: "19:00",
+                    breakEnd: "19:30",
+                },
+            },
+            { id: "r-2", name: "Bartender", archived: false },
+        ],
+    }],
+});
+
 const tick = (win) => new Promise((resolve) => win.setTimeout(resolve, 50));
 
 describe("Workplaces data module", () => {
@@ -75,6 +101,18 @@ describe("Workplaces data module", () => {
         const bad = sampleData();
         bad.workplaces.push({ ...bad.workplaces[0] });
         expect(() => Workplaces.normalizeData(bad)).toThrow();
+    });
+
+    test("saves templates and pay periods with validation", () => {
+        const data = sampleData();
+        expect(Workplaces.setTemplate(data, "r-1", {
+            mealPeriod: "Lunch",
+            clockIn: "10:00",
+            clockOut: "15:00",
+        }).item.template.mealPeriod).toBe("Lunch");
+        expect(Workplaces.setTemplate(data, "r-1", { breakStart: "12:00" }).error).toContain("both break times");
+        expect(Workplaces.setPayPeriod(data, "wp-1", { type: "biweekly", anchorDate: "2026-10-17" }).item.payPeriod.type).toBe("biweekly");
+        expect(Workplaces.setPayPeriod(data, "wp-1", { type: "weekly", anchorDate: "2026-13-01" }).error).toContain("date");
     });
 
     test("keeps a recovery copy of corrupt data", () => {
@@ -210,6 +248,65 @@ describe("Workplace manager in Settings", () => {
         expect(savedWorkplaces().workplaces[0].roles).toHaveLength(1);
         expect(doc.activeElement).toBeDefined();
     }));
+
+    test("edits role templates and workplace pay periods", () => withApp({ workplaces: sampleData() }, async ({ win, element, openView, fire, savedWorkplaces }) => {
+        openView("settings");
+        element('button[data-action="template"][data-id="r-1"]').click();
+        element("#template-meal-period").value = "Lunch";
+        element("#template-clock-in").value = "11:00";
+        element("#template-clock-out").value = "15:00";
+        fire(element("#template-form"), "submit");
+        await tick(win);
+        expect(savedWorkplaces().workplaces[0].roles[0].template.clockIn).toBe("11:00");
+
+        element('button[data-action="pay-period"][data-id="wp-1"]').click();
+        element("#pay-period-type").value = "biweekly";
+        fire(element("#pay-period-type"), "change");
+        element("#pay-period-anchor").value = "2026-10-16";
+        fire(element("#pay-period-form"), "submit");
+        await tick(win);
+        expect(savedWorkplaces().workplaces[0].payPeriod.type).toBe("biweekly");
+        expect(savedWorkplaces().workplaces[0].payPeriod.anchorDate).toBe("2026-10-16");
+    }));
+});
+
+describe("Shift form workplace mode", () => {
+    test("shows workplace and role selects and hides the legacy job field", () => withApp({ workplaces: sampleData() }, ({ element, openView }) => {
+        openView("new-shift");
+        expect(element("#shift-workplace-field").hidden).toBe(false);
+        expect(element("#shift-role-field").hidden).toBe(false);
+        expect(element("#shift-job-field").hidden).toBe(true);
+        expect(element("#shift-workplace").value).toBe("wp-1");
+    }));
+
+    test("applies template values only to empty fields", () => withApp({ workplaces: sampleDataWithTemplate() }, ({ element, change, openView }) => {
+        openView("new-shift");
+        change("#shift-clock-in", "17:00");
+        change("#shift-role", "r-1");
+        expect(element("#shift-meal-period").value).toBe("Dinner");
+        expect(element("#shift-clock-in").value).toBe("17:00");
+        expect(element("#shift-clock-out").value).toBe("22:00");
+        expect(element("#shift-break-start").value).toBe("19:00");
+        expect(element("#shift-role-hint").textContent).toContain("Filled");
+    }));
+
+    test("saves a shift with workplace and role ids while keeping a job snapshot", () => withApp({ workplaces: sampleDataWithTemplate() }, ({ fillForm, submitForm, openView, savedShifts }) => {
+        openView("new-shift");
+        fillForm({
+            date: "2026-10-22",
+            mealPeriod: "Dinner",
+            workplace: "wp-1",
+            role: "r-2",
+            clockIn: "16:00",
+            clockOut: "22:00",
+        });
+        submitForm();
+        const [saved] = savedShifts();
+        expect(saved.workplaceId).toBe("wp-1");
+        expect(saved.roleId).toBe("r-2");
+        expect(saved.job).toBe("Bartender");
+    }));
+
 });
 
 describe("Backup with workplaces", () => {

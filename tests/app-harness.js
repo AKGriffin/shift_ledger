@@ -8,6 +8,8 @@ const FIELD_IDS = {
     date: "shift-date",
     mealPeriod: "shift-meal-period",
     job: "shift-job",
+    workplace: "shift-workplace",
+    role: "shift-role",
     clockIn: "shift-clock-in",
     clockOut: "shift-clock-out",
     breakStart: "shift-break-start",

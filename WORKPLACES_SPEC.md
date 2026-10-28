@@ -177,4 +177,4 @@ Where the shipped version differs from the plan above:
 
 - The setup dialog takes a comma-separated list of roles (prefilled from existing jobs) instead of a checkbox list.
 - The pre-linking copy of shifts is saved under `shift-ledger-shifts-v1-pre-workplaces`, separate from the corruption recovery key, so neither overwrites the other.
-- Pay period is not in the setup dialog yet. It arrives with "Use roles and templates when logging shifts".
+- Pay period is not in the setup dialog; users set it per workplace from Settings.

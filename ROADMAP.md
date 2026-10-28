@@ -10,7 +10,7 @@ The first round of polish, reliability, and accessibility work is done. The next
 
 - [x] **Model shift-report coverage explicitly** - Distinguish no report from a received zero-value report, represent partial and whole-double reports, and prevent overlapping totals from being counted twice. Build this first: roles without reports depend on it.
 - [x] **Manage workplaces and roles in Settings** - Add, rename, archive, and unarchive workplaces and roles, and delete unused ones. Includes the skippable first-run setup dialog, the migration that links existing shifts by `job`, and version 2 backups that carry workplaces. Archived items stay on historical shifts.
-- [ ] **Use roles and templates when logging shifts** - Select a workplace and role, start from an editable role template that never overwrites typed values, and configure per-workplace pay periods.
+- [x] **Use roles and templates when logging shifts** - Select a workplace and role, start from an editable role template that never overwrites typed values, and configure per-workplace pay periods.
 - [ ] **Support roles without shift reports** - Let a role mark sales and report details as unavailable so users can record hours and other known details without inventing numbers.
 - [ ] **Make history and the dashboard workplace-aware** - Add workplace and role filters to Previous Shifts, show "Role · Workplace" on cards, and let the dashboard and CSV export scope to a workplace.
 
@@ -56,6 +56,7 @@ These share the dashboard code, so plan them together. Period summaries should b
 
 ## Recently completed
 
+- Workplace and role selection in the shift form, with role templates that prefill empty fields only and per-workplace pay periods managed in Settings.
 - Workplaces and roles managed in Settings, with a skippable first-run setup, job-name migration, and version 2 backups.
 - Reliable PWA refresh and update behavior, including automatic checks when returning online or to the foreground and a reload safeguard for unsaved shifts.
 - Predictable Back and Forward navigation between app views, preserving unfinished form values.
