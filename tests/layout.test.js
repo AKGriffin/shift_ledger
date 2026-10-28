@@ -34,12 +34,45 @@ describe("Mobile navigation", () => {
         expect(element('.mobile-bottom-nav [data-view="new-shift"]').getAttribute("aria-current")).toBe("page");
     }));
 
-    test("hides dashboard actions and the overview blurb on phones", () => withApp({
+    test("keeps the dashboard overview copy visible and hides its actions on phones", () => withApp({
         width: 390,
         height: 844,
     }, ({ element, style }) => {
         expect(style(element(".dashboard-heading-actions")).display).toBe("none");
-        expect(style(element(".dashboard-heading p:last-child")).display).toBe("none");
+        expect(style(element(".dashboard-heading .view-heading > p:not(.eyebrow)")).display).not.toBe("none");
+    }));
+
+    test("uses one consistent page heading and mobile top spacing across main views", () => withApp({
+        width: 390,
+        height: 844,
+    }, ({ element, openView }) => {
+        const headers = [
+            ["dashboard", ".dashboard-heading"],
+            ["new-shift", ".form-header-card"],
+            ["previous-shifts", ".history-page-heading"],
+            ["settings", ".settings-page-header"],
+        ];
+        let expectedTop;
+
+        headers.forEach(([view, selector]) => {
+            openView(view);
+            const heading = element(`#${view} h1`);
+            const header = element(selector);
+
+            expect(heading).toBeTruthy();
+            expect(element(`#${view}`).querySelectorAll("h1")).toHaveLength(1);
+            expect(element(`#${view} .view-heading`)).toBeTruthy();
+            expect(heading.closest(".panel")).toBe(null);
+            const [eyebrow, copy] = [".eyebrow", "p:not(.eyebrow)"].map((part) => element(`#${view} .view-heading ${part}`).getBoundingClientRect());
+            expect(heading.getBoundingClientRect().top).toBeGreaterThan(eyebrow.top);
+            expect(copy.top).toBeGreaterThan(heading.getBoundingClientRect().top);
+            expect(Math.round(copy.left)).toBe(Math.round(eyebrow.left));
+            if (expectedTop === undefined) {
+                expectedTop = header.getBoundingClientRect().top;
+            } else {
+                expect(header.getBoundingClientRect().top).toBe(expectedTop);
+            }
+        });
     }));
 
     test("stacks dashboard summary stats as label-and-value rows on phones", () => withApp({
@@ -131,6 +164,7 @@ describe("New shift layout", () => {
 
         expect(element("#shift-form").previousElementSibling.classList.contains("form-header-card")).toBe(true);
         expect(element(".form-header-card").contains(element("#shift-form"))).toBe(false);
+        expect(element("#form-title").closest(".panel")).toBe(null);
     }));
 
     test("flows the form in one vertical column on a wide screen", () => withApp({ width: 1400, height: 1000 }, ({ element, elements, openView }) => {

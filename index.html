@@ -43,8 +43,8 @@
 
         <main>
             <section id="dashboard" class="view is-visible">
-                <div class="panel dashboard-heading">
-                    <div>
+                <header class="dashboard-heading view-header">
+                    <div class="view-heading">
                         <p class="eyebrow">At a glance</p>
                         <h1>Your overview</h1>
                         <p>See how your shifts, hours, sales, and tips are adding up.</p>
@@ -53,7 +53,7 @@
                         <button type="button" id="open-dashboard-customize" class="secondary-button" aria-haspopup="dialog" aria-controls="dashboard-customize-dialog">Customize</button>
                         <button type="button" class="primary-button" data-view="new-shift">＋ Log a shift</button>
                     </div>
-                </div>
+                </header>
                 <section class="dashboard-totals" data-dashboard-section="totals" aria-labelledby="summary-heading">
                     <h2 id="summary-heading" class="summary-heading">All-time totals</h2>
                     <div class="summary-grid" role="group" aria-label="All-time totals">
@@ -136,13 +136,13 @@
             </section>
 
             <section id="new-shift" class="view is-hidden">
-                <div class="panel form-header-card">
-                    <div>
+                <header class="form-header-card view-header">
+                    <div class="view-heading">
                         <p class="eyebrow">Shift entry</p>
-                        <h2 id="form-title">New Shift</h2>
+                        <h1 id="form-title">New Shift</h1>
+                        <p>Capture the time, sales, and tips for this shift.</p>
                     </div>
-                    <p>Capture the time, sales, and tips for this shift.</p>
-                </div>
+                </header>
 
                 <form id="shift-form" class="shift-form" novalidate>
                     <div class="form-context-grid">
@@ -289,27 +289,29 @@
             </section>
 
             <section id="previous-shifts" class="view is-hidden">
+                <header class="history-page-heading view-header">
+                    <div class="view-heading">
+                        <p class="eyebrow">Your work</p>
+                        <h1>Previous shifts</h1>
+                        <p>Review and filter your saved shift history.</p>
+                    </div>
+                </header>
                 <div class="panel history-header-card">
-                    <div class="history-header">
-                        <div class="history-heading">
-                            <h2>Previous shifts</h2>
-                        </div>
-                        <div class="history-toolbar">
-                            <label class="inline-field history-sort">
-                                <span>Sort by</span>
-                                <select id="sort-by">
-                                    <option value="date-desc">Newest first</option>
-                                    <option value="date-asc">Oldest first</option>
-                                    <option value="sales-desc">Sales: high to low</option>
-                                    <option value="tips-desc">Tips: high to low</option>
-                                </select>
-                            </label>
-                            <div class="history-actions">
-                                <button type="button" id="open-history-filters" class="secondary-button"
-                                    aria-haspopup="dialog" aria-controls="history-filter-dialog" aria-expanded="false">
-                                    Filters <span id="active-filter-count" class="filter-count" hidden></span>
-                                </button>
-                            </div>
+                    <div class="history-toolbar">
+                        <label class="inline-field history-sort">
+                            <span>Sort by</span>
+                            <select id="sort-by">
+                                <option value="date-desc">Newest first</option>
+                                <option value="date-asc">Oldest first</option>
+                                <option value="sales-desc">Sales: high to low</option>
+                                <option value="tips-desc">Tips: high to low</option>
+                            </select>
+                        </label>
+                        <div class="history-actions">
+                            <button type="button" id="open-history-filters" class="secondary-button"
+                                aria-haspopup="dialog" aria-controls="history-filter-dialog" aria-expanded="false">
+                                Filters <span id="active-filter-count" class="filter-count" hidden></span>
+                            </button>
                         </div>
                     </div>
                     <p id="history-status" class="history-status" role="status" aria-live="polite"></p>
@@ -350,13 +352,13 @@
             </section>
             <section id="settings" class="view is-hidden">
                 <div class="settings-page">
-                    <div class="settings-page-header">
-                        <div>
+                    <header class="settings-page-header view-header">
+                        <div class="view-heading">
                             <p class="eyebrow">Make it yours</p>
                             <h1>Settings</h1>
                             <p>Set up your appearance, work preferences, and data.</p>
                         </div>
-                    </div>
+                    </header>
 
                     <div class="settings-card-grid">
                         <section class="settings-card preferences-card" aria-labelledby="preferences-title">
