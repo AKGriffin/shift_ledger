@@ -1194,9 +1194,16 @@ legend {
     gap: 8px;
 }
 
-.field span {
+.field span,
+.field > label {
     font-weight: 600;
     color: var(--text);
+}
+
+.field-hint {
+    color: var(--muted);
+    font-size: 0.85rem;
+    line-height: 1.4;
 }
 
 .field input,
@@ -1526,6 +1533,25 @@ textarea {
     flex: 0 0 auto;
     margin: 0;
     accent-color: var(--primary);
+}
+
+.dashboard-options label:has(input:focus-visible) {
+    outline: 2px solid var(--primary);
+    outline-offset: 3px;
+    border-radius: 6px;
+}
+
+.field select:focus-visible,
+.field input:focus-visible,
+.nav-button:focus-visible,
+.primary-button:focus-visible,
+.secondary-button:focus-visible,
+.ghost-button:focus-visible,
+.danger-button:focus-visible,
+.mobile-bottom-nav-button:focus-visible,
+.filter-chip:focus-visible {
+    outline: 3px solid var(--primary);
+    outline-offset: 2px;
 }
 
 .inline-field {

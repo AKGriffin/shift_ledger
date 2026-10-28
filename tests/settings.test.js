@@ -12,15 +12,29 @@ const styleOptions = [
 ];
 
 describe("Settings page", () => {
-    test("shows the preferences, dashboard, work setup, and data cards", () => withApp(({ element, elements, openView }) => {
+    test("shows the appearance, formats, dashboard, work setup, and data cards", () => withApp(({ element, elements, openView }) => {
         openView("settings");
 
-        expect(elements(".settings-card")).toHaveLength(4);
+        expect(elements(".settings-card")).toHaveLength(5);
+        expect(element("#appearance-title").textContent).toBe("Appearance");
+        expect(element("#formats-title").textContent).toBe("Formats & display");
         expect(element("#work-setup-title").textContent).toBe("Jobs & roles");
         expect(element("#dashboard-settings-title").textContent).toBe("Dashboard");
         expect(element("#export-csv").textContent).toBe("Download CSV");
         expect(element(".work-setup-flow").textContent.replace(/\s+/g, " ").trim())
             .toContain("Restaurants › Roles › Shift templates");
+    }));
+
+    test("labels every setting and links it to a hint", () => withApp(({ doc, elements, openView }) => {
+        openView("settings");
+
+        const selects = elements("#settings .settings-grid select");
+        expect(selects).toHaveLength(5);
+        selects.forEach((select) => {
+            const hint = doc.getElementById(select.getAttribute("aria-describedby"));
+            expect(hint.textContent.trim().length).toBeGreaterThan(0);
+            expect(doc.querySelector(`label[for="${select.id}"]`).textContent.trim().length).toBeGreaterThan(0);
+        });
     }));
 });
 

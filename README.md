@@ -26,7 +26,7 @@ The service worker caches the app shell and static assets. When deploying an upd
 - Keep sorting in reach and manage date/job filters in an accessible dialog; active filters appear as removable chips under the controls
 - Export all saved shifts as a CSV file
 - Choose among seven visual styles—Minimalist, Material, Neo-brutalist, Cyberpunk/Synthwave, Glassmorphism, Modern Skeuomorphism, and High-Contrast—independently from system, light, or dark mode; set the week start day, currency, and whether zero-value shift details are shown
-- Review appearance and data preferences in responsive settings cards, with a work-setup roadmap for future restaurant, role, and shift-template management
+- Review appearance, format, dashboard, and data preferences in focused settings cards with short hints for each option, with a work-setup roadmap for future restaurant, role, and shift-template management
 - Import or download a complete JSON data backup
 
 ## Project direction

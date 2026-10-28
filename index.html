@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -362,18 +362,18 @@
                     </header>
 
                     <div class="settings-card-grid">
-                        <section class="settings-card preferences-card" aria-labelledby="preferences-title">
+                        <section class="settings-card appearance-card" aria-labelledby="appearance-title">
                             <div class="settings-card-heading">
                                 <span class="settings-card-icon" aria-hidden="true">01</span>
                                 <div>
                                     <p class="eyebrow">Personalize</p>
-                                    <h2 id="preferences-title">Preferences</h2>
+                                    <h2 id="appearance-title">Appearance</h2>
                                 </div>
                             </div>
                             <div class="settings-grid">
-                                <label class="field">
-                                    <span>Visual style</span>
-                                    <select id="setting-style">
+                                <div class="field">
+                                    <label for="setting-style">Visual style</label>
+                                    <select id="setting-style" aria-describedby="setting-style-hint">
                                         <option value="minimalist">Minimalist</option>
                                         <option value="material">Material</option>
                                         <option value="neo-brutalist">Neo-brutalist</option>
@@ -382,46 +382,61 @@
                                         <option value="skeuomorphic">Modern Skeuomorphism</option>
                                         <option value="high-contrast">High-Contrast Accessible</option>
                                     </select>
-                                </label>
-                                <label class="field">
-                                    <span>Color mode</span>
-                                    <select id="setting-mode">
+                                    <small class="field-hint" id="setting-style-hint">Changes the look of the whole app.</small>
+                                </div>
+                                <div class="field">
+                                    <label for="setting-mode">Color mode</label>
+                                    <select id="setting-mode" aria-describedby="setting-mode-hint">
                                         <option value="system">System default</option>
                                         <option value="light">Light</option>
                                         <option value="dark">Dark</option>
                                     </select>
-                                </label>
-                                <label class="field">
-                                    <span>Week starts on</span>
-                                    <select id="setting-week-start">
+                                    <small class="field-hint" id="setting-mode-hint">Works with any visual style.</small>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="settings-card formats-card" aria-labelledby="formats-title">
+                            <div class="settings-card-heading">
+                                <span class="settings-card-icon" aria-hidden="true">02</span>
+                                <div>
+                                    <p class="eyebrow">Personalize</p>
+                                    <h2 id="formats-title">Formats &amp; display</h2>
+                                </div>
+                            </div>
+                            <div class="settings-grid">
+                                <div class="field">
+                                    <label for="setting-week-start">Week starts on</label>
+                                    <select id="setting-week-start" aria-describedby="setting-week-start-hint">
                                         <option value="monday">Monday</option>
                                         <option value="sunday">Sunday</option>
                                     </select>
-                                </label>
-                                <label class="field">
-                                    <span>Currency</span>
-                                    <select id="setting-currency">
+                                    <small class="field-hint" id="setting-week-start-hint">Used for the weekly summary.</small>
+                                </div>
+                                <div class="field">
+                                    <label for="setting-currency">Currency</label>
+                                    <select id="setting-currency" aria-describedby="setting-currency-hint">
                                         <option value="USD">US Dollar (USD)</option>
                                         <option value="CAD">Canadian Dollar (CAD)</option>
                                         <option value="GBP">British Pound (GBP)</option>
                                         <option value="EUR">Euro (EUR)</option>
                                     </select>
-                                </label>
-                                <label class="field">
-                                    <span>Zero amounts in shift details</span>
-                                    <select id="setting-zero-details">
+                                    <small class="field-hint" id="setting-currency-hint">Changes how amounts display; it doesn't convert them.</small>
+                                </div>
+                                <div class="field">
+                                    <label for="setting-zero-details">Zero amounts in shift details</label>
+                                    <select id="setting-zero-details" aria-describedby="setting-zero-details-hint">
                                         <option value="hide">Hide</option>
                                         <option value="show">Show</option>
                                     </select>
-                                </label>
+                                    <small class="field-hint" id="setting-zero-details-hint">Applies to the breakdowns in Previous shifts.</small>
+                                </div>
                             </div>
-                            <p class="settings-description">Choose a visual style and set its color mode independently.</p>
-                            <p class="settings-description">Currency changes how amounts are displayed; it does not convert existing values.</p>
                         </section>
 
                         <section class="settings-card dashboard-settings-card" aria-labelledby="dashboard-settings-title">
                             <div class="settings-card-heading">
-                                <span class="settings-card-icon" aria-hidden="true">02</span>
+                                <span class="settings-card-icon" aria-hidden="true">03</span>
                                 <div>
                                     <p class="eyebrow">Personalize</p>
                                     <h2 id="dashboard-settings-title">Dashboard</h2>
@@ -445,7 +460,7 @@
 
                         <section class="settings-card work-setup-card" aria-labelledby="work-setup-title">
                             <div class="settings-card-heading">
-                                <span class="settings-card-icon" aria-hidden="true">03</span>
+                                <span class="settings-card-icon" aria-hidden="true">04</span>
                                 <div>
                                     <p class="eyebrow">Work profile</p>
                                     <h2 id="work-setup-title">Jobs &amp; roles</h2>
@@ -464,7 +479,7 @@
 
                         <section class="settings-card data-card" aria-labelledby="data-title">
                             <div class="settings-card-heading">
-                                <span class="settings-card-icon" aria-hidden="true">04</span>
+                                <span class="settings-card-icon" aria-hidden="true">05</span>
                                 <div>
                                     <p class="eyebrow">Backup &amp; privacy</p>
                                     <h2 id="data-title">Your data</h2>
