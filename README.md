@@ -24,6 +24,7 @@ The service worker caches the app shell and static assets. When deploying an upd
 - Switch between the main views with a thumb-friendly bottom navigation on mobile
 - Filter shift history by date range and job; sort by date, sales, or tips
 - Keep sorting in reach and manage date/job filters in an accessible dialog; active filters appear as removable chips under the controls
+- Navigate with the keyboard and screen readers: a skip link, focus moves to the page heading and the tab title updates when you switch pages, and animations are reduced when your system asks for it
 - Export all saved shifts as a CSV file
 - Choose among seven visual styles—Minimalist, Material, Neo-brutalist, Cyberpunk/Synthwave, Glassmorphism, Modern Skeuomorphism, and High-Contrast—independently from system, light, or dark mode; set the week start day, currency, and whether zero-value shift details are shown
 - Review appearance, format, dashboard, and data preferences in focused settings cards with short hints for each option, with a work-setup roadmap for future restaurant, role, and shift-template management
@@ -39,7 +40,7 @@ Serve the project directory with a static web server, then open `/tests/` in the
 
 ## Data and privacy
 
-Shift data and preferences are saved in this browser's `localStorage`; they are not uploaded to a server. Clearing browser storage or switching browsers/devices can remove or make the data unavailable, so download a JSON backup before clearing data or moving devices.
+Shift data and preferences are saved in this browser's `localStorage`; they are not uploaded to a server. Stored and imported shifts are validated the same way. If saved data can't be read, the app keeps a copy under `shift-ledger-shifts-v1-recovery` and shows a notice instead of silently overwriting it. Clearing browser storage or switching browsers/devices can remove or make the data unavailable, so download a JSON backup before clearing data or moving devices. browser storage or switching browsers/devices can remove or make the data unavailable, so download a JSON backup before clearing data or moving devices.
 
 CSV exports include all saved shifts. Keep exported files somewhere private because they can contain work and earnings information.
 

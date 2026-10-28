@@ -1,5 +1,6 @@
 export const SHIFT_STORAGE_KEY = "shift-ledger-shifts-v1";
 export const SETTINGS_STORAGE_KEY = "shift-ledger-settings-v1";
+export const RECOVERY_STORAGE_KEY = "shift-ledger-shifts-v1-recovery";
 
 const FIELD_IDS = {
     date: "shift-date",
@@ -95,8 +96,10 @@ async function runWithApp({ width = 1200, height = 1000, shifts, settings } = {}
     localStorage.removeItem(SHIFT_STORAGE_KEY);
     localStorage.removeItem(SETTINGS_STORAGE_KEY);
     if (shifts) {
-        localStorage.setItem(SHIFT_STORAGE_KEY, JSON.stringify(shifts));
+        localStorage.setItem(SHIFT_STORAGE_KEY, typeof shifts === "string" ? shifts : JSON.stringify(shifts));
     }
+    const previousRecovery = localStorage.getItem(RECOVERY_STORAGE_KEY);
+    localStorage.removeItem(RECOVERY_STORAGE_KEY);
     if (settings) {
         localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
     }
@@ -121,6 +124,7 @@ async function runWithApp({ width = 1200, height = 1000, shifts, settings } = {}
         frame.remove();
         restoreItem(SHIFT_STORAGE_KEY, previous.shifts);
         restoreItem(SETTINGS_STORAGE_KEY, previous.settings);
+        restoreItem(RECOVERY_STORAGE_KEY, previousRecovery);
     }
 }
 

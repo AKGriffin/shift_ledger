@@ -1,9 +1,40 @@
 import { describe, expect, test } from "./assert.js";
-import { withApp } from "./app-harness.js";
+import { makeShift, withApp } from "./app-harness.js";
 
 describe("Branding", () => {
     test("uses the app icon in the sidebar", () => withApp({ width: 390, height: 667 }, ({ doc }) => {
         expect(doc.querySelector(".brand img").getAttribute("src")).toBe("assets/icons/icon.svg");
+    }));
+});
+
+describe("Accessibility", () => {
+    test("offers a skip link to the main content", () => withApp(({ element }) => {
+        const link = element(".skip-link");
+        expect(link.getAttribute("href")).toBe("#main-content");
+        expect(element("#main-content").tagName).toBe("MAIN");
+    }));
+
+    test("moves focus to the new page heading and updates the title when switching views", () => withApp(({ doc, element, openView }) => {
+        expect(doc.title).toBe("Dashboard · Shift Ledger");
+        openView("settings");
+        expect(doc.activeElement).toBe(element("#settings h1"));
+        expect(doc.title).toBe("Settings · Shift Ledger");
+    }));
+
+    test("keeps visible text in the accessible names of quick navigation buttons", () => withApp(({ elements }) => {
+        elements(".mobile-bottom-nav-button").forEach((button) => {
+            expect(button.hasAttribute("aria-label")).toBe(false);
+            expect(button.textContent.trim().length > 0).toBe(true);
+        });
+    }));
+
+    test("uses a plain disclosure for shift actions instead of an unsupported menu role", () => withApp({
+        shifts: [makeShift()],
+    }, ({ element, elements, openView }) => {
+        openView("previous-shifts");
+        expect(elements("[role='menu'], [role='menuitem']")).toHaveLength(0);
+        expect(element(".card-menu-toggle").hasAttribute("aria-haspopup")).toBe(false);
+        expect(element(".card-menu-toggle").getAttribute("aria-expanded")).toBe("false");
     }));
 });
 

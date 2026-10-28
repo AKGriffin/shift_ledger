@@ -1,5 +1,5 @@
 import { describe, expect, test } from "./assert.js";
-import { contrastRatio, makeShift, withApp } from "./app-harness.js";
+import { contrastRatio, makeShift, RECOVERY_STORAGE_KEY, withApp } from "./app-harness.js";
 
 const styleOptions = [
     "minimalist",
@@ -229,6 +229,62 @@ describe("Currency", () => {
 
         expect(element("#summary-total-sales").textContent).toBe("£325.50");
         expect(savedSettings().currency).toBe("GBP");
+    }));
+});
+
+describe("Data reliability", () => {
+    const restore = async ({ doc, win, element, fire }, payload) => {
+        win.confirm = () => true;
+        const input = element("#backup-file");
+        const transfer = new win.DataTransfer();
+        transfer.items.add(new win.File([payload], "backup.json", { type: "application/json" }));
+        input.files = transfer.files;
+        fire(input, "change");
+        await new Promise((resolve) => win.setTimeout(resolve, 100));
+        return doc;
+    };
+
+    test("keeps a recovery copy and warns when stored data cannot be read", () => withApp({
+        shifts: "{not json",
+    }, ({ element }) => {
+        expect(element("#form-status").hidden).toBe(false);
+        expect(element("#form-status").textContent).toContain("could not be read");
+        expect(localStorage.getItem(RECOVERY_STORAGE_KEY)).toBe("{not json");
+    }));
+
+    test("skips unreadable stored shifts, keeps valid ones and preserves the original", () => withApp({
+        shifts: [makeShift({ job: "Expo" }), { id: 9, date: "bad" }],
+    }, ({ element, savedShifts }) => {
+        expect(element("#summary-total-shifts").textContent).toBe("1");
+        expect(element("#form-status").textContent).toContain("1 saved shift was unreadable");
+        expect(JSON.parse(localStorage.getItem(RECOVERY_STORAGE_KEY))).toHaveLength(2);
+        expect(savedShifts()).toHaveLength(2);
+    }));
+
+    test("restores a valid backup and rejects invalid times or meal periods", () => withApp({
+        shifts: [makeShift()],
+    }, async (app) => {
+        const { element, savedShifts, openView } = app;
+        openView("settings");
+
+        await restore(app, JSON.stringify({ shifts: [makeShift({ job: "Bar" }), makeShift({ job: "Host" })] }));
+        expect(savedShifts()).toHaveLength(2);
+        expect(element("#form-status").textContent).toContain("Restored 2 shifts");
+
+        await restore(app, JSON.stringify([makeShift({ clockIn: "25:99" })]));
+        expect(element("#form-status").textContent).toContain("missing valid required fields");
+        expect(savedShifts()).toHaveLength(2);
+
+        await restore(app, JSON.stringify([makeShift({ mealPeriod: "Brunch" })]));
+        expect(element("#form-status").textContent).toContain("missing valid required fields");
+        expect(savedShifts()).toHaveLength(2);
+    }));
+
+    test("gives duplicate ids in a backup unique ids", () => withApp(async (app) => {
+        app.openView("settings");
+        await restore(app, JSON.stringify([makeShift({ id: 5 }), makeShift({ id: 5, job: "Bar" })]));
+        const ids = app.savedShifts().map((shift) => shift.id);
+        expect(new Set(ids).size).toBe(2);
     }));
 });
 

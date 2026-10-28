@@ -2,6 +2,12 @@
 const SETTINGS_KEY = "shift-ledger-settings-v1";
 const VIEW_HISTORY_KEY = "shiftLedgerView";
 const DASHBOARD_STATS = ["shifts", "hours", "sales", "tips"];
+const VIEW_TITLES = {
+    "dashboard": "Dashboard",
+    "new-shift": "New Shift",
+    "previous-shifts": "Previous Shifts",
+    "settings": "Settings",
+};
 const { getAutoGratuity, getDurationMinutes, getFinancialBreakdown, getNetTips, getSalesTotal, toMinutes } = window.ShiftMath;
 const CARD_BREAKDOWN_SELECTORS = {
     foodSales: ".card-food-sales",
@@ -14,6 +20,15 @@ const CARD_BREAKDOWN_SELECTORS = {
     tipsPaidOut: ".card-tips-paid-out",
     tipOutReceived: ".card-tip-out-received",
 };
+
+const RECOVERY_KEY = "shift-ledger-shifts-v1-recovery";
+const MEAL_PERIODS = ["Lunch", "Dinner", "Double"];
+const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
+const reportAmountFields = [
+    "foodSales", "bawSales", "liquorSales", "naBevSales", "additionalSales",
+    "ccTips", "cashTips", "autoGratuity", "tipsPaidOut", "tipOutReceived",
+];
+let loadNotice = "";
 
 const state = {
     shifts: loadShifts(),
@@ -60,11 +75,6 @@ const reportPeriods = [
     ["dinner", "Dinner report"],
     ["whole", "Whole-double report"],
 ];
-const reportAmountFields = [
-    "foodSales", "bawSales", "liquorSales", "naBevSales", "additionalSales",
-    "ccTips", "cashTips", "autoGratuity", "tipsPaidOut", "tipOutReceived",
-];
-
 const fields = {
     date: document.getElementById("shift-date"),
     mealPeriod: document.getElementById("shift-meal-period"),
@@ -112,6 +122,9 @@ initializeSettings();
 renderDashboard();
 renderPreviousShifts();
 showView(getInitialView(), { historyAction: "replace" });
+if (loadNotice) {
+    setStatus(loadNotice, true);
+}
 registerServiceWorker();
 
 function registerServiceWorker() {
@@ -307,7 +320,8 @@ function showView(viewName, { historyAction = "push" } = {}) {
         }
     }
 
-    const viewChanged = state.currentView !== viewName;
+    const previousView = state.currentView;
+    const viewChanged = previousView !== viewName;
     state.currentView = viewName;
     if (historyFilterDialog.open && viewName !== "previous-shifts") {
         closeHistoryFilterDialog(false);
@@ -322,6 +336,14 @@ function showView(viewName, { historyAction = "push" } = {}) {
 
     if (viewChanged) {
         window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+        document.title = `${VIEW_TITLES[viewName] || "Shift Ledger"} · Shift Ledger`;
+        if (previousView !== null) {
+            const heading = document.getElementById(viewName)?.querySelector("h1");
+            if (heading) {
+                heading.tabIndex = -1;
+                heading.focus({ preventScroll: true });
+            }
+        }
     }
 
     if (viewName === "new-shift") {
@@ -603,10 +625,12 @@ function handleListAction(event) {
 
     if (button.classList.contains("delete-shift")) {
         state.shifts = state.shifts.filter((entry) => entry.id !== shiftId);
-        persistShifts();
+        const saved = persistShifts();
         renderDashboard();
         renderPreviousShifts();
-        setStatus("Shift deleted.");
+        if (saved) {
+            setStatus("Shift deleted.");
+        }
         return;
     }
 
@@ -845,13 +869,15 @@ function handleFormSubmit(event) {
             state.shifts.push(shift);
         }
 
-        persistShifts();
+        const saved = persistShifts();
         renderDashboard();
         renderPreviousShifts();
         const successMessage = state.editingShiftId !== null ? "Shift updated." : "Shift saved.";
         resetForm(false);
         showView("dashboard");
-        setStatus(successMessage);
+        if (saved) {
+            setStatus(successMessage);
+        }
     } catch (error) {
         setStatus(error.message, true);
     }
@@ -1392,12 +1418,17 @@ async function importBackup(event) {
             throw new Error("This file is not a Shift Ledger backup.");
         }
 
-        const importedShifts = records.map(normalizeImportedShift);
+        const importedShifts = dedupeShiftIds(records.map(normalizeImportedShift));
         if (!window.confirm(`Replace your ${state.shifts.length} saved shifts with ${importedShifts.length} shifts from this backup?`)) {
             return;
         }
 
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(importedShifts));
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(importedShifts));
+        } catch (error) {
+            console.error("Unable to store restored shifts:", error);
+            throw new Error("Unable to restore: browser storage is full or unavailable. Your existing shifts were not changed.");
+        }
         state.shifts = importedShifts;
         renderDashboard();
         renderPreviousShifts();
@@ -1413,15 +1444,17 @@ async function importBackup(event) {
 function normalizeImportedShift(shift, index) {
     if (!shift || typeof shift !== "object" || Array.isArray(shift)
         || typeof shift.date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(shift.date)
-        || typeof shift.mealPeriod !== "string" || typeof shift.job !== "string"
-        || typeof shift.clockIn !== "string" || typeof shift.clockOut !== "string") {
+        || !MEAL_PERIODS.includes(shift.mealPeriod) || typeof shift.job !== "string"
+        || !TIME_PATTERN.test(shift.clockIn) || !TIME_PATTERN.test(shift.clockOut)) {
         throw new Error(`Backup shift ${index + 1} is missing valid required fields.`);
     }
+    for (const field of ["breakStart", "breakEnd"]) {
+        if (shift[field] !== undefined && shift[field] !== "" && !TIME_PATTERN.test(shift[field])) {
+            throw new Error(`Backup shift ${index + 1} has an invalid ${field} time.`);
+        }
+    }
 
-    const amountFields = [
-        "foodSales", "bawSales", "liquorSales", "naBevSales", "additionalSales",
-        "ccTips", "cashTips", "autoGratuity", "tipsPaidOut", "tipOutReceived",
-    ];
+    const amountFields = reportAmountFields;
     const normalized = {
         ...shift,
         id: typeof shift.id === "number" && Number.isFinite(shift.id) ? shift.id : createShiftId(),
@@ -1526,23 +1559,67 @@ function toLocalDateString(date) {
 function persistShifts() {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state.shifts));
+        return true;
     } catch (error) {
         console.error("Unable to save shifts:", error);
         setStatus("Unable to save locally. Your browser storage may be full.", true);
+        return false;
+    }
+}
+
+function dedupeShiftIds(shifts) {
+    const seen = new Set();
+    return shifts.map((shift) => {
+        let id = shift.id;
+        while (seen.has(id)) {
+            id = createShiftId();
+        }
+        seen.add(id);
+        return id === shift.id ? shift : { ...shift, id };
+    });
+}
+
+function preserveRecovery(raw) {
+    try {
+        localStorage.setItem(RECOVERY_KEY, raw);
+        return true;
+    } catch (error) {
+        console.error("Unable to preserve unreadable shift data:", error);
+        return false;
     }
 }
 
 function loadShifts() {
+    let raw = null;
     try {
-        const raw = localStorage.getItem(STORAGE_KEY);
+        raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) {
             return [];
         }
 
         const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : [];
+        if (!Array.isArray(parsed)) {
+            throw new Error("Stored shifts are not a list.");
+        }
+
+        const valid = [];
+        parsed.forEach((record, index) => {
+            try {
+                valid.push(normalizeImportedShift(record, index));
+            } catch (error) {
+                console.error("Skipping invalid stored shift:", error);
+            }
+        });
+        const skipped = parsed.length - valid.length;
+        if (skipped > 0) {
+            const kept = preserveRecovery(raw);
+            loadNotice = `${skipped} saved ${skipped === 1 ? "shift was" : "shifts were"} unreadable and skipped.${kept ? " A copy of the original data was kept in this browser." : ""}`;
+        }
+        return dedupeShiftIds(valid);
     } catch (error) {
         console.error("Unable to read stored shifts:", error);
+        const kept = raw ? preserveRecovery(raw) : false;
+        loadNotice = `Saved shifts could not be read.${kept ? " A copy of the original data was kept in this browser." : ""}`;
         return [];
     }
 }
