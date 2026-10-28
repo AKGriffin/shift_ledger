@@ -19,7 +19,7 @@ This is a lightweight view of where Shift Ledger is headed, not a promise or a r
 
 - [ ] **Unify theme-dependent accents and palette choices** - Define a small set of curated accent palettes for each visual style, with two or three tested choices per style. Reuse the selected semantic colors consistently across sections and tabs, and verify contrast in light and dark modes before exposing a palette to users.
 - [ ] **Add configurable text size** - Offer Default, Large, and Larger text sizes in Settings by scaling one root size that all `rem`-based text follows, while still respecting the browser or system font setting. Verify the key phone views (bottom navigation, dashboard, shift form, history, dialogs) at every size without overflow or clipped text.
-- [ ] **Make success and error notices dismiss reliably** - Ensure timed notices close while the app remains open, and that navigation, refresh, or visibility changes do not leave stale notices behind.
+- [x] **Make success and error notices dismiss reliably** - Ensure timed notices close while the app remains open, and that navigation, refresh, or visibility changes do not leave stale notices behind.
 - [ ] **Strengthen and clarify the test suite** - Improve the lightweight assertion-based tests with expressive assertions, focused behavior coverage, and clear failure output, following useful patterns from flat_map_framework without adding unnecessary test dependencies.
 - [ ] **Add undo and redo while editing forms** - Let users step back and forward through changes in the shift form, working with keyboard shortcuts and accessible controls without interfering with native input undo.
 - [ ] **Improve Material Dark colors** - Refine its dark palette and contrast so it feels intentional and as cohesive as the paper-inspired light theme.
@@ -74,3 +74,4 @@ This is a lightweight view of where Shift Ledger is headed, not a promise or a r
 - [x] Previous-shift details can hide zero-value sales and tip breakdowns, auto-gratuity, and unrecorded breaks, with a setting to show them again.
 - [x] Successful status notices dismiss automatically; errors remain visible until replaced.
 - [x] CSV exports use descriptive filenames based on the exported date range and include a job name only for single-job exports.
+- [x] Timed success notices clear on view changes and when an expired notice is still visible after returning to the app.

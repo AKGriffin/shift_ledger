@@ -107,6 +107,42 @@ describe("Saving shifts", () => {
         }
     }));
 
+    test("clears a success notice when navigating to another view", () => withApp((harness) => {
+        harness.saveShift();
+        expect(harness.element("#form-status").hidden).toBe(false);
+
+        harness.openView("previous-shifts");
+
+        expect(harness.element("#form-status").hidden).toBe(true);
+        expect(harness.element("#form-status").textContent).toBe("");
+    }));
+
+    test("clears an expired success notice when the app returns to the foreground", () => withApp((harness) => {
+        const originalSetTimeout = harness.win.setTimeout;
+        const originalClearTimeout = harness.win.clearTimeout;
+        const originalNow = harness.win.Date.now;
+        let currentTime = 1000;
+        harness.win.setTimeout = () => 1;
+        harness.win.clearTimeout = () => {};
+        harness.win.Date.now = () => currentTime;
+        Object.defineProperty(harness.doc, "hidden", { configurable: true, value: false });
+
+        try {
+            harness.saveShift();
+            expect(harness.element("#form-status").hidden).toBe(false);
+
+            currentTime += 6001;
+            harness.fire(harness.doc, "visibilitychange");
+
+            expect(harness.element("#form-status").hidden).toBe(true);
+            expect(harness.element("#form-status").textContent).toBe("");
+        } finally {
+            harness.win.setTimeout = originalSetTimeout;
+            harness.win.clearTimeout = originalClearTimeout;
+            harness.win.Date.now = originalNow;
+        }
+    }));
+
     test("adds each new shift to the totals", () => withApp(({ element, saveShift, savedShifts }) => {
         saveShift({ date: "2026-10-20", foodSales: 100, ccTips: 20, cashTips: 5, tipOutPaid: 3, tipOutReceived: 2 });
         saveShift({ date: "2026-10-21", job: "Expo", foodSales: 200, ccTips: 50, cashTips: 10 });

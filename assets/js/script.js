@@ -22,6 +22,7 @@ const state = {
     editingShiftId: null,
 };
 let formStatusTimeout = null;
+let formStatusExpiresAt = null;
 let shiftFormDirty = false;
 let allowUpdateReload = false;
 let serviceWorkerRegistration = null;
@@ -168,6 +169,12 @@ function guardUnsavedShiftChanges(event) {
 }
 
 function bindEvents() {
+    document.addEventListener("visibilitychange", () => {
+        if (!document.hidden && formStatusTimeout !== null && Date.now() >= formStatusExpiresAt) {
+            setStatus("");
+        }
+    });
+
     navButtons.forEach((button) => {
         button.addEventListener("click", (event) => {
             if (button.tagName === "A") {
@@ -282,6 +289,10 @@ function bindEvents() {
 }
 
 function showView(viewName, { historyAction = "push" } = {}) {
+    if (state.currentView !== null && state.currentView !== viewName) {
+        setStatus("");
+    }
+
     if (historyAction !== "none"
         && (historyAction === "replace" || state.currentView !== viewName)) {
         const historyState = {
@@ -609,12 +620,14 @@ function setStatus(message, isError = false) {
         window.clearTimeout(formStatusTimeout);
         formStatusTimeout = null;
     }
+    formStatusExpiresAt = null;
 
     formStatus.textContent = message;
     formStatus.classList.toggle("error", isError);
     formStatus.hidden = !message;
 
     if (message && !isError) {
+        formStatusExpiresAt = Date.now() + 6000;
         const timeoutId = window.setTimeout(() => {
             if (formStatusTimeout !== timeoutId) {
                 return;
@@ -831,8 +844,8 @@ function handleFormSubmit(event) {
         renderPreviousShifts();
         const successMessage = state.editingShiftId !== null ? "Shift updated." : "Shift saved.";
         resetForm(false);
-        setStatus(successMessage);
         showView("dashboard");
+        setStatus(successMessage);
     } catch (error) {
         setStatus(error.message, true);
     }
