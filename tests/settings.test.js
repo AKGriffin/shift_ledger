@@ -24,6 +24,54 @@ describe("Settings page", () => {
     }));
 });
 
+describe("CSV export", () => {
+    test("uses the exported date range and includes a single job when applicable", () => withApp({
+        shifts: [
+            makeShift({ date: "2026-10-22", job: "Server" }),
+            makeShift({ date: "2026-10-20", job: "Server" }),
+        ],
+    }, ({ element, win, openView }) => {
+        const anchorPrototype = win.HTMLAnchorElement.prototype;
+        const originalClick = anchorPrototype.click;
+        let filename;
+        anchorPrototype.click = function captureDownload() {
+            filename = this.download;
+        };
+
+        try {
+            openView("settings");
+            element("#export-csv").click();
+        } finally {
+            anchorPrototype.click = originalClick;
+        }
+
+        expect(filename).toBe("shift-ledger-shifts-2026-10-20-to-2026-10-22-server.csv");
+    }));
+
+    test("omits a job name for mixed-job exports and uses one date when appropriate", () => withApp({
+        shifts: [
+            makeShift({ date: "2026-10-21", job: "Server" }),
+            makeShift({ date: "2026-10-21", job: "Expo" }),
+        ],
+    }, ({ element, win, openView }) => {
+        const anchorPrototype = win.HTMLAnchorElement.prototype;
+        const originalClick = anchorPrototype.click;
+        let filename;
+        anchorPrototype.click = function captureDownload() {
+            filename = this.download;
+        };
+
+        try {
+            openView("settings");
+            element("#export-csv").click();
+        } finally {
+            anchorPrototype.click = originalClick;
+        }
+
+        expect(filename).toBe("shift-ledger-shifts-2026-10-21.csv");
+    }));
+});
+
 describe("Dashboard customization", () => {
     test("saves section and stat choices from Settings and applies them across dashboard views", () => withApp({
         shifts: [makeShift({ foodSales: 125, ccTips: 24 })],

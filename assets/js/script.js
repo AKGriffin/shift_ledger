@@ -1291,12 +1291,27 @@ function exportShiftsCsv() {
     const url = URL.createObjectURL(file);
     const downloadLink = document.createElement("a");
     downloadLink.href = url;
-    downloadLink.download = `shift-ledger-${toLocalDateString(new Date())}.csv`;
+    downloadLink.download = getCsvExportFilename(shifts);
     document.body.appendChild(downloadLink);
     downloadLink.click();
     downloadLink.remove();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
     setStatus(`${shifts.length} ${shifts.length === 1 ? "shift" : "shifts"} exported to CSV.`);
+}
+
+function getCsvExportFilename(shifts) {
+    const dates = shifts.map((shift) => shift.date).filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date)).sort();
+    const dateRange = dates.length === 0
+        ? toLocalDateString(new Date())
+        : dates[0] === dates[dates.length - 1]
+            ? dates[0]
+            : `${dates[0]}-to-${dates[dates.length - 1]}`;
+    const jobs = [...new Set(shifts.map((shift) => String(shift.job || "").trim()).filter(Boolean))];
+    const job = jobs.length === 1
+        ? jobs[0].toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
+        : "";
+
+    return `shift-ledger-shifts-${dateRange}${job ? `-${job}` : ""}.csv`;
 }
 
 function exportBackup() {
