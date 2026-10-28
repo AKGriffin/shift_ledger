@@ -13,6 +13,7 @@
 </head>
 
 <body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
     <div class="app-shell">
         <aside class="sidebar">
             <a class="brand" href="./" data-view="dashboard" aria-label="Shift Ledger dashboard">
@@ -41,7 +42,7 @@
                 </div>
             </section>
 
-        <main>
+        <main id="main-content" tabindex="-1">
             <section id="dashboard" class="view is-visible">
                 <header class="dashboard-heading view-header">
                     <div class="view-heading">
@@ -499,19 +500,19 @@
             </section>
         </main>
         <nav class="mobile-bottom-nav" aria-label="Quick navigation">
-            <button type="button" class="mobile-bottom-nav-button" data-view="dashboard" aria-label="Dashboard">
+            <button type="button" class="mobile-bottom-nav-button" data-view="dashboard">
                 <span aria-hidden="true">⌂</span>
                 <small>Dashboard</small>
             </button>
-            <button type="button" class="mobile-bottom-nav-button" data-view="new-shift" aria-label="New shift">
+            <button type="button" class="mobile-bottom-nav-button" data-view="new-shift">
                 <span aria-hidden="true">+</span>
                 <small>New shift</small>
             </button>
-            <button type="button" class="mobile-bottom-nav-button" data-view="previous-shifts" aria-label="Previous shifts">
+            <button type="button" class="mobile-bottom-nav-button" data-view="previous-shifts">
                 <span aria-hidden="true">≡</span>
                 <small>History</small>
             </button>
-            <button type="button" class="mobile-bottom-nav-button" data-view="settings" aria-label="Settings">
+            <button type="button" class="mobile-bottom-nav-button" data-view="settings">
                 <span aria-hidden="true">⚙</span>
                 <small>Settings</small>
             </button>
@@ -532,10 +533,10 @@
                 </div>
                 <div class="card-header-side">
                     <div class="card-menu">
-                        <button type="button" class="card-menu-toggle ghost-button" aria-haspopup="menu" aria-expanded="false" aria-label="Shift actions">&#8942;</button>
-                        <div class="card-menu-list" role="menu" hidden>
-                            <button type="button" class="edit-shift" role="menuitem">Edit</button>
-                            <button type="button" class="delete-shift" role="menuitem">Delete</button>
+                        <button type="button" class="card-menu-toggle ghost-button" aria-expanded="false" aria-label="Shift actions">&#8942;</button>
+                        <div class="card-menu-list" role="group" aria-label="Shift actions" hidden>
+                            <button type="button" class="edit-shift">Edit</button>
+                            <button type="button" class="delete-shift">Delete</button>
                         </div>
                     </div>
                 </div>
