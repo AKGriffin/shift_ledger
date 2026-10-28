@@ -46,6 +46,7 @@ const filterDateTo = document.getElementById("filter-date-to");
 const historyFilterDialog = document.getElementById("history-filter-dialog");
 const openHistoryFiltersButton = document.getElementById("open-history-filters");
 const activeFilterCount = document.getElementById("active-filter-count");
+const activeFiltersList = document.getElementById("active-filters");
 const clearFiltersButton = document.getElementById("clear-filters");
 const historyStatus = document.getElementById("history-status");
 const weekSummary = document.getElementById("week-summary");
@@ -1252,12 +1253,42 @@ function clearHistoryFilters() {
 }
 
 function updateFilterControls() {
-    const count = Number(Boolean(filterDateFrom.value))
-        + Number(Boolean(filterDateTo.value))
-        + Number(filterJobSelect.value !== "all");
+    const filters = [];
+    if (filterDateFrom.value) {
+        filters.push({ label: `From ${formatDate(filterDateFrom.value)}`, input: filterDateFrom, empty: "" });
+    }
+    if (filterDateTo.value) {
+        filters.push({ label: `To ${formatDate(filterDateTo.value)}`, input: filterDateTo, empty: "" });
+    }
+    if (filterJobSelect.value !== "all") {
+        filters.push({ label: `Job: ${filterJobSelect.value}`, input: filterJobSelect, empty: "all" });
+    }
+
+    const count = filters.length;
     activeFilterCount.textContent = `${count} active`;
     activeFilterCount.hidden = count === 0;
     clearFiltersButton.disabled = count === 0;
+
+    const chips = filters.map(({ label, input, empty }) => {
+        const item = document.createElement("li");
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "filter-chip";
+        button.setAttribute("aria-label", `Remove filter: ${label}`);
+        button.append(label, Object.assign(document.createElement("span"), {
+            textContent: "×",
+            ariaHidden: "true",
+        }));
+        button.addEventListener("click", () => {
+            input.value = empty;
+            renderPreviousShifts();
+            openHistoryFiltersButton.focus();
+        });
+        item.appendChild(button);
+        return item;
+    });
+    activeFiltersList.replaceChildren(...chips);
+    activeFiltersList.hidden = count === 0;
 }
 
 function exportShiftsCsv() {

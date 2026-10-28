@@ -23,7 +23,7 @@ The service worker caches the app shell and static assets. When deploying an upd
 - Use consistent headings and responsive spacing across the dashboard, shift entry, history, and settings views
 - Switch between the main views with a thumb-friendly bottom navigation on mobile
 - Filter shift history by date range and job; sort by date, sales, or tips
-- Keep sorting in reach and manage date/job filters in an accessible dialog
+- Keep sorting in reach and manage date/job filters in an accessible dialog; active filters appear as removable chips under the controls
 - Export all saved shifts as a CSV file
 - Choose among seven visual styles—Minimalist, Material, Neo-brutalist, Cyberpunk/Synthwave, Glassmorphism, Modern Skeuomorphism, and High-Contrast—independently from system, light, or dark mode; set the week start day, currency, and whether zero-value shift details are shown
 - Review appearance and data preferences in responsive settings cards, with a work-setup roadmap for future restaurant, role, and shift-template management

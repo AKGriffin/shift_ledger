@@ -259,6 +259,29 @@ describe("Previous shifts", () => {
         expect(elements(".shift-card")).toHaveLength(2);
     }));
 
+    test("shows removable chips for active filters and keeps the rest", () => withApp({
+        shifts: seededShifts(),
+    }, ({ element, elements, openView, change, doc }) => {
+        openView("previous-shifts");
+        expect(element("#active-filters").hidden).toBe(true);
+
+        element("#open-history-filters").click();
+        change("#filter-date-from", "2026-10-21");
+        change("#filter-job", "Expo");
+        element("#done-history-filters").click();
+
+        const chips = elements("#active-filters .filter-chip");
+        expect(chips).toHaveLength(2);
+        expect(chips[0].getAttribute("aria-label")).toBe("Remove filter: From Oct 21, 2026");
+        expect(chips[1].textContent).toContain("Job: Expo");
+
+        chips[1].click();
+        expect(element("#filter-job").value).toBe("all");
+        expect(elements("#active-filters .filter-chip")).toHaveLength(1);
+        expect(element("#active-filter-count").textContent).toBe("1 active");
+        expect(doc.activeElement.id).toBe("open-history-filters");
+    }));
+
     test("sorts by sales from high to low", () => withApp({ shifts: seededShifts() }, ({ elements, openView, change }) => {
         openView("previous-shifts");
         change("#sort-by", "sales-desc");

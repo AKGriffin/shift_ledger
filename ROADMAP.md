@@ -5,7 +5,7 @@ This roadmap describes the direction of Shift Ledger, not a release schedule. Pr
 ## Now
 
 - [x] **Create a consistent section-header and mobile-spacing system** - Align Dashboard, New Shift, Previous Shifts, and Settings around a clear heading hierarchy and responsive spacing. Use concise supporting copy where it improves orientation.
-- [ ] **Refine Previous Shifts controls** - Separate the section heading from sorting and filtering, keep controls easy to reach on narrow screens, and make active filters obvious.
+- [x] **Refine Previous Shifts controls** - Separate the section heading from sorting and filtering, keep controls easy to reach on narrow screens, and make active filters obvious.
 - [ ] **Make Settings a clear, accessible hub** - Organize settings into focused cards, clarify field labels and descriptions, and keep explanatory text concise and optional where appropriate.
 - [ ] **Strengthen data reliability** - Validate imported and stored records consistently, handle storage failures clearly, and cover backup restore and invalid data.
 - [ ] **Improve accessibility across the app** - Review keyboard navigation, focus visibility, labels, contrast, and screen-reader announcements across views and themes.
@@ -58,4 +58,5 @@ This roadmap describes the direction of Shift Ledger, not a release schedule. Pr
 - Auto-gratuity tracking across net tips, edits, double reports, CSV, and backups.
 - Optional hiding of zero-value shift details and unrecorded breaks in history.
 - Success notices that auto-dismiss, with errors kept visible and stale notices cleared on navigation or return to the app.
-- Consistent page headings, concise orientation copy, and mobile top spacing across the dashboard, shift entry, history, and settings.
+- Consistent page headings, concise orientation copy, and mobile top spacing across the dashboard, shift entry, history, and settings; new views open at the top.
+- Previous Shifts controls with the heading separated from sorting and filtering, plus removable chips for active filters.
