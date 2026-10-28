@@ -31,6 +31,7 @@ const reportAmountFields = [
 ];
 let loadNotice = "";
 let setupSaved = false;
+let setupFirstRun = false;
 
 const workplaceLoad = window.Workplaces.load(localStorage);
 
@@ -322,7 +323,7 @@ function bindEvents() {
     });
     document.getElementById("backup-file").addEventListener("change", importBackup);
     document.getElementById("clear-all-data").addEventListener("click", clearAllShifts);
-    document.getElementById("add-workplace").addEventListener("click", addWorkplaceFromSettings);
+    document.getElementById("add-workplace").addEventListener("click", () => openWorkplaceSetup());
     fields.workplace.addEventListener("change", handleWorkplaceFieldChange);
     fields.role.addEventListener("change", applyRoleTemplate);
     document.getElementById("pay-period-type").addEventListener("change", updatePayPeriodAnchor);
@@ -2105,30 +2106,6 @@ function updatePayPeriodAnchor() {
     document.getElementById("pay-period-anchor-field").hidden = !needsAnchor;
 }
 
-async function addWorkplaceFromSettings() {
-    const button = document.getElementById("add-workplace");
-    const name = await askForName({
-        title: "Add a workplace",
-        hint: "Use the name of the restaurant, bar, or company you work for.",
-        submitLabel: "Add workplace",
-        validate: (value) => window.Workplaces.validateName(value, state.workplaces.workplaces, "workplace"),
-    });
-    if (name === null) {
-        button.focus();
-        return;
-    }
-
-    const result = commitWorkplaces((draft) => window.Workplaces.addWorkplace(draft, name));
-    if (result.error) {
-        setStatus(result.error, true);
-    }
-    if (result.error || result.failed) {
-        return;
-    }
-    renderWorkplaces(`h3[data-id="${result.item.id}"]`);
-    setStatus(`Added workplace “${name}”.`);
-}
-
 async function handleWorkplaceAction(event) {
     const button = event.target.closest("button[data-action]");
     if (!button) {
@@ -2232,15 +2209,18 @@ function openWorkplaceSetup(options) {
         return;
     }
     const firstRun = options?.firstRun === true;
+    setupFirstRun = firstRun;
     document.getElementById("skip-workplace-setup").textContent = firstRun ? "Skip for now" : "Cancel";
+    document.getElementById("workplace-setup-title").textContent = firstRun ? "Set up your workplace" : "Add a workplace";
     document.getElementById("workplace-setup-text").textContent = firstRun
         ? "Tell Shift Ledger where you work so shifts can be grouped by workplace and role. You can change all of this later in Settings, or skip it for now."
-        : "Tell Shift Ledger where you work so shifts can be grouped by workplace and role.";
-    const jobs = window.Workplaces.distinctJobs(state.shifts);
+        : "Add a workplace and any roles you have there. You can add or change roles later in Settings.";
+    document.getElementById("save-workplace-setup").textContent = firstRun ? "Save and continue" : "Add workplace";
+    const jobs = firstRun ? window.Workplaces.distinctJobs(state.shifts) : [];
     setupSaved = false;
     setupWorkplaceName.value = "";
     fillRoleList(setupRoles, jobs);
-    document.getElementById("setup-roles-hint").textContent = jobs.length
+    document.getElementById("setup-roles-hint").textContent = firstRun && jobs.length
         ? "These came from your saved shifts, and shifts with matching jobs will be linked to them. Press Enter for the next role."
         : "Add each role you work, for example Server or Bartender. Press Enter for the next role. You can add more later.";
     showFieldError(setupWorkplaceName, document.getElementById("setup-workplace-error"), "");
@@ -2368,7 +2348,7 @@ function askForRoles(workplace) {
 }
 
 function handleSetupClose() {
-    if (setupSaved || state.workplaces.setupDismissed) {
+    if (!setupFirstRun || setupSaved || state.workplaces.setupDismissed) {
         return;
     }
     const draft = structuredClone(state.workplaces);
@@ -2402,30 +2382,33 @@ function handleSetupSubmit(event) {
     state.workplaces = draft;
     setupSaved = true;
 
-    // Link existing shifts only after keeping an untouched copy of the originals.
-    const { shifts: linked, changed } = window.Workplaces.linkShifts(state.shifts, workplace);
     let linkedCount = 0;
     let linkProblem = false;
-    if (changed > 0) {
-        try {
-            localStorage.setItem(PRE_WORKPLACES_KEY, localStorage.getItem(STORAGE_KEY) ?? "[]");
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(linked));
-            state.shifts = linked;
-            linkedCount = changed;
-        } catch (error) {
-            console.error("Unable to link saved shifts to the new workplace:", error);
-            linkProblem = true;
+    if (setupFirstRun) {
+        // Link existing shifts only after keeping an untouched copy of the originals.
+        const { shifts: linked, changed } = window.Workplaces.linkShifts(state.shifts, workplace);
+        if (changed > 0) {
+            try {
+                localStorage.setItem(PRE_WORKPLACES_KEY, localStorage.getItem(STORAGE_KEY) ?? "[]");
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(linked));
+                state.shifts = linked;
+                linkedCount = changed;
+            } catch (error) {
+                console.error("Unable to link saved shifts to the new workplace:", error);
+                linkProblem = true;
+            }
         }
     }
 
     setupDialog.close();
     renderWorkplaces("h3");
     const roleCount = roles.names.length;
-    setStatus([
-        `Created workplace “${workplace.name}”${roleCount ? ` with ${roleCount} ${roleCount === 1 ? "role" : "roles"}` : ""}.`,
+    const status = [
+        `${setupFirstRun ? "Created" : "Added"} workplace “${workplace.name}”${roleCount ? ` with ${roleCount} ${roleCount === 1 ? "role" : "roles"}` : ""}.`,
         linkedCount ? `Linked ${linkedCount} saved ${linkedCount === 1 ? "shift" : "shifts"} to its roles.` : "",
         linkProblem ? "Your saved shifts could not be linked, so they were left unchanged." : "",
-    ].filter(Boolean).join(" "), linkProblem);
+    ].filter(Boolean).join(" ");
+    setStatus(status, linkProblem);
 }
 
 function clearAllShifts() {

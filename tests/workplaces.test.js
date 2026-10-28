@@ -161,6 +161,7 @@ describe("Workplace setup", () => {
         element("#open-workplace-setup").click();
         expect(element("#workplace-setup-dialog").open).toBe(true);
         expect(element("#skip-workplace-setup").textContent).toBe("Cancel");
+        expect(element("#workplace-setup-title").textContent).toBe("Add a workplace");
     }));
 
     test("prefills roles from saved jobs, then links shifts and keeps a pre-migration copy", () => withApp({
@@ -229,15 +230,14 @@ describe("Workplace manager in Settings", () => {
         const { win, element, elements, fire, openView, savedWorkplaces } = app;
         openView("settings");
         element("#add-workplace").click();
-        await submitName(app, "Cafe");
-        expect(savedWorkplaces().workplaces[0].name).toBe("Cafe");
-
-        element('button[data-action="add-role"]').click();
-        element("#add-roles-list .note-input").value = "Barista";
-        fire(element("#add-roles-more"), "click");
-        elements("#add-roles-list .note-input")[1].value = "Host";
-        fire(element("#add-roles-form"), "submit");
+        expect(element("#workplace-setup-dialog").open).toBe(true);
+        element("#setup-workplace-name").value = "Cafe";
+        element("#setup-roles .note-input").value = "Barista";
+        fire(element("#add-setup-role"), "click");
+        elements("#setup-roles .note-input")[1].value = "Host";
+        fire(element("#workplace-setup-form"), "submit");
         await tick(win);
+        expect(savedWorkplaces().workplaces[0].name).toBe("Cafe");
         expect(savedWorkplaces().workplaces[0].roles).toHaveLength(2);
         expect(savedWorkplaces().workplaces[0].roles[1].name).toBe("Host");
         expect(element("#workplace-list").textContent).toContain("Barista");
@@ -254,17 +254,19 @@ describe("Workplace manager in Settings", () => {
         expect(savedWorkplaces().workplaces[0].roles).toHaveLength(2);
     }));
 
-    test("rejects duplicate names inline and keeps the dialog open", () => withApp({ workplaces: sampleData() }, async (app) => {
-        const { element, openView, savedWorkplaces } = app;
+    test("rejects duplicate workplace names inline and keeps the shared dialog open", () => withApp({ workplaces: sampleData() }, async (app) => {
+        const { element, fire, openView, savedWorkplaces } = app;
         openView("settings");
         element("#add-workplace").click();
-        await submitName(app, "bistro");
-        expect(element("#name-dialog").open).toBe(true);
-        expect(element("#name-input-error").hidden).toBe(false);
-        expect(savedWorkplaces().workplaces).toHaveLength(1);
-        element("#cancel-name").click();
+        element("#setup-workplace-name").value = "bistro";
+        fire(element("#workplace-setup-form"), "submit");
         await tick(app.win);
-        expect(element("#name-dialog").open).toBe(false);
+        expect(element("#workplace-setup-dialog").open).toBe(true);
+        expect(element("#setup-workplace-error").hidden).toBe(false);
+        expect(savedWorkplaces().workplaces).toHaveLength(1);
+        element("#skip-workplace-setup").click();
+        await tick(app.win);
+        expect(element("#workplace-setup-dialog").open).toBe(false);
     }));
 
     test("renames, archives and unarchives", () => withApp({ workplaces: sampleData() }, async (app) => {

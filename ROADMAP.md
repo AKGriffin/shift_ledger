@@ -14,27 +14,38 @@ The first round of polish, reliability, and accessibility work is done. The next
 - [x] **Support roles without shift reports** - A role can be marked as not tracking sales or tip reports; its shifts hide the report fields and save as "No report", leaving sales totals untouched.
 - [x] **Make history and the dashboard workplace-aware** - Previous Shifts has a Workplace filter and a Job filter built from your roles and past jobs, cards show "Role · Workplace", and the CSV export includes a Workplace column. A dashboard workplace scope is still to do.
 
+### Workplace and shift-form refinements
+
+Findings from hands-on testing. Do the first three first, since they change the workplace flow the others build on. The Settings redesign comes last so it reflects the merged flow.
+
+- [x] **Merge "Set up workplace" and "Add workplace" into one flow** - They should be the same form and behavior, reused by first-run setup and Settings.
+- [ ] **Add pay period to the new-workplace form** - Choose the pay period when creating a workplace instead of editing it afterward.
+- [ ] **Add optional start and end dates to workplaces** - For data tracking only; they must not restrict logging shifts or filter history unless the user asks.
+- [ ] **Split workplace and role into their own card in the new shift form** - Separate "where and as what" from the time, sales, and tip fields.
+- [ ] **Add workplaces and roles from inside the shift form** - Evaluate an inline "Add new…" option that opens the shared workplace/role form and returns to the unfinished shift with the new item selected, without losing typed values.
+- [ ] **Redesign the Settings workplace section** - The buttons flow awkwardly and feel cramped. Explore clearer grouping, per-workplace cards with a single actions menu, and larger touch targets; verify on phones.
 ## Next: everyday polish
 
 Smaller improvements that make the app more comfortable to use and do not depend on the workplace work.
 
 - [ ] **Add a manual app update check in Settings** - Complement automatic checks with an on-demand check. Show checking, up-to-date, update-ready, offline, and error states; reuse the current update/reload flow and preserve the unsaved-form safeguard.
 - [ ] **Improve transient notification feedback** - Add dismissible notices with a visible countdown, sensible timeout, reduced-motion support, and Settings controls for adjusting or disabling them.
-- [ ] **Add configurable text size** - Offer Default, Large, and Larger sizes while respecting browser font settings; verify key phone views and dialogs at each size.
+- [ ] **Extend zero-value hiding to totals** - History already can hide zero-value shift details. Add the same show/hide choice for zero total hours, sales, and tips in the dashboard and summaries, keeping "No report" distinct from a received zero report.
+- [ ] **Improve mobile text size and readability** - Headings and description text feel small on phones. First try modest default increases, then add configurable Default, Large, and Larger sizes that respect browser font settings; verify key phone views and dialogs at each size.
+- [ ] **Add an option to show or hide descriptive text** - Shown by default for accessibility. When hidden, move it behind an accessible "i" info control that works by tap and keyboard, not hover. Applies app-wide, including dense dashboard labels.
 - [ ] **Add configurable time display preferences** - Support 12-hour and 24-hour clocks, keeping stored shift times and historical records safe when preferences change.
-- [ ] **Unify theme-dependent accents and palette choices** - Define curated palettes for each visual style, reuse semantic colors consistently, and verify contrast in light and dark modes. This also covers the remaining contrast review from the accessibility pass.
-- [ ] **Improve Material Dark colors** - Refine the dark palette so it feels intentional and cohesive with the paper-inspired light theme. Do this together with the palette work above.
+- [ ] **Unify palettes and improve Material Dark** - Define curated palettes for each visual style, reuse semantic colors consistently, and refine the dark palette so it feels cohesive with the paper-inspired light theme. Verify contrast in light and dark modes, which also covers the remaining contrast review from the accessibility pass.
 - [ ] **Add undo and redo while editing forms** - Provide accessible controls and keyboard shortcuts without interfering with native input undo.
 - [ ] **Strengthen and clarify the test suite** - Improve assertion readability, focused behavior coverage, and failure output without adding unnecessary dependencies. Add a documented way to run the suite from the command line, since contributors currently need a browser.
 - [ ] **Run a manual accessibility review** - Check screen-reader behavior (VoiceOver, TalkBack, NVDA), keyboard-only use, zoom and reflow, and every theme in light and dark modes, to find what automated tests cannot.
 
 ## Next: dashboard and insights
 
-These share the dashboard code, so plan them together. Period summaries should build on workplace pay periods.
+These share the dashboard code, so plan them together. Start with the stat layout, then customization and period summaries, which build on workplace pay periods. A dashboard workplace scope belongs to the customization item.
 
+- [ ] **Rework dashboard stat layout** - Values and labels leave too much white space and stretch wide. Avoid both full-width rows and rigid 2x2 grids; consider compact flowing tiles, and moving shift count into the period/date-range line rather than its own stat.
 - [ ] **Expand dashboard customization** - Add section ordering, workplace and role filters, density options, and optional tips per hour, average sales per shift, and tip percentage.
 - [ ] **Add flexible dashboard period summaries** - Support configurable week, month, pay-period, year, all-time, and custom-range cards; migrate the current week and month cards as defaults.
-- [ ] **Make dashboard labels adaptable** - Reduce descriptive text in dense views with a discoverable way to reveal it; keep labels accessible without relying on hover.
 - [ ] **Design an accessible dashboard edit mode** - Let users explicitly add, remove, and reorder preset cards with keyboard- and touch-accessible interactions; explore guided text-based custom-card configuration after preset cards.
 - [ ] **Expand dashboard insights** - Add trends and visualizations where they clarify hours, sales, tips, or comparisons.
 - [ ] **Improve reporting** - Add useful date-range summaries and make reports easy to read on small screens.
@@ -57,6 +68,7 @@ These share the dashboard code, so plan them together. Period summaries should b
 ## Recently completed
 
 - Workplace filter, role-aware Job filter, "Role · Workplace" cards, and a Workplace CSV column in history.
+- Shared workplace creation form for first-run setup and Settings, including role creation.
 - Roles that don't track sales or tip reports (set in the role's template dialog), with the shift form hiding report fields for them.
 - Workplace and role selection in the shift form, with role templates that prefill empty fields only and per-workplace pay periods managed in Settings.
 - Workplaces and roles managed in Settings, with a skippable first-run setup, job-name migration, and version 2 backups.
