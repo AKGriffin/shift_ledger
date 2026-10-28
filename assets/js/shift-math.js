@@ -13,6 +13,9 @@
     }
 
     function getFinancialReports(shift) {
+        if (shift.noReport === true && shift.mealPeriod !== "Double") {
+            return [];
+        }
         if (!shift.reports || typeof shift.reports !== "object") {
             return null;
         }
@@ -25,6 +28,11 @@
             return [whole];
         }
         return [lunch, dinner].filter(Boolean);
+    }
+
+    function hasReport(shift) {
+        const reports = getFinancialReports(shift);
+        return reports === null || reports.length > 0;
     }
 
     function getSalesTotal(shift) {
@@ -126,6 +134,7 @@
         getFinancialBreakdown,
         getNetTips,
         getSalesTotal,
+        hasReport,
         toMinutes,
     };
 })(window);

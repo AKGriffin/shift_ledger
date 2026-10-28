@@ -1,5 +1,5 @@
 import { describe, expect, test } from "./assert.js";
-import { withApp } from "./app-harness.js";
+import { makeShift, withApp } from "./app-harness.js";
 
 function saveDouble(harness, reports = {}) {
     const { element, fire, fillForm, openView, submitForm } = harness;
@@ -25,6 +25,84 @@ function saveDouble(harness, reports = {}) {
     });
     submitForm();
 }
+
+describe("Single-shift report coverage", () => {
+    const markNoReport = ({ element, fire }) => {
+        const box = element("#shift-no-report");
+        box.checked = true;
+        fire(box, "change");
+    };
+
+    test("lets a single shift be saved with no report and disables its amount fields", () => withApp((harness) => {
+        const { element, fillForm, openView, submitForm, savedShifts } = harness;
+        openView("new-shift");
+        fillForm({ date: "2026-10-23", mealPeriod: "Dinner", job: "Server", clockIn: "16:00", clockOut: "22:00", foodSales: 150 });
+        markNoReport(harness);
+        expect([...harness.elements("#single-report-fields fieldset")].every((fieldset) => fieldset.disabled)).toBe(true);
+        submitForm();
+
+        const [saved] = savedShifts();
+        expect(saved.noReport).toBe(true);
+        expect(saved.foodSales).toBe(0);
+    }));
+
+    test("shows no-report shifts as such instead of as zero dollars", () => withApp({
+        shifts: [makeShift({ noReport: true }), makeShift({ date: "2026-10-21" })],
+    }, ({ element, elements, openView }) => {
+        openView("previous-shifts");
+        const cards = elements(".shift-card");
+        const noReport = cards.find((card) => card.querySelector(".card-report-status").textContent === "No sales or tip report");
+        expect(noReport).toBeDefined();
+        expect(noReport.querySelector(".card-sales").textContent).toBe("No report");
+        expect(noReport.querySelector(".card-tips").textContent).toBe("No report");
+        const reported = cards.find((card) => card !== noReport);
+        expect(reported.querySelector(".card-sales").textContent).toBe("$0.00");
+        expect(reported.querySelector(".card-report-status").hidden).toBe(true);
+    }));
+
+    test("restores the no-report choice when editing and clears it for a new shift", () => withApp({
+        shifts: [makeShift({ noReport: true })],
+    }, ({ element, openView }) => {
+        openView("previous-shifts");
+        element(".card-menu-toggle").click();
+        element(".edit-shift").click();
+        expect(element("#shift-no-report").checked).toBe(true);
+
+        element("#clear-form").click();
+        expect(element("#shift-no-report").checked).toBe(false);
+        expect([...element("#single-report-fields").querySelectorAll("fieldset")].every((fieldset) => !fieldset.disabled)).toBe(true);
+    }));
+
+    test("hides the no-report choice for doubles", () => withApp(({ element, fire, openView }) => {
+        openView("new-shift");
+        const mealPeriod = element("#shift-meal-period");
+        mealPeriod.value = "Double";
+        fire(mealPeriod, "change");
+        expect(element("#single-report-toggle").hidden).toBe(true);
+    }));
+
+    test("keeps no-report shifts through backup restore and zeroes their amounts", () => withApp(async (harness) => {
+        const { element, fire, openView, win, savedShifts } = harness;
+        openView("settings");
+        win.confirm = () => true;
+        const input = element("#backup-file");
+        const transfer = new win.DataTransfer();
+        transfer.items.add(new win.File(
+            [JSON.stringify([makeShift({ noReport: true, foodSales: 40 }), makeShift({ noReport: "yes", foodSales: 5 })])],
+            "backup.json",
+            { type: "application/json" }
+        ));
+        input.files = transfer.files;
+        fire(input, "change");
+        await new Promise((resolve) => win.setTimeout(resolve, 100));
+
+        const [first, second] = savedShifts();
+        expect(first.noReport).toBe(true);
+        expect(first.foodSales).toBe(0);
+        expect(second.noReport).toBeUndefined();
+        expect(second.foodSales).toBe(5);
+    }));
+});
 
 describe("Double-shift report entry", () => {
     test("offers optional lunch, dinner, and whole-double reports", () => withApp(({ element, fire }) => {

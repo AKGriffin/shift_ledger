@@ -1144,6 +1144,25 @@ legend {
     accent-color: var(--primary);
 }
 
+.no-report-toggle {
+    display: grid;
+    gap: 6px;
+}
+
+.no-report-toggle[hidden] {
+    display: none;
+}
+
+.no-report-toggle:has(input:focus-visible) label {
+    outline: 3px solid var(--primary);
+    outline-offset: 3px;
+    border-radius: 6px;
+}
+
+#single-report-fields fieldset:disabled {
+    opacity: 0.55;
+}
+
 .double-report fieldset {
     background: var(--panel-alt);
 }

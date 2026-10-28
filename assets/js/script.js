@@ -8,7 +8,7 @@ const VIEW_TITLES = {
     "previous-shifts": "Previous Shifts",
     "settings": "Settings",
 };
-const { getAutoGratuity, getDurationMinutes, getFinancialBreakdown, getNetTips, getSalesTotal, toMinutes } = window.ShiftMath;
+const { getAutoGratuity, getDurationMinutes, getFinancialBreakdown, getNetTips, getSalesTotal, hasReport, toMinutes } = window.ShiftMath;
 const CARD_BREAKDOWN_SELECTORS = {
     foodSales: ".card-food-sales",
     bawSales: ".card-baw-sales",
@@ -209,6 +209,7 @@ function bindEvents() {
         appUpdateNotice.hidden = true;
     });
     fields.mealPeriod.addEventListener("change", updateMealPeriodFields);
+    document.getElementById("shift-no-report").addEventListener("change", updateMealPeriodFields);
     doubleReportList.addEventListener("change", handleDoubleReportToggle);
     form.addEventListener("focusin", selectNumberOnFocus);
     form.addEventListener("mouseup", (event) => {
@@ -814,6 +815,7 @@ function populateForm(shift) {
     state.editingShiftId = shift.id;
     fields.date.value = shift.date || "";
     fields.mealPeriod.value = shift.mealPeriod || "";
+    document.getElementById("shift-no-report").checked = shift.noReport === true && shift.mealPeriod !== "Double";
     updateMealPeriodFields();
     fields.job.value = shift.job || "";
     fields.clockIn.value = shift.clockIn || "";
@@ -905,6 +907,13 @@ function readFormValues() {
         tipOutReceived: toNumber(fields.tipOutReceived.value),
         notes: readNotes(),
     };
+
+    if (baseline.mealPeriod !== "Double" && document.getElementById("shift-no-report").checked) {
+        reportAmountFields.forEach((field) => {
+            baseline[field] = 0;
+        });
+        baseline.noReport = true;
+    }
 
     if (baseline.mealPeriod === "Double") {
         reportAmountFields.forEach((field) => {
@@ -1078,7 +1087,7 @@ function renderDashboard() {
         const description = document.createElement("span");
         description.textContent = shift.mealPeriod === "Double"
             ? `${shift.job} · Double · ${getDoubleReportStatus(shift)}`
-            : `${shift.job} · ${shift.mealPeriod}`;
+            : `${shift.job} · ${shift.mealPeriod}${hasReport(shift) ? "" : " · No report"}`;
         details.append(date, description);
 
         const metrics = document.createElement("div");
@@ -1093,7 +1102,7 @@ function renderDashboard() {
             const metricLabel = document.createElement("small");
             metricLabel.textContent = label;
             const metricValue = document.createElement("strong");
-            metricValue.textContent = formatCurrency(amount);
+            metricValue.textContent = formatReportAmount(shift, amount);
             metric.append(metricLabel, metricValue);
             metrics.appendChild(metric);
         });
@@ -1145,16 +1154,13 @@ function renderPreviousShifts() {
         card.querySelector(".card-date").textContent = formatDate(shift.date);
         card.querySelector(".card-meal").textContent = shift.mealPeriod;
         const reportStatus = card.querySelector(".card-report-status");
-        if (shift.mealPeriod === "Double") {
-            reportStatus.textContent = getDoubleReportStatus(shift);
-            reportStatus.hidden = false;
-        } else {
-            reportStatus.hidden = true;
-        }
+        const reportStatusText = getReportStatus(shift);
+        reportStatus.textContent = reportStatusText;
+        reportStatus.hidden = !reportStatusText;
         card.querySelector(".card-job").textContent = shift.job;
         card.querySelector(".card-hours").textContent = formatDuration(getDurationMinutes(shift));
-        card.querySelector(".card-sales").textContent = formatCurrency(getSalesTotal(shift));
-        card.querySelector(".card-tips").textContent = formatCurrency(getNetTips(shift));
+        card.querySelector(".card-sales").textContent = formatReportAmount(shift, getSalesTotal(shift));
+        card.querySelector(".card-tips").textContent = formatReportAmount(shift, getNetTips(shift));
         const autoGratuity = getAutoGratuity(shift);
         const autoGratuityValue = card.querySelector(".card-auto-gratuity");
         autoGratuityValue.textContent = formatCurrency(autoGratuity);
@@ -1347,12 +1353,12 @@ function exportShiftsCsv() {
             ...(isDouble ? Array(5).fill("") : [
                 shift.foodSales, shift.bawSales, shift.liquorSales, shift.naBevSales, shift.additionalSales,
             ]),
-            getSalesTotal(shift),
+            hasReport(shift) ? getSalesTotal(shift) : "",
             ...(isDouble ? Array(5).fill("") : [
                 shift.ccTips, shift.cashTips, Number(shift.autoGratuity) || 0, shift.tipsPaidOut, shift.tipOutReceived,
             ]),
-            getNetTips(shift),
-            isDouble ? getDoubleReportStatus(shift) : "",
+            hasReport(shift) ? getNetTips(shift) : "",
+            getReportStatus(shift),
             ...reportPeriods.flatMap(([period]) => reportAmountFields.map((field) => (
                 reports[period] ? reports[period][field] : ""
             ))),
@@ -1498,6 +1504,14 @@ function normalizeImportedShift(shift, index) {
 
     normalized.notes = getNotes(shift);
 
+    if (shift.noReport === true && shift.mealPeriod !== "Double") {
+        reportAmountFields.forEach((field) => {
+            normalized[field] = 0;
+        });
+    } else {
+        delete normalized.noReport;
+    }
+
     return normalized;
 }
 
@@ -1642,7 +1656,12 @@ function initializeDoubleReports() {
 
 function updateMealPeriodFields() {
     const isDouble = fields.mealPeriod.value === "Double";
+    const noReport = document.getElementById("shift-no-report").checked;
+    document.getElementById("single-report-toggle").hidden = isDouble;
     document.getElementById("single-report-fields").hidden = isDouble;
+    document.querySelectorAll("#single-report-fields fieldset").forEach((fieldset) => {
+        fieldset.disabled = noReport;
+    });
     document.getElementById("double-report-fields").hidden = !isDouble;
     reportPeriods.forEach(([period]) => {
         const reportNode = getReportNode(period);
@@ -1667,6 +1686,17 @@ function handleDoubleReportToggle(event) {
         return;
     }
     setReportInputsEnabled(event.target.closest(".double-report"), event.target.checked);
+}
+
+function getReportStatus(shift) {
+    if (shift.mealPeriod === "Double") {
+        return getDoubleReportStatus(shift);
+    }
+    return hasReport(shift) ? "" : "No sales or tip report";
+}
+
+function formatReportAmount(shift, amount) {
+    return hasReport(shift) ? formatCurrency(amount) : "No report";
 }
 
 function getDoubleReportStatus(shift) {

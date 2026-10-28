@@ -1,6 +1,30 @@
 import { describe, expect, test } from "./assert.js";
 
-const { getAutoGratuity, getDurationMinutes, getFinancialBreakdown, getNetTips, getSalesTotal, toMinutes } = window.ShiftMath;
+const { getAutoGratuity, getDurationMinutes, getFinancialBreakdown, getNetTips, getSalesTotal, hasReport, toMinutes } = window.ShiftMath;
+
+describe("report coverage", () => {
+    test("treats single shifts as reported unless marked without a report", () => {
+        expect(hasReport({ mealPeriod: "Dinner", foodSales: 0 })).toBe(true);
+        expect(hasReport({ mealPeriod: "Dinner", noReport: true })).toBe(false);
+    });
+
+    test("ignores amounts on a single shift that has no report", () => {
+        const shift = { mealPeriod: "Lunch", noReport: true, foodSales: 99, ccTips: 20 };
+        expect(getSalesTotal(shift)).toBe(0);
+        expect(getNetTips(shift)).toBe(0);
+        expect(getFinancialBreakdown(shift).foodSales).toBe(0);
+    });
+
+    test("tells a zero-value report apart from no report on doubles", () => {
+        const zero = { lunch: { foodSales: 0 }, dinner: null, whole: null };
+        expect(hasReport({ mealPeriod: "Double", reports: zero })).toBe(true);
+        expect(hasReport({ mealPeriod: "Double", reports: { lunch: null, dinner: null, whole: null } })).toBe(false);
+    });
+
+    test("counts legacy combined doubles as reported", () => {
+        expect(hasReport({ mealPeriod: "Double", foodSales: 50 })).toBe(true);
+    });
+});
 
 describe("financial breakdown", () => {
     test("uses the reports that count toward double totals", () => {
