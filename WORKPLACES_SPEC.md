@@ -170,3 +170,11 @@ Replace the "Jobs & roles" explanation with a manager:
 3. Each role has one template for now. Several named templates per role are a later option.
 4. The first-run setup is a prompt, not a silent migration (see "First-run setup"). Users can skip it.
 5. An optional onboarding wizard is a possible future feature. The first-run prompt is designed so it can become the wizard's first step.
+
+## Implementation notes
+
+Where the shipped version differs from the plan above:
+
+- The setup dialog takes a comma-separated list of roles (prefilled from existing jobs) instead of a checkbox list.
+- The pre-linking copy of shifts is saved under `shift-ledger-shifts-v1-pre-workplaces`, separate from the corruption recovery key, so neither overwrites the other.
+- Pay period is not in the setup dialog yet. It arrives with "Use roles and templates when logging shifts".

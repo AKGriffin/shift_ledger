@@ -472,18 +472,18 @@
                                 <span class="settings-card-icon" aria-hidden="true">04</span>
                                 <div>
                                     <p class="eyebrow">Work profile</p>
-                                    <h2 id="work-setup-title">Jobs &amp; roles</h2>
+                                    <h2 id="work-setup-title">Workplaces &amp; roles</h2>
                                 </div>
                             </div>
-                            <p class="settings-description">Right now, each shift records one job or role, such as Server or Expo. This is the starting point for a more flexible work setup.</p>
-                            <div class="work-setup-flow" aria-label="Planned work setup: jobs contain roles, and roles can have shift templates">
-                                <span>Restaurants</span>
-                                <span aria-hidden="true">›</span>
-                                <span>Roles</span>
-                                <span aria-hidden="true">›</span>
-                                <span>Shift templates</span>
+                            <p class="settings-description">Add the places you work and the roles you have at each one. Archive anything you no longer use: archived items leave future choices, while past shifts keep their job name and stay in your history. Only items with no saved shifts can be deleted.</p>
+                            <div id="workplace-empty" class="workplace-empty" hidden>
+                                <p class="settings-description">No workplaces yet. Set one up from the jobs in your saved shifts, or add one yourself.</p>
+                                <button type="button" id="open-workplace-setup" class="secondary-button" aria-haspopup="dialog">Set up workplaces</button>
                             </div>
-                            <p class="settings-description">Manage multiple workplaces, define the roles at each one, and set up role-specific shift templates here in the future.</p>
+                            <ul id="workplace-list" class="workplace-list" aria-label="Workplaces and roles"></ul>
+                            <div class="settings-actions">
+                                <button type="button" id="add-workplace" class="secondary-button" aria-haspopup="dialog">Add workplace</button>
+                            </div>
                         </section>
 
                         <section class="settings-card data-card" aria-labelledby="data-title">
@@ -507,6 +507,52 @@
                 </div>
             </section>
         </main>
+
+        <dialog id="name-dialog" class="history-filter-dialog" aria-labelledby="name-dialog-title">
+            <form id="name-form" novalidate>
+                <div class="filter-dialog-header">
+                    <div>
+                        <h3 id="name-dialog-title"></h3>
+                        <p id="name-dialog-hint"></p>
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="name-input">Name</label>
+                    <input type="text" id="name-input" maxlength="60" autocomplete="off" aria-describedby="name-input-error">
+                    <span class="field-error" id="name-input-error" hidden></span>
+                </div>
+                <div class="filter-dialog-actions">
+                    <button type="button" id="cancel-name" class="ghost-button">Cancel</button>
+                    <button type="submit" id="submit-name" class="primary-button">Save</button>
+                </div>
+            </form>
+        </dialog>
+
+        <dialog id="workplace-setup-dialog" class="history-filter-dialog" aria-labelledby="workplace-setup-title">
+            <form id="workplace-setup-form" novalidate>
+                <div class="filter-dialog-header">
+                    <div>
+                        <h3 id="workplace-setup-title">Set up your workplace</h3>
+                        <p>Tell Shift Ledger where you work so shifts can be grouped by workplace and role. You can change all of this later in Settings, or skip it for now.</p>
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="setup-workplace-name">Workplace name</label>
+                    <input type="text" id="setup-workplace-name" maxlength="60" autocomplete="off" aria-describedby="setup-workplace-error">
+                    <span class="field-error" id="setup-workplace-error" hidden></span>
+                </div>
+                <div class="field">
+                    <label for="setup-roles">Roles</label>
+                    <input type="text" id="setup-roles" autocomplete="off" aria-describedby="setup-roles-hint setup-roles-error">
+                    <small class="field-hint" id="setup-roles-hint"></small>
+                    <span class="field-error" id="setup-roles-error" hidden></span>
+                </div>
+                <div class="filter-dialog-actions">
+                    <button type="button" id="skip-workplace-setup" class="ghost-button">Skip for now</button>
+                    <button type="submit" class="primary-button">Save and continue</button>
+                </div>
+            </form>
+        </dialog>
         <nav class="mobile-bottom-nav" aria-label="Quick navigation">
             <button type="button" class="mobile-bottom-nav-button" data-view="dashboard">
                 <span aria-hidden="true">⌂</span>
@@ -644,6 +690,7 @@
     </template>
 
     <script src="assets/js/shift-math.js"></script>
+    <script src="assets/js/workplaces.js"></script>
     <script src="assets/js/script.js"></script>
 </body>
 

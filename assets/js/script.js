@@ -22,6 +22,7 @@ const CARD_BREAKDOWN_SELECTORS = {
 };
 
 const RECOVERY_KEY = "shift-ledger-shifts-v1-recovery";
+const PRE_WORKPLACES_KEY = "shift-ledger-shifts-v1-pre-workplaces";
 const MEAL_PERIODS = ["Lunch", "Dinner", "Double"];
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 const reportAmountFields = [
@@ -29,13 +30,20 @@ const reportAmountFields = [
     "ccTips", "cashTips", "autoGratuity", "tipsPaidOut", "tipOutReceived",
 ];
 let loadNotice = "";
+let setupSaved = false;
+
+const workplaceLoad = window.Workplaces.load(localStorage);
 
 const state = {
     shifts: loadShifts(),
+    workplaces: workplaceLoad.data,
     settings: loadSettings(),
     currentView: null,
     editingShiftId: null,
 };
+if (workplaceLoad.notice) {
+    loadNotice = loadNotice ? `${loadNotice} ${workplaceLoad.notice}` : workplaceLoad.notice;
+}
 let formStatusTimeout = null;
 let formStatusExpiresAt = null;
 let shiftFormDirty = false;
@@ -113,17 +121,31 @@ const weekStartSetting = document.getElementById("setting-week-start");
 const zeroDetailsSetting = document.getElementById("setting-zero-details");
 const currencySetting = document.getElementById("setting-currency");
 const dashboardCustomizeDialog = document.getElementById("dashboard-customize-dialog");
+const workplaceList = document.getElementById("workplace-list");
+const workplaceEmpty = document.getElementById("workplace-empty");
+const nameDialog = document.getElementById("name-dialog");
+const nameForm = document.getElementById("name-form");
+const nameInput = document.getElementById("name-input");
+const nameError = document.getElementById("name-input-error");
+const setupDialog = document.getElementById("workplace-setup-dialog");
+const setupForm = document.getElementById("workplace-setup-form");
+const setupWorkplaceName = document.getElementById("setup-workplace-name");
+const setupRoles = document.getElementById("setup-roles");
 const systemTheme = window.matchMedia("(prefers-color-scheme: dark)");
 
 bindEvents();
 setNoteRows([]);
 initializeDoubleReports();
 initializeSettings();
+renderWorkplaces();
 renderDashboard();
 renderPreviousShifts();
 showView(getInitialView(), { historyAction: "replace" });
 if (loadNotice) {
     setStatus(loadNotice, true);
+}
+if (!workplaceLoad.exists) {
+    openWorkplaceSetup();
 }
 registerServiceWorker();
 
@@ -296,6 +318,12 @@ function bindEvents() {
     });
     document.getElementById("backup-file").addEventListener("change", importBackup);
     document.getElementById("clear-all-data").addEventListener("click", clearAllShifts);
+    document.getElementById("add-workplace").addEventListener("click", addWorkplaceFromSettings);
+    document.getElementById("open-workplace-setup").addEventListener("click", openWorkplaceSetup);
+    workplaceList.addEventListener("click", handleWorkplaceAction);
+    setupForm.addEventListener("submit", handleSetupSubmit);
+    document.getElementById("skip-workplace-setup").addEventListener("click", () => setupDialog.close());
+    setupDialog.addEventListener("close", handleSetupClose);
     systemTheme.addEventListener("change", () => {
         if (state.settings.colorMode === "system") {
             applyTheme();
@@ -1398,9 +1426,10 @@ function getCsvExportFilename(shifts) {
 function exportBackup() {
     const backup = {
         format: "shift-ledger-backup",
-        version: 1,
+        version: 2,
         exportedAt: new Date().toISOString(),
         shifts: state.shifts,
+        workplaces: state.workplaces.workplaces,
     };
     downloadFile(
         JSON.stringify(backup, null, 2),
@@ -1425,17 +1454,49 @@ async function importBackup(event) {
         }
 
         const importedShifts = dedupeShiftIds(records.map(normalizeImportedShift));
-        if (!window.confirm(`Replace your ${state.shifts.length} saved shifts with ${importedShifts.length} shifts from this backup?`)) {
+        let importedWorkplaces = null;
+        if (!Array.isArray(parsed) && parsed.workplaces !== undefined) {
+            try {
+                importedWorkplaces = window.Workplaces.normalizeData({
+                    version: 1,
+                    setupDismissed: true,
+                    workplaces: parsed.workplaces,
+                });
+            } catch (error) {
+                throw new Error("This backup has invalid workplace data.");
+            }
+        }
+        const workplaceNote = importedWorkplaces ? " and its workplaces" : "";
+        if (!window.confirm(`Replace your ${state.shifts.length} saved shifts with ${importedShifts.length} shifts${workplaceNote} from this backup?`)) {
             return;
         }
 
+        const previousWorkplaces = localStorage.getItem(window.Workplaces.STORAGE_KEY);
         try {
+            if (importedWorkplaces) {
+                window.Workplaces.save(localStorage, importedWorkplaces);
+            }
             localStorage.setItem(STORAGE_KEY, JSON.stringify(importedShifts));
         } catch (error) {
             console.error("Unable to store restored shifts:", error);
+            try {
+                if (importedWorkplaces) {
+                    if (previousWorkplaces === null) {
+                        localStorage.removeItem(window.Workplaces.STORAGE_KEY);
+                    } else {
+                        localStorage.setItem(window.Workplaces.STORAGE_KEY, previousWorkplaces);
+                    }
+                }
+            } catch (rollbackError) {
+                console.error("Unable to roll back workplaces:", rollbackError);
+            }
             throw new Error("Unable to restore: browser storage is full or unavailable. Your existing shifts were not changed.");
         }
         state.shifts = importedShifts;
+        if (importedWorkplaces) {
+            state.workplaces = importedWorkplaces;
+            renderWorkplaces();
+        }
         renderDashboard();
         renderPreviousShifts();
         setStatus(`Restored ${importedShifts.length} ${importedShifts.length === 1 ? "shift" : "shifts"}.`);
@@ -1504,6 +1565,12 @@ function normalizeImportedShift(shift, index) {
 
     normalized.notes = getNotes(shift);
 
+    ["workplaceId", "roleId"].forEach((field) => {
+        if (typeof shift[field] !== "string" || !shift[field]) {
+            delete normalized[field];
+        }
+    });
+
     if (shift.noReport === true && shift.mealPeriod !== "Double") {
         reportAmountFields.forEach((field) => {
             normalized[field] = 0;
@@ -1513,6 +1580,350 @@ function normalizeImportedShift(shift, index) {
     }
 
     return normalized;
+}
+
+function showFieldError(input, errorElement, message) {
+    errorElement.textContent = message;
+    errorElement.hidden = !message;
+    if (message) {
+        input.setAttribute("aria-invalid", "true");
+    } else {
+        input.removeAttribute("aria-invalid");
+    }
+}
+
+function persistWorkplaces(data, { quiet = false } = {}) {
+    try {
+        window.Workplaces.save(localStorage, data);
+        return true;
+    } catch (error) {
+        console.error("Unable to save workplaces:", error);
+        if (!quiet) {
+            setStatus("Unable to save workplaces. Your browser storage may be full.", true);
+        }
+        return false;
+    }
+}
+
+function commitWorkplaces(change) {
+    const draft = structuredClone(state.workplaces);
+    const result = change(draft);
+    if (result.error) {
+        return result;
+    }
+    if (!persistWorkplaces(draft)) {
+        return { failed: true };
+    }
+    state.workplaces = draft;
+    return result;
+}
+
+function createActionButton(label, text, data, className = "ghost-button") {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = className;
+    button.textContent = text;
+    button.setAttribute("aria-label", label);
+    Object.assign(button.dataset, data);
+    return button;
+}
+
+function createItemActions(kind, entry) {
+    const actions = document.createElement("div");
+    actions.className = "item-actions";
+    const data = { kind, id: entry.id };
+    const archiveAction = entry.archived ? "unarchive" : "archive";
+    const archiveText = entry.archived ? "Unarchive" : "Archive";
+    actions.append(
+        createActionButton(`Rename ${kind} ${entry.name}`, "Rename", { ...data, action: "rename" }),
+        createActionButton(`${archiveText} ${kind} ${entry.name}`, archiveText, { ...data, action: archiveAction })
+    );
+    if (!window.Workplaces.isInUse(state.shifts, kind, entry.id)) {
+        actions.append(createActionButton(`Delete ${kind} ${entry.name}`, "Delete", { ...data, action: "delete" }, "ghost-button danger-text"));
+    }
+    return actions;
+}
+
+function createArchivedPill() {
+    const pill = document.createElement("span");
+    pill.className = "pill";
+    pill.textContent = "Archived";
+    return pill;
+}
+
+function createWorkplaceItem(workplace) {
+    const item = document.createElement("li");
+    item.className = "workplace-item";
+    item.classList.toggle("is-archived", workplace.archived);
+
+    const head = document.createElement("div");
+    head.className = "workplace-head";
+    const title = document.createElement("h3");
+    title.tabIndex = -1;
+    title.dataset.id = workplace.id;
+    title.textContent = workplace.name;
+    head.append(title);
+    if (workplace.archived) {
+        head.append(createArchivedPill());
+    }
+    head.append(createItemActions("workplace", workplace));
+
+    const roles = document.createElement("ul");
+    roles.className = "role-list";
+    roles.setAttribute("aria-label", `Roles at ${workplace.name}`);
+    if (workplace.roles.length === 0) {
+        const empty = document.createElement("li");
+        empty.className = "role-empty";
+        empty.textContent = "No roles yet.";
+        roles.append(empty);
+    }
+    workplace.roles.forEach((role) => {
+        const roleItem = document.createElement("li");
+        roleItem.className = "role-item";
+        roleItem.classList.toggle("is-archived", role.archived);
+        const name = document.createElement("span");
+        name.className = "role-name";
+        name.textContent = role.name;
+        roleItem.append(name);
+        if (role.archived) {
+            roleItem.append(createArchivedPill());
+        }
+        roleItem.append(createItemActions("role", role));
+        roles.append(roleItem);
+    });
+
+    item.append(head, roles, createActionButton(
+        `Add role to ${workplace.name}`,
+        "Add role",
+        { action: "add-role", kind: "workplace", id: workplace.id },
+        "secondary-button"
+    ));
+    return item;
+}
+
+function renderWorkplaces(focusSelector = null) {
+    const { workplaces } = state.workplaces;
+    workplaceEmpty.hidden = workplaces.length > 0;
+    workplaceList.hidden = workplaces.length === 0;
+    workplaceList.replaceChildren(...workplaces.map(createWorkplaceItem));
+    if (focusSelector) {
+        (workplaceList.querySelector(focusSelector) || document.getElementById("add-workplace")).focus();
+    }
+}
+
+function askForName({ title, hint, value = "", submitLabel, validate }) {
+    return new Promise((resolve) => {
+        document.getElementById("name-dialog-title").textContent = title;
+        document.getElementById("name-dialog-hint").textContent = hint;
+        document.getElementById("submit-name").textContent = submitLabel;
+        nameInput.value = value;
+        showFieldError(nameInput, nameError, "");
+
+        const finish = (result) => {
+            if (!nameDialog.open && !finish.pending) {
+                return;
+            }
+            finish.pending = false;
+            nameForm.removeEventListener("submit", onSubmit);
+            nameDialog.removeEventListener("close", onClose);
+            cancelButton.removeEventListener("click", onClose);
+            if (nameDialog.open) {
+                nameDialog.close();
+            }
+            resolve(result);
+        };
+        const onSubmit = (event) => {
+            event.preventDefault();
+            const problem = validate(nameInput.value);
+            showFieldError(nameInput, nameError, problem);
+            if (problem) {
+                nameInput.focus();
+                return;
+            }
+            finish(window.Workplaces.cleanName(nameInput.value));
+        };
+        const onClose = () => finish(null);
+        const cancelButton = document.getElementById("cancel-name");
+        finish.pending = true;
+        nameForm.addEventListener("submit", onSubmit);
+        nameDialog.addEventListener("close", onClose);
+        cancelButton.addEventListener("click", onClose);
+        nameDialog.showModal();
+        nameInput.focus();
+        nameInput.select();
+    });
+}
+
+async function addWorkplaceFromSettings() {
+    const button = document.getElementById("add-workplace");
+    const name = await askForName({
+        title: "Add a workplace",
+        hint: "Use the name of the restaurant, bar, or company you work for.",
+        submitLabel: "Add workplace",
+        validate: (value) => window.Workplaces.validateName(value, state.workplaces.workplaces, "workplace"),
+    });
+    if (name === null) {
+        button.focus();
+        return;
+    }
+
+    const result = commitWorkplaces((draft) => window.Workplaces.addWorkplace(draft, name));
+    if (result.error) {
+        setStatus(result.error, true);
+    }
+    if (result.error || result.failed) {
+        return;
+    }
+    renderWorkplaces(`h3[data-id="${result.item.id}"]`);
+    setStatus(`Added workplace “${name}”.`);
+}
+
+async function handleWorkplaceAction(event) {
+    const button = event.target.closest("button[data-action]");
+    if (!button) {
+        return;
+    }
+
+    const { action, kind, id } = button.dataset;
+    const found = window.Workplaces.locate(state.workplaces, kind, id);
+    if (!found) {
+        return;
+    }
+    const entry = found.item;
+    const focusSelector = (nextAction) => `button[data-action="${nextAction}"][data-kind="${kind}"][data-id="${id}"]`;
+    let result;
+    let message;
+    let nextFocus = focusSelector(action);
+
+    if (action === "add-role") {
+        const name = await askForName({
+            title: `Add a role to ${entry.name}`,
+            hint: "A role is the position you work here, such as Server or Bartender.",
+            submitLabel: "Add role",
+            validate: (value) => window.Workplaces.validateName(value, entry.roles, "role"),
+        });
+        if (name === null) {
+            button.focus();
+            return;
+        }
+        result = commitWorkplaces((draft) => window.Workplaces.addRole(draft, id, name));
+        message = `Added role “${name}” to ${entry.name}.`;
+    } else if (action === "rename") {
+        const name = await askForName({
+            title: `Rename ${kind}`,
+            hint: "Past shifts keep the name they were saved with. The new name appears on future shifts.",
+            value: entry.name,
+            submitLabel: "Save name",
+            validate: (value) => window.Workplaces.validateName(value, found.siblings, kind, id),
+        });
+        if (name === null) {
+            button.focus();
+            return;
+        }
+        result = commitWorkplaces((draft) => window.Workplaces.rename(draft, kind, id, name));
+        message = `Renamed to “${name}”.`;
+    } else if (action === "archive" || action === "unarchive") {
+        const archived = action === "archive";
+        result = commitWorkplaces((draft) => window.Workplaces.setArchived(draft, kind, id, archived));
+        message = archived
+            ? `Archived ${kind} “${entry.name}”. Past shifts keep it, and it won't be offered for new shifts.`
+            : `Unarchived ${kind} “${entry.name}”.`;
+        nextFocus = focusSelector(archived ? "unarchive" : "archive");
+    } else if (action === "delete") {
+        if (!window.confirm(`Delete the ${kind} “${entry.name}”? It has no saved shifts. This can't be undone.`)) {
+            return;
+        }
+        result = commitWorkplaces((draft) => window.Workplaces.remove(draft, kind, id, state.shifts));
+        message = `Deleted ${kind} “${entry.name}”.`;
+        nextFocus = null;
+    } else {
+        return;
+    }
+
+    if (result.error) {
+        setStatus(result.error, true);
+        return;
+    }
+    if (result.failed) {
+        return;
+    }
+    renderWorkplaces(nextFocus || "h3");
+    setStatus(message);
+}
+
+function openWorkplaceSetup() {
+    if (setupDialog.open) {
+        return;
+    }
+    const jobs = window.Workplaces.distinctJobs(state.shifts);
+    setupSaved = false;
+    setupWorkplaceName.value = "";
+    setupRoles.value = jobs.join(", ");
+    document.getElementById("setup-roles-hint").textContent = jobs.length
+        ? "Separate roles with commas. These came from your saved shifts, and shifts with matching jobs will be linked to them."
+        : "Separate roles with commas, for example: Server, Bartender. You can add more later.";
+    showFieldError(setupWorkplaceName, document.getElementById("setup-workplace-error"), "");
+    showFieldError(setupRoles, document.getElementById("setup-roles-error"), "");
+    setupDialog.showModal();
+    setupWorkplaceName.focus();
+}
+
+function handleSetupClose() {
+    if (setupSaved || state.workplaces.setupDismissed) {
+        return;
+    }
+    const draft = structuredClone(state.workplaces);
+    draft.setupDismissed = true;
+    if (persistWorkplaces(draft, { quiet: true })) {
+        state.workplaces = draft;
+    }
+}
+
+function handleSetupSubmit(event) {
+    event.preventDefault();
+    const nameProblem = window.Workplaces.validateName(setupWorkplaceName.value, state.workplaces.workplaces, "workplace");
+    const roles = window.Workplaces.parseRoleNames(setupRoles.value);
+    showFieldError(setupWorkplaceName, document.getElementById("setup-workplace-error"), nameProblem);
+    showFieldError(setupRoles, document.getElementById("setup-roles-error"), roles.error);
+    if (nameProblem || roles.error) {
+        (nameProblem ? setupWorkplaceName : setupRoles).focus();
+        return;
+    }
+
+    const draft = structuredClone(state.workplaces);
+    const { item: workplace } = window.Workplaces.addWorkplace(draft, setupWorkplaceName.value);
+    roles.names.forEach((name) => window.Workplaces.addRole(draft, workplace.id, name));
+    draft.setupDismissed = true;
+    if (!persistWorkplaces(draft)) {
+        return;
+    }
+    state.workplaces = draft;
+    setupSaved = true;
+
+    // Link existing shifts only after keeping an untouched copy of the originals.
+    const { shifts: linked, changed } = window.Workplaces.linkShifts(state.shifts, workplace);
+    let linkedCount = 0;
+    let linkProblem = false;
+    if (changed > 0) {
+        try {
+            localStorage.setItem(PRE_WORKPLACES_KEY, localStorage.getItem(STORAGE_KEY) ?? "[]");
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(linked));
+            state.shifts = linked;
+            linkedCount = changed;
+        } catch (error) {
+            console.error("Unable to link saved shifts to the new workplace:", error);
+            linkProblem = true;
+        }
+    }
+
+    setupDialog.close();
+    renderWorkplaces("h3");
+    const roleCount = roles.names.length;
+    setStatus([
+        `Created workplace “${workplace.name}”${roleCount ? ` with ${roleCount} ${roleCount === 1 ? "role" : "roles"}` : ""}.`,
+        linkedCount ? `Linked ${linkedCount} saved ${linkedCount === 1 ? "shift" : "shifts"} to its roles.` : "",
+        linkProblem ? "Your saved shifts could not be linked, so they were left unchanged." : "",
+    ].filter(Boolean).join(" "), linkProblem);
 }
 
 function clearAllShifts() {

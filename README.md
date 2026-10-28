@@ -28,8 +28,9 @@ The service worker caches the app shell and static assets. When deploying an upd
 - Navigate with the keyboard and screen readers: a skip link, focus moves to the page heading and the tab title updates when you switch pages, and animations are reduced when your system asks for it
 - Export all saved shifts as a CSV file
 - Choose among seven visual styles—Minimalist, Material, Neo-brutalist, Cyberpunk/Synthwave, Glassmorphism, Modern Skeuomorphism, and High-Contrast—independently from system, light, or dark mode; set the week start day, currency, and whether zero-value shift details are shown
-- Review appearance, format, dashboard, and data preferences in focused settings cards with short hints for each option, with a work-setup roadmap for future restaurant, role, and shift-template management
-- Import or download a complete JSON data backup
+- Review appearance, format, dashboard, and data preferences in focused settings cards with short hints for each option
+- Set up workplaces and the roles you work at each one. The first launch offers a setup dialog (skippable), which links existing shifts to roles by job name and keeps a copy of your original shifts. In Settings you can add, rename, archive, and unarchive workplaces and roles, and delete ones no shift uses. Archived items disappear from future choices, but past shifts keep their job name
+- Import or download a complete JSON data backup, including your workplaces and roles (older backups still restore and leave your workplaces alone)
 
 ## Project direction
 
@@ -62,7 +63,8 @@ CSV exports include all saved shifts. Keep exported files somewhere private beca
 │   │   └── icon-512.png
 │   └── js/
 │       ├── script.js
-│       └── shift-math.js
+│       ├── shift-math.js
+│       └── workplaces.js
 ├── tests/
 │   ├── app-harness.js
 │   ├── assert.js
@@ -73,6 +75,7 @@ CSV exports include all saved shifts. Keep exported files somewhere private beca
 │   ├── run-tests.js
 │   ├── settings.test.js
 │   ├── shift-form.test.js
-│   └── shift-math.test.js
+│   ├── shift-math.test.js
+│   └── workplaces.test.js
 └── README.md
 ```

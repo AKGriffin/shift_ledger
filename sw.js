@@ -1,10 +1,11 @@
-const CACHE_NAME = "shift-ledger-shell-v60";
+const CACHE_NAME = "shift-ledger-shell-v61";
 const APP_SHELL = [
     "./",
     "./index.html",
     "./manifest.webmanifest",
     "./assets/css/style.css",
     "./assets/js/shift-math.js",
+    "./assets/js/workplaces.js",
     "./assets/js/script.js",
     "./assets/icons/icon.svg",
     "./assets/icons/icon-192.png",

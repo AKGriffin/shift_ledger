@@ -9,7 +9,7 @@ The work is grouped by theme. Within each section, items are listed in the order
 The first round of polish, reliability, and accessibility work is done. The next focus is the biggest structural change: letting people track more than one job. The design is settled in [WORKPLACES_SPEC.md](WORKPLACES_SPEC.md), and these items build on it in order.
 
 - [x] **Model shift-report coverage explicitly** - Distinguish no report from a received zero-value report, represent partial and whole-double reports, and prevent overlapping totals from being counted twice. Build this first: roles without reports depend on it.
-- [ ] **Manage workplaces and roles in Settings** - Add, rename, archive, and unarchive workplaces and roles, and delete unused ones. Include the first-run setup dialog (with a Skip option), the migration that links existing shifts by `job`, and version 2 backups that carry workplaces. Explain how archived items affect historical shifts.
+- [x] **Manage workplaces and roles in Settings** - Add, rename, archive, and unarchive workplaces and roles, and delete unused ones. Includes the skippable first-run setup dialog, the migration that links existing shifts by `job`, and version 2 backups that carry workplaces. Archived items stay on historical shifts.
 - [ ] **Use roles and templates when logging shifts** - Select a workplace and role, start from an editable role template that never overwrites typed values, and configure per-workplace pay periods.
 - [ ] **Support roles without shift reports** - Let a role mark sales and report details as unavailable so users can record hours and other known details without inventing numbers.
 - [ ] **Make history and the dashboard workplace-aware** - Add workplace and role filters to Previous Shifts, show "Role · Workplace" on cards, and let the dashboard and CSV export scope to a workplace.
@@ -56,6 +56,7 @@ These share the dashboard code, so plan them together. Period summaries should b
 
 ## Recently completed
 
+- Workplaces and roles managed in Settings, with a skippable first-run setup, job-name migration, and version 2 backups.
 - Reliable PWA refresh and update behavior, including automatic checks when returning online or to the foreground and a reload safeguard for unsaved shifts.
 - Predictable Back and Forward navigation between app views, preserving unfinished form values.
 - Responsive desktop navigation and thumb-friendly mobile bottom navigation.

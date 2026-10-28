@@ -1,6 +1,8 @@
 export const SHIFT_STORAGE_KEY = "shift-ledger-shifts-v1";
 export const SETTINGS_STORAGE_KEY = "shift-ledger-settings-v1";
 export const RECOVERY_STORAGE_KEY = "shift-ledger-shifts-v1-recovery";
+export const WORKPLACES_STORAGE_KEY = "shift-ledger-workplaces-v1";
+export const PRE_WORKPLACES_STORAGE_KEY = "shift-ledger-shifts-v1-pre-workplaces";
 
 const FIELD_IDS = {
     date: "shift-date",
@@ -84,10 +86,13 @@ export function withApp(options, callback) {
     return run;
 }
 
-async function runWithApp({ width = 1200, height = 1000, shifts, settings } = {}, callback) {
+async function runWithApp({ width = 1200, height = 1000, shifts, settings, workplaces } = {}, callback) {
     const previous = {
         shifts: localStorage.getItem(SHIFT_STORAGE_KEY),
         settings: localStorage.getItem(SETTINGS_STORAGE_KEY),
+        workplaces: localStorage.getItem(WORKPLACES_STORAGE_KEY),
+        preWorkplaces: localStorage.getItem(PRE_WORKPLACES_STORAGE_KEY),
+        workplacesRecovery: localStorage.getItem(`${WORKPLACES_STORAGE_KEY}-recovery`),
     };
     const frame = document.createElement("iframe");
     frame.title = "Shift Ledger app test";
@@ -95,6 +100,16 @@ async function runWithApp({ width = 1200, height = 1000, shifts, settings } = {}
 
     localStorage.removeItem(SHIFT_STORAGE_KEY);
     localStorage.removeItem(SETTINGS_STORAGE_KEY);
+    localStorage.removeItem(PRE_WORKPLACES_STORAGE_KEY);
+    localStorage.removeItem(`${WORKPLACES_STORAGE_KEY}-recovery`);
+    // Tests start with first-run setup already dismissed unless they ask otherwise.
+    if (workplaces === null) {
+        localStorage.removeItem(WORKPLACES_STORAGE_KEY);
+    } else {
+        localStorage.setItem(WORKPLACES_STORAGE_KEY, typeof workplaces === "string"
+            ? workplaces
+            : JSON.stringify({ version: 1, setupDismissed: true, workplaces: [], ...workplaces }));
+    }
     if (shifts) {
         localStorage.setItem(SHIFT_STORAGE_KEY, typeof shifts === "string" ? shifts : JSON.stringify(shifts));
     }
@@ -125,6 +140,9 @@ async function runWithApp({ width = 1200, height = 1000, shifts, settings } = {}
         restoreItem(SHIFT_STORAGE_KEY, previous.shifts);
         restoreItem(SETTINGS_STORAGE_KEY, previous.settings);
         restoreItem(RECOVERY_STORAGE_KEY, previousRecovery);
+        restoreItem(WORKPLACES_STORAGE_KEY, previous.workplaces);
+        restoreItem(PRE_WORKPLACES_STORAGE_KEY, previous.preWorkplaces);
+        restoreItem(`${WORKPLACES_STORAGE_KEY}-recovery`, previous.workplacesRecovery);
     }
 }
 
@@ -192,5 +210,6 @@ function createHarness(frame) {
         change,
         savedShifts: () => JSON.parse(localStorage.getItem(SHIFT_STORAGE_KEY) || "[]"),
         savedSettings: () => JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY) || "{}"),
+        savedWorkplaces: () => JSON.parse(localStorage.getItem(WORKPLACES_STORAGE_KEY) || "null"),
     };
 }

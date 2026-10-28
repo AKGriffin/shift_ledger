@@ -18,11 +18,10 @@ describe("Settings page", () => {
         expect(elements(".settings-card")).toHaveLength(5);
         expect(element("#appearance-title").textContent).toBe("Appearance");
         expect(element("#formats-title").textContent).toBe("Formats & display");
-        expect(element("#work-setup-title").textContent).toBe("Jobs & roles");
+        expect(element("#work-setup-title").textContent).toBe("Workplaces & roles");
         expect(element("#dashboard-settings-title").textContent).toBe("Dashboard");
         expect(element("#export-csv").textContent).toBe("Download CSV");
-        expect(element(".work-setup-flow").textContent.replace(/\s+/g, " ").trim())
-            .toContain("Restaurants › Roles › Shift templates");
+        expect(element("#add-workplace")).toBeDefined();
     }));
 
     test("labels every setting and links it to a hint", () => withApp(({ doc, elements, openView }) => {
