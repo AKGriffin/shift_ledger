@@ -19,8 +19,8 @@ The first round of polish, reliability, and accessibility work is done. The next
 Findings from hands-on testing. Do the first three first, since they change the workplace flow the others build on. The Settings redesign comes last so it reflects the merged flow.
 
 - [x] **Merge "Set up workplace" and "Add workplace" into one flow** - They should be the same form and behavior, reused by first-run setup and Settings.
-- [x] **Add pay period to the new-workplace form** - Choose the pay period when creating a workplace instead of editing it afterward.
-- [ ] **Add optional start and end dates to workplaces** - For data tracking only; they must not restrict logging shifts or filter history unless the user asks.
+- [x] **Add pay period to the new-workplace form** - Choose the pay-period frequency and starting weekday when creating a workplace; every-two-weeks periods retain a reference date for cycle alignment.
+- [x] **Add optional start and end dates to workplaces** - For data tracking only; they must not restrict logging shifts or filter history unless the user asks.
 - [ ] **Split workplace and role into their own card in the new shift form** - Separate "where and as what" from the time, sales, and tip fields.
 - [ ] **Add workplaces and roles from inside the shift form** - Evaluate an inline "Add new…" option that opens the shared workplace/role form and returns to the unfinished shift with the new item selected, without losing typed values.
 - [ ] **Add an hourly wage to roles** - Optional per-role hourly wage, set in the role form and kept in backups. Stored for tracking and later earnings estimates; never required to log a shift.

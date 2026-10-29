@@ -136,8 +136,13 @@ const setupForm = document.getElementById("workplace-setup-form");
 const setupWorkplaceName = document.getElementById("setup-workplace-name");
 const setupPayPeriodType = document.getElementById("setup-pay-period-type");
 const setupPayPeriodAnchor = document.getElementById("setup-pay-period-anchor");
+const setupPayPeriodStartDay = document.getElementById("setup-pay-period-start-day");
+const setupPayPeriodStartDayField = document.getElementById("setup-pay-period-start-day-field");
 const setupPayPeriodAnchorField = document.getElementById("setup-pay-period-anchor-field");
 const setupPayPeriodError = document.getElementById("setup-pay-period-error");
+const setupWorkplaceStartDate = document.getElementById("setup-workplace-start-date");
+const setupWorkplaceEndDate = document.getElementById("setup-workplace-end-date");
+const setupWorkplaceDatesError = document.getElementById("setup-workplace-dates-error");
 const setupRoles = document.getElementById("setup-roles");
 const systemTheme = window.matchMedia("(prefers-color-scheme: dark)");
 
@@ -330,9 +335,26 @@ function bindEvents() {
     document.getElementById("add-workplace").addEventListener("click", () => openWorkplaceSetup());
     fields.workplace.addEventListener("change", handleWorkplaceFieldChange);
     fields.role.addEventListener("change", applyRoleTemplate);
-    document.getElementById("pay-period-type").addEventListener("change", updatePayPeriodAnchor);
+    const payPeriodType = document.getElementById("pay-period-type");
+    const payPeriodStartDay = document.getElementById("pay-period-start-day");
+    const payPeriodAnchor = document.getElementById("pay-period-anchor");
+    const payPeriodError = document.getElementById("pay-period-error");
+    const clearPayPeriodError = () => {
+        showDialogError(payPeriodError, "");
+        [payPeriodType, payPeriodStartDay, payPeriodAnchor].forEach((input) => input.removeAttribute("aria-invalid"));
+    };
+    payPeriodType.addEventListener("change", () => {
+        updatePayPeriodFields();
+        clearPayPeriodError();
+    });
+    payPeriodStartDay.addEventListener("change", clearPayPeriodError);
+    payPeriodAnchor.addEventListener("input", clearPayPeriodError);
     setupPayPeriodType.addEventListener("change", () => {
-        updatePayPeriodAnchor(setupPayPeriodType, setupPayPeriodAnchorField);
+        updateSetupPayPeriodFields();
+        showFieldError(setupPayPeriodType, setupPayPeriodError, "");
+        setupPayPeriodAnchor.removeAttribute("aria-invalid");
+    });
+    setupPayPeriodStartDay.addEventListener("change", () => {
         showFieldError(setupPayPeriodType, setupPayPeriodError, "");
         setupPayPeriodAnchor.removeAttribute("aria-invalid");
     });
@@ -340,6 +362,19 @@ function bindEvents() {
         showFieldError(setupPayPeriodType, setupPayPeriodError, "");
         setupPayPeriodAnchor.removeAttribute("aria-invalid");
     });
+    [setupWorkplaceStartDate, setupWorkplaceEndDate].forEach((input) => {
+        input.addEventListener("input", () => {
+            showDialogError(setupWorkplaceDatesError, "");
+            setupWorkplaceStartDate.removeAttribute("aria-invalid");
+            setupWorkplaceEndDate.removeAttribute("aria-invalid");
+        });
+    });
+    [document.getElementById("workplace-start-date"), document.getElementById("workplace-end-date")]
+        .forEach((input) => input.addEventListener("input", () => {
+            showDialogError(document.getElementById("workplace-dates-error"), "");
+            document.getElementById("workplace-start-date").removeAttribute("aria-invalid");
+            document.getElementById("workplace-end-date").removeAttribute("aria-invalid");
+        }));
     document.getElementById("open-workplace-setup").addEventListener("click", openWorkplaceSetup);
     workplaceList.addEventListener("click", handleWorkplaceAction);
     setupForm.addEventListener("submit", handleSetupSubmit);
@@ -1845,6 +1880,7 @@ function createItemActions(kind, entry) {
     const archiveText = entry.archived ? "Unarchive" : "Archive";
     if (kind === "workplace") {
         actions.append(createActionButton(`Set pay period for ${entry.name}`, "Pay period", { ...data, action: "pay-period" }));
+        actions.append(createActionButton(`Set dates for ${entry.name}`, "Dates", { ...data, action: "dates" }));
     } else {
         actions.append(createActionButton(`Edit template for role ${entry.name}`, "Template", { ...data, action: "template" }));
     }
@@ -1882,13 +1918,32 @@ function formatPayPeriod(payPeriod) {
         semimonthly: "Twice a month (1st and 16th)",
         monthly: "Monthly",
     };
+    if (payPeriod.startDay) {
+        const day = payPeriod.startDay[0].toUpperCase() + payPeriod.startDay.slice(1);
+        return payPeriod.type === "biweekly"
+            ? `Pay period: Every two weeks, starting ${day} (reference ${formatDate(payPeriod.anchorDate)})`
+            : `Pay period: ${labels[payPeriod.type]}, starting ${day}`;
+    }
     if (!payPeriod.anchorDate) {
         return `Pay period: ${labels[payPeriod.type]}`;
     }
-    const [year, month, day] = payPeriod.anchorDate.split("-").map(Number);
-    const start = new Date(year, month - 1, day)
+    return `Pay period: ${labels[payPeriod.type]}, starting ${formatDate(payPeriod.anchorDate)}`;
+}
+
+function formatDate(value) {
+    const [year, month, day] = value.split("-").map(Number);
+    const date = new Date(0);
+    date.setHours(0, 0, 0, 0);
+    date.setFullYear(year, month - 1, day);
+    return date
         .toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-    return `Pay period: ${labels[payPeriod.type]}, starting ${start}`;
+}
+
+function formatWorkplaceDates(workplace) {
+    if (!workplace.startDate && !workplace.endDate) {
+        return "Workplace dates: not set";
+    }
+    return `Workplace dates: ${workplace.startDate ? formatDate(workplace.startDate) : "not set"} – ${workplace.endDate ? formatDate(workplace.endDate) : "ongoing"}`;
 }
 
 function formatTemplate(template, tracksReports) {
@@ -1945,7 +2000,7 @@ function createWorkplaceItem(workplace) {
         roles.append(roleItem);
     });
 
-    item.append(head, summary, roles, createActionButton(
+    item.append(head, summary, createItemSummary(formatWorkplaceDates(workplace)), roles, createActionButton(
         `Add role to ${workplace.name}`,
         "Add role",
         { action: "add-role", kind: "workplace", id: workplace.id },
@@ -2086,7 +2141,10 @@ function askForTemplate(role) {
 
 function askForPayPeriod(workplace) {
     const typeInput = document.getElementById("pay-period-type");
+    const startDayInput = document.getElementById("pay-period-start-day");
+    const startDayField = document.getElementById("pay-period-start-day-field");
     const anchorInput = document.getElementById("pay-period-anchor");
+    const anchorField = document.getElementById("pay-period-anchor-field");
     const errorElement = document.getElementById("pay-period-error");
     return runFormDialog({
         dialog: document.getElementById("pay-period-dialog"),
@@ -2095,18 +2153,31 @@ function askForPayPeriod(workplace) {
         onOpen: () => {
             document.getElementById("pay-period-dialog-title").textContent = `Pay period for ${workplace.name}`;
             typeInput.value = workplace.payPeriod?.type || "";
+            startDayInput.value = workplace.payPeriod?.startDay || state.settings.weekStartsOn;
             anchorInput.value = workplace.payPeriod?.anchorDate || "";
-            updatePayPeriodAnchor();
+            updatePayPeriodFields(typeInput, startDayField, anchorField);
             showDialogError(errorElement, "");
+            [typeInput, startDayInput, anchorInput].forEach((input) => input.removeAttribute("aria-invalid"));
             typeInput.focus();
         },
         onSubmit: () => {
             const value = typeInput.value
-                ? { type: typeInput.value, anchorDate: anchorInput.value }
+                ? {
+                    type: typeInput.value,
+                    startDay: startDayInput.value,
+                    ...(typeInput.value === "biweekly" ? { anchorDate: anchorInput.value } : {}),
+                }
                 : null;
             const check = window.Workplaces.setPayPeriod(structuredClone(state.workplaces), workplace.id, value);
             if (check.error) {
                 showDialogError(errorElement, check.error);
+                if (typeInput.value === "biweekly") {
+                    anchorInput.setAttribute("aria-invalid", "true");
+                    anchorInput.focus();
+                } else {
+                    startDayInput.setAttribute("aria-invalid", "true");
+                    startDayInput.focus();
+                }
                 return undefined;
             }
             return { value };
@@ -2114,9 +2185,50 @@ function askForPayPeriod(workplace) {
     });
 }
 
-function updatePayPeriodAnchor(typeInput = document.getElementById("pay-period-type"), anchorField = document.getElementById("pay-period-anchor-field")) {
-    const needsAnchor = ["weekly", "biweekly"].includes(typeInput.value);
-    anchorField.hidden = !needsAnchor;
+function updatePayPeriodFields(
+    typeInput = document.getElementById("pay-period-type"),
+    startDayField = document.getElementById("pay-period-start-day-field"),
+    anchorField = document.getElementById("pay-period-anchor-field")
+) {
+    const needsStartDay = ["weekly", "biweekly"].includes(typeInput.value);
+    startDayField.hidden = !needsStartDay;
+    anchorField.hidden = typeInput.value !== "biweekly";
+}
+
+function updateSetupPayPeriodFields() {
+    const needsStartDay = ["weekly", "biweekly"].includes(setupPayPeriodType.value);
+    setupPayPeriodStartDayField.hidden = !needsStartDay;
+    setupPayPeriodAnchorField.hidden = setupPayPeriodType.value !== "biweekly";
+}
+
+function askForWorkplaceDates(workplace) {
+    const startDateInput = document.getElementById("workplace-start-date");
+    const endDateInput = document.getElementById("workplace-end-date");
+    const errorElement = document.getElementById("workplace-dates-error");
+    return runFormDialog({
+        dialog: document.getElementById("workplace-dates-dialog"),
+        form: document.getElementById("workplace-dates-form"),
+        cancelButton: document.getElementById("cancel-workplace-dates"),
+        onOpen: () => {
+            document.getElementById("workplace-dates-title").textContent = `Dates for ${workplace.name}`;
+            startDateInput.value = workplace.startDate || "";
+            endDateInput.value = workplace.endDate || "";
+            showDialogError(errorElement, "");
+            [startDateInput, endDateInput].forEach((input) => input.removeAttribute("aria-invalid"));
+            startDateInput.focus();
+        },
+        onSubmit: () => {
+            const value = { startDate: startDateInput.value, endDate: endDateInput.value };
+            const check = window.Workplaces.setDates(structuredClone(state.workplaces), workplace.id, value);
+            if (check.error) {
+                showDialogError(errorElement, check.error);
+                endDateInput.setAttribute("aria-invalid", "true");
+                endDateInput.focus();
+                return undefined;
+            }
+            return { value };
+        },
+    });
 }
 
 async function handleWorkplaceAction(event) {
@@ -2188,6 +2300,14 @@ async function handleWorkplaceAction(event) {
         }
         result = commitWorkplaces((draft) => window.Workplaces.setPayPeriod(draft, id, payPeriod.value));
         message = `Saved the pay period for ${entry.name}.`;
+    } else if (action === "dates") {
+        const dates = await askForWorkplaceDates(entry);
+        if (dates === null) {
+            button.focus();
+            return;
+        }
+        result = commitWorkplaces((draft) => window.Workplaces.setDates(draft, id, dates.value));
+        message = `Saved dates for ${entry.name}.`;
     } else if (action === "archive" || action === "unarchive") {
         const archived = action === "archive";
         result = commitWorkplaces((draft) => window.Workplaces.setArchived(draft, kind, id, archived));
@@ -2233,10 +2353,14 @@ function openWorkplaceSetup(options) {
     setupSaved = false;
     setupWorkplaceName.value = "";
     setupPayPeriodType.value = "";
+    setupPayPeriodStartDay.value = state.settings.weekStartsOn;
     setupPayPeriodAnchor.value = "";
-    updatePayPeriodAnchor(setupPayPeriodType, setupPayPeriodAnchorField);
+    setupWorkplaceStartDate.value = "";
+    setupWorkplaceEndDate.value = "";
+    updateSetupPayPeriodFields();
     showFieldError(setupPayPeriodType, setupPayPeriodError, "");
     setupPayPeriodAnchor.removeAttribute("aria-invalid");
+    showDialogError(setupWorkplaceDatesError, "");
     fillRoleList(setupRoles, jobs);
     document.getElementById("setup-roles-hint").textContent = firstRun && jobs.length
         ? "These came from your saved shifts, and shifts with matching jobs will be linked to them. Press Enter for the next role."
@@ -2387,6 +2511,9 @@ function handleSetupSubmit(event) {
     rolesError.hidden = !roles.error;
     showFieldError(setupPayPeriodType, setupPayPeriodError, "");
     setupPayPeriodAnchor.removeAttribute("aria-invalid");
+    showDialogError(setupWorkplaceDatesError, "");
+    setupWorkplaceStartDate.removeAttribute("aria-invalid");
+    setupWorkplaceEndDate.removeAttribute("aria-invalid");
     if (nameProblem || roles.error) {
         (nameProblem ? setupWorkplaceName : roleInputs[0]).focus();
         return;
@@ -2395,7 +2522,11 @@ function handleSetupSubmit(event) {
     const draft = structuredClone(state.workplaces);
     const { item: workplace } = window.Workplaces.addWorkplace(draft, setupWorkplaceName.value);
     const payPeriod = setupPayPeriodType.value
-        ? { type: setupPayPeriodType.value, anchorDate: setupPayPeriodAnchor.value }
+        ? {
+            type: setupPayPeriodType.value,
+            startDay: setupPayPeriodStartDay.value,
+            ...(setupPayPeriodType.value === "biweekly" ? { anchorDate: setupPayPeriodAnchor.value } : {}),
+        }
         : null;
     const payPeriodResult = window.Workplaces.setPayPeriod(draft, workplace.id, payPeriod);
     if (payPeriodResult.error) {
@@ -2406,6 +2537,17 @@ function handleSetupSubmit(event) {
         } else {
             setupPayPeriodType.focus();
         }
+        return;
+    }
+    const workplaceDates = {
+        startDate: setupWorkplaceStartDate.value,
+        endDate: setupWorkplaceEndDate.value,
+    };
+    const datesResult = window.Workplaces.setDates(draft, workplace.id, workplaceDates);
+    if (datesResult.error) {
+        showDialogError(setupWorkplaceDatesError, datesResult.error);
+        setupWorkplaceEndDate.setAttribute("aria-invalid", "true");
+        setupWorkplaceEndDate.focus();
         return;
     }
     roles.names.forEach((name) => window.Workplaces.addRole(draft, workplace.id, name));

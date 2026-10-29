@@ -4,6 +4,7 @@
     const MAX_NAME_LENGTH = 60;
     const MEAL_PERIODS = ["Lunch", "Dinner", "Double"];
     const PAY_PERIOD_TYPES = ["weekly", "biweekly", "semimonthly", "monthly"];
+    const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
     const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 
     function readTemplate(raw) {
@@ -44,12 +45,56 @@
         if (raw.type === "semimonthly" || raw.type === "monthly") {
             return { type: raw.type };
         }
-        const match = typeof raw.anchorDate === "string" && /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw.anchorDate);
-        const date = match && new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
-        if (!date || date.getMonth() !== Number(match[2]) - 1 || date.getDate() !== Number(match[3])) {
-            throw new Error("Enter the date a pay period starts.");
+        const anchorDate = readDate(raw.anchorDate, "date a pay period starts");
+        if (raw.startDay !== undefined && !WEEKDAYS.includes(raw.startDay)) {
+            throw new Error("Choose a valid weekday for the pay period.");
         }
-        return { type: raw.type, anchorDate: raw.anchorDate };
+        const startDay = raw.startDay || (anchorDate ? weekdayForDate(anchorDate) : null);
+        if (!startDay) {
+            throw new Error("Choose the weekday a pay period starts.");
+        }
+        if (anchorDate && weekdayForDate(anchorDate) !== startDay) {
+            throw new Error("The reference date must fall on the selected start weekday.");
+        }
+        if (raw.type === "biweekly" && !anchorDate) {
+            throw new Error("Enter a reference date to align every-two-weeks periods.");
+        }
+        return raw.type === "biweekly"
+            ? { type: raw.type, startDay, anchorDate }
+            : { type: raw.type, startDay };
+    }
+
+    function readDate(value, label) {
+        if (value === undefined || value === null || value === "") {
+            return null;
+        }
+        const match = typeof value === "string" && /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+        const date = match && dateFromIso(value);
+        if (!date || date.getMonth() !== Number(match[2]) - 1 || date.getDate() !== Number(match[3])) {
+            throw new Error(`Enter a valid ${label}.`);
+        }
+        return value;
+    }
+
+    function dateFromIso(value) {
+        const [year, month, day] = value.split("-").map(Number);
+        const date = new Date(0);
+        date.setHours(0, 0, 0, 0);
+        date.setFullYear(year, month - 1, day);
+        return date;
+    }
+
+    function weekdayForDate(value) {
+        return WEEKDAYS[dateFromIso(value).getDay()];
+    }
+
+    function readWorkplaceDates(dates) {
+        const startDate = readDate(dates?.startDate, "workplace start date");
+        const endDate = readDate(dates?.endDate, "workplace end date");
+        if (startDate && endDate && startDate > endDate) {
+            throw new Error("The end date must be on or after the start date.");
+        }
+        return { startDate, endDate };
     }
 
     function createId(prefix) {
@@ -110,6 +155,13 @@
                 archived: workplace.archived === true,
                 roles,
             };
+            const dates = readWorkplaceDates(workplace);
+            if (dates.startDate) {
+                normalizedWorkplace.startDate = dates.startDate;
+            }
+            if (dates.endDate) {
+                normalizedWorkplace.endDate = dates.endDate;
+            }
             const payPeriod = readPayPeriod(workplace.payPeriod);
             if (payPeriod) {
                 normalizedWorkplace.payPeriod = payPeriod;
@@ -280,6 +332,29 @@
         return { item: found.item };
     }
 
+    function setDates(data, workplaceId, dates) {
+        const found = locate(data, "workplace", workplaceId);
+        if (!found) {
+            return { error: "That workplace no longer exists." };
+        }
+        try {
+            const clean = readWorkplaceDates(dates);
+            if (clean.startDate) {
+                found.item.startDate = clean.startDate;
+            } else {
+                delete found.item.startDate;
+            }
+            if (clean.endDate) {
+                found.item.endDate = clean.endDate;
+            } else {
+                delete found.item.endDate;
+            }
+        } catch (error) {
+            return { error: error.message };
+        }
+        return { item: found.item };
+    }
+
     function isInUse(shifts, kind, id) {
         const field = kind === "workplace" ? "workplaceId" : "roleId";
         return shifts.some((shift) => shift[field] === id);
@@ -355,6 +430,7 @@
         setTemplate,
         setTracksReports,
         setPayPeriod,
+        setDates,
         linkShifts,
         load,
         locate,

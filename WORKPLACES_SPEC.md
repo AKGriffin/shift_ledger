@@ -1,6 +1,6 @@
 # Workplaces, Roles, and Shift Templates
 
-Status: proposed design. Nothing here is implemented yet. It defines the data model and migration that the "Next" roadmap items build on:
+Status: implementation reference. It records the workplace data model and behavior:
 
 - Manage workplaces and roles in Settings
 - Use roles and templates when logging shifts
@@ -43,7 +43,9 @@ Stored in a new key, `shift-ledger-workplaces-v1`, so the shift key stays backwa
       "id": "wp_1",
       "name": "Harbor Grill",
       "archived": false,
-      "payPeriod": { "type": "biweekly", "anchorDate": "2026-01-02" },
+      "startDate": "2020-03-10",
+      "endDate": "2026-10-29",
+      "payPeriod": { "type": "biweekly", "startDay": "friday", "anchorDate": "2026-01-02" },
       "roles": [
         {
           "id": "role_1",
@@ -68,7 +70,8 @@ Rules:
 
 - `id` values are generated, unique, and never reused. Names are display-only and editable.
 - Names are trimmed, 1-60 characters, and unique among non-archived siblings, compared case-insensitively.
-- `payPeriod.type` is one of `weekly`, `biweekly`, `semimonthly`, `monthly`. Anchor dates apply to weekly and biweekly only. Defaults to the app's week-start setting.
+- Workplace `startDate` and `endDate` are optional ISO dates. If both are set, the end date cannot precede the start date. They are descriptive only and never restrict shift logging or history.
+- `payPeriod.type` is one of `weekly`, `biweekly`, `semimonthly`, `monthly`. Weekly and biweekly periods store a `startDay` weekday, defaulting to the app's week-start setting. Biweekly periods also require an `anchorDate` reference start to preserve alternating-week alignment; it must fall on `startDay`. Legacy weekly/biweekly anchor dates are normalized to their weekday, and legacy biweekly dates remain as the reference.
 - `template` fields are all optional. Time fields use the same `HH:MM` validation as shifts. `mealPeriod` is Lunch, Dinner, or Double.
 - `tracksReports: false` means sales and report fields are unavailable for that role. See "Roles without reports".
 
@@ -90,7 +93,8 @@ Add two optional fields; keep `job` unchanged:
 Instead of silently creating "My workplace", the first launch after this feature ships (workplaces key absent) shows a short setup dialog:
 
 - Asks for a workplace name. If the user has existing shifts, it lists the job values found in them (for example Server, Expo) as pre-checked roles the user can rename or uncheck.
-- Offers pay-period type, defaulting to the week-start setting. Pay period can be left for later.
+- Offers an optional pay-period frequency and start weekday, defaulting to the week-start setting. Every two weeks also requires a reference start date to preserve the alternating-week cycle.
+- Offers optional workplace start and end dates for recordkeeping only.
 - Primary action "Save and continue" creates the workplace, roles and links, then runs the migration steps below.
 - A "Skip for now" button closes the dialog without creating anything. The app keeps working with the legacy `job` behavior, and nothing is migrated.
 - Skipping stores `setupDismissed: true` in the workplaces key so the prompt does not return on every launch. Settings keeps a "Set up workplaces" entry so users can start the setup later.
@@ -166,7 +170,7 @@ Replace the "Jobs & roles" explanation with a manager:
 ## Decisions
 
 1. A shift has exactly one role. A shift that covers two roles is logged as two shifts.
-2. Pay periods are set per workplace, defaulting to the global week start.
+2. Pay periods are set per workplace. Weekly and biweekly periods start on a selected weekday; biweekly periods retain a reference date for accurate cycle alignment. The default weekday is the global week start.
 3. Each role has one template for now. Several named templates per role are a later option.
 4. The first-run setup is a prompt, not a silent migration (see "First-run setup"). Users can skip it.
 5. An optional onboarding wizard is a possible future feature. The first-run prompt is designed so it can become the wizard's first step.
@@ -177,4 +181,4 @@ Where the shipped version differs from the plan above:
 
 - The setup dialog uses an add-a-row list of roles, like the shift form's notes (Enter adds a row, Backspace on an empty row removes it), prefilled from existing jobs, instead of a checkbox list.
 - The pre-linking copy of shifts is saved under `shift-ledger-shifts-v1-pre-workplaces`, separate from the corruption recovery key, so neither overwrites the other.
-- Pay period is not in the setup dialog; users set it per workplace from Settings.
+- Workplace setup and Settings share a form for pay periods and optional workplace dates. Workplace dates are also editable from the workplace's Settings actions and don't affect shifts or history.

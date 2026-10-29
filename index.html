@@ -568,11 +568,32 @@
                         <option value="monthly">Monthly</option>
                     </select>
                 </div>
+                <div class="field" id="setup-pay-period-start-day-field" hidden>
+                    <label for="setup-pay-period-start-day">Period starts on</label>
+                    <select id="setup-pay-period-start-day" aria-describedby="setup-pay-period-error">
+                        <option value="sunday">Sunday</option>
+                        <option value="monday">Monday</option>
+                        <option value="tuesday">Tuesday</option>
+                        <option value="wednesday">Wednesday</option>
+                        <option value="thursday">Thursday</option>
+                        <option value="friday">Friday</option>
+                        <option value="saturday">Saturday</option>
+                    </select>
+                </div>
                 <div class="field" id="setup-pay-period-anchor-field" hidden>
-                    <label for="setup-pay-period-anchor">A date a pay period starts</label>
+                    <label for="setup-pay-period-anchor">A reference pay-period start date</label>
                     <input type="date" id="setup-pay-period-anchor" aria-describedby="setup-pay-period-error">
                 </div>
                 <span class="field-error" id="setup-pay-period-error" hidden></span>
+                <div class="field">
+                    <label for="setup-workplace-start-date">Workplace start date (optional)</label>
+                    <input type="date" id="setup-workplace-start-date" aria-describedby="setup-workplace-dates-error">
+                </div>
+                <div class="field">
+                    <label for="setup-workplace-end-date">Workplace end date (optional)</label>
+                    <input type="date" id="setup-workplace-end-date" aria-describedby="setup-workplace-dates-error">
+                </div>
+                <span class="field-error" id="setup-workplace-dates-error" hidden></span>
                 <fieldset class="field setup-roles-field">
                     <legend>Roles</legend>
                     <small class="field-hint" id="setup-roles-hint"></small>
@@ -661,12 +682,12 @@
                 <div class="filter-dialog-header">
                     <div>
                         <h3 id="pay-period-dialog-title">Pay period</h3>
-                        <p>How often this workplace pays you. If you don't set one, the week start in Settings is used.</p>
+                        <p>Choose how often this workplace pays you and the weekday each period starts. Every-two-weeks periods need a reference date to keep alternating weeks aligned.</p>
                     </div>
                 </div>
                 <div class="field">
                     <label for="pay-period-type">Pay period</label>
-                    <select id="pay-period-type">
+                    <select id="pay-period-type" aria-describedby="pay-period-error">
                         <option value="">Use the week start setting</option>
                         <option value="weekly">Weekly</option>
                         <option value="biweekly">Every two weeks</option>
@@ -674,14 +695,50 @@
                         <option value="monthly">Monthly</option>
                     </select>
                 </div>
+                <div class="field" id="pay-period-start-day-field" hidden>
+                    <label for="pay-period-start-day">Period starts on</label>
+                    <select id="pay-period-start-day" aria-describedby="pay-period-error">
+                        <option value="sunday">Sunday</option>
+                        <option value="monday">Monday</option>
+                        <option value="tuesday">Tuesday</option>
+                        <option value="wednesday">Wednesday</option>
+                        <option value="thursday">Thursday</option>
+                        <option value="friday">Friday</option>
+                        <option value="saturday">Saturday</option>
+                    </select>
+                </div>
                 <div class="field" id="pay-period-anchor-field" hidden>
-                    <label for="pay-period-anchor">A date a pay period starts</label>
+                    <label for="pay-period-anchor">A reference pay-period start date</label>
                     <input type="date" id="pay-period-anchor" aria-describedby="pay-period-error">
                 </div>
                 <span class="field-error" id="pay-period-error" hidden></span>
                 <div class="filter-dialog-actions">
                     <button type="button" id="cancel-pay-period" class="ghost-button">Cancel</button>
                     <button type="submit" class="primary-button">Save pay period</button>
+                </div>
+            </form>
+        </dialog>
+
+        <dialog id="workplace-dates-dialog" class="history-filter-dialog" aria-labelledby="workplace-dates-title">
+            <form id="workplace-dates-form" novalidate>
+                <div class="filter-dialog-header">
+                    <div>
+                        <h3 id="workplace-dates-title">Workplace dates</h3>
+                        <p>Optional dates for your records only. They don't limit shift logging or change history.</p>
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="workplace-start-date">Start date</label>
+                    <input type="date" id="workplace-start-date" aria-describedby="workplace-dates-error">
+                </div>
+                <div class="field">
+                    <label for="workplace-end-date">End date</label>
+                    <input type="date" id="workplace-end-date" aria-describedby="workplace-dates-error">
+                </div>
+                <span class="field-error" id="workplace-dates-error" hidden></span>
+                <div class="filter-dialog-actions">
+                    <button type="button" id="cancel-workplace-dates" class="ghost-button">Cancel</button>
+                    <button type="submit" class="primary-button">Save dates</button>
                 </div>
             </form>
         </dialog>

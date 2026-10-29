@@ -121,8 +121,44 @@ describe("Workplaces data module", () => {
             clockOut: "15:00",
         }).item.template.mealPeriod).toBe("Lunch");
         expect(Workplaces.setTemplate(data, "r-1", { breakStart: "12:00" }).error).toContain("both break times");
-        expect(Workplaces.setPayPeriod(data, "wp-1", { type: "biweekly", anchorDate: "2026-10-17" }).item.payPeriod.type).toBe("biweekly");
-        expect(Workplaces.setPayPeriod(data, "wp-1", { type: "weekly", anchorDate: "2026-13-01" }).error).toContain("date");
+        expect(Workplaces.setPayPeriod(data, "wp-1", { type: "weekly", startDay: "monday" }).item.payPeriod)
+            .toEqual({ type: "weekly", startDay: "monday" });
+        expect(Workplaces.setPayPeriod(data, "wp-1", {
+            type: "biweekly",
+            startDay: "friday",
+            anchorDate: "2026-10-16",
+        }).item.payPeriod).toEqual({ type: "biweekly", startDay: "friday", anchorDate: "2026-10-16" });
+        expect(Workplaces.setPayPeriod(data, "wp-1", {
+            type: "biweekly",
+            startDay: "monday",
+            anchorDate: "2026-10-16",
+        }).error).toContain("selected start weekday");
+        expect(Workplaces.setPayPeriod(data, "wp-1", { type: "biweekly", startDay: "monday" }).error)
+            .toContain("reference date");
+        expect(Workplaces.setPayPeriod(data, "wp-1", { type: "weekly", startDay: "funday" }).error)
+            .toContain("weekday");
+    });
+
+    test("migrates legacy pay-period anchors and validates workplace dates", () => {
+        const data = sampleDataWithTemplate();
+        const normalized = Workplaces.normalizeData(data).workplaces[0];
+        expect(normalized.payPeriod).toEqual({ type: "weekly", startDay: "monday" });
+
+        expect(Workplaces.setDates(data, "wp-1", {
+            startDate: "2020-03-10",
+            endDate: "2026-10-29",
+        }).item).toBe(data.workplaces[0]);
+        const datedWorkplace = Workplaces.normalizeData(data).workplaces[0];
+        expect(datedWorkplace.startDate).toBe("2020-03-10");
+        expect(datedWorkplace.endDate).toBe("2026-10-29");
+        expect(Workplaces.setDates(data, "wp-1", {
+            startDate: "2026-10-30",
+            endDate: "2026-10-29",
+        }).error).toContain("on or after");
+        expect(() => Workplaces.normalizeData({
+            ...sampleData(),
+            workplaces: [{ ...sampleData().workplaces[0], startDate: "2026-02-30", roles: [] }],
+        })).toThrow();
     });
 
     test("keeps a recovery copy of corrupt data", () => {
@@ -174,7 +210,9 @@ describe("Workplace setup", () => {
         element("#setup-workplace-name").value = "Bistro";
             element("#setup-pay-period-type").value = "weekly";
             fire(element("#setup-pay-period-type"), "change");
-            element("#setup-pay-period-anchor").value = "2026-10-19";
+            element("#setup-pay-period-start-day").value = "monday";
+            element("#setup-workplace-start-date").value = "2020-03-10";
+            element("#setup-workplace-end-date").value = "2026-10-29";
             element("#setup-roles .note-input").value = "Server";
         elements("#setup-roles .note-input")[1].value = "Bartender";
         fire(element("#add-setup-role"), "click");
@@ -186,7 +224,9 @@ describe("Workplace setup", () => {
 
         const saved = savedWorkplaces();
         expect(saved.workplaces[0].name).toBe("Bistro");
-        expect(saved.workplaces[0].payPeriod).toEqual({ type: "weekly", anchorDate: "2026-10-19" });
+        expect(saved.workplaces[0].payPeriod).toEqual({ type: "weekly", startDay: "monday" });
+        expect(saved.workplaces[0].startDate).toBe("2020-03-10");
+        expect(saved.workplaces[0].endDate).toBe("2026-10-29");
         expect(saved.workplaces[0].roles).toHaveLength(2);
         const shifts = savedShifts();
         expect(shifts[0].roleId).toBe(saved.workplaces[0].roles[0].id);
@@ -216,14 +256,25 @@ describe("Workplace setup", () => {
         expect(savedWorkplaces()).toBeNull();
     }));
 
-    test("requires a start date for a weekly pay period", () => withApp({ workplaces: null }, async ({ win, element, fire, savedWorkplaces }) => {
+    test("requires an aligned reference date for an every-two-weeks pay period", () => withApp({ workplaces: null }, async ({ win, element, fire, savedWorkplaces }) => {
         element("#setup-workplace-name").value = "Bistro";
-        element("#setup-pay-period-type").value = "weekly";
+        element("#setup-pay-period-type").value = "biweekly";
         fire(element("#setup-pay-period-type"), "change");
         fire(element("#workplace-setup-form"), "submit");
         await tick(win);
         expect(element("#setup-pay-period-error").hidden).toBe(false);
         expect(element("#setup-pay-period-anchor").getAttribute("aria-invalid")).toBe("true");
+        expect(element("#workplace-setup-dialog").open).toBe(true);
+        expect(savedWorkplaces()).toBeNull();
+    }));
+
+    test("rejects workplace dates that end before they start", () => withApp({ workplaces: null }, async ({ win, element, fire, savedWorkplaces }) => {
+        element("#setup-workplace-name").value = "Bistro";
+        element("#setup-workplace-start-date").value = "2026-10-30";
+        element("#setup-workplace-end-date").value = "2026-10-29";
+        fire(element("#workplace-setup-form"), "submit");
+        await tick(win);
+        expect(element("#setup-workplace-dates-error").hidden).toBe(false);
         expect(element("#workplace-setup-dialog").open).toBe(true);
         expect(savedWorkplaces()).toBeNull();
     }));
@@ -250,6 +301,7 @@ describe("Workplace manager in Settings", () => {
         element("#setup-workplace-name").value = "Cafe";
         element("#setup-pay-period-type").value = "biweekly";
         fire(element("#setup-pay-period-type"), "change");
+        element("#setup-pay-period-start-day").value = "friday";
         element("#setup-pay-period-anchor").value = "2026-10-16";
         element("#setup-roles .note-input").value = "Barista";
         fire(element("#add-setup-role"), "click");
@@ -257,7 +309,11 @@ describe("Workplace manager in Settings", () => {
         fire(element("#workplace-setup-form"), "submit");
         await tick(win);
         expect(savedWorkplaces().workplaces[0].name).toBe("Cafe");
-        expect(savedWorkplaces().workplaces[0].payPeriod).toEqual({ type: "biweekly", anchorDate: "2026-10-16" });
+        expect(savedWorkplaces().workplaces[0].payPeriod).toEqual({
+            type: "biweekly",
+            startDay: "friday",
+            anchorDate: "2026-10-16",
+        });
         expect(savedWorkplaces().workplaces[0].roles).toHaveLength(2);
         expect(savedWorkplaces().workplaces[0].roles[1].name).toBe("Host");
         expect(element("#workplace-list").textContent).toContain("Barista");
@@ -334,11 +390,22 @@ describe("Workplace manager in Settings", () => {
         element('button[data-action="pay-period"][data-id="wp-1"]').click();
         element("#pay-period-type").value = "biweekly";
         fire(element("#pay-period-type"), "change");
+        element("#pay-period-start-day").value = "friday";
         element("#pay-period-anchor").value = "2026-10-16";
         fire(element("#pay-period-form"), "submit");
         await tick(win);
         expect(savedWorkplaces().workplaces[0].payPeriod.type).toBe("biweekly");
+        expect(savedWorkplaces().workplaces[0].payPeriod.startDay).toBe("friday");
         expect(savedWorkplaces().workplaces[0].payPeriod.anchorDate).toBe("2026-10-16");
+
+        element('button[data-action="dates"][data-id="wp-1"]').click();
+        element("#workplace-start-date").value = "2020-03-10";
+        element("#workplace-end-date").value = "2026-10-29";
+        fire(element("#workplace-dates-form"), "submit");
+        await tick(win);
+        expect(savedWorkplaces().workplaces[0].startDate).toBe("2020-03-10");
+        expect(savedWorkplaces().workplaces[0].endDate).toBe("2026-10-29");
+        expect(element("#workplace-list").textContent).toContain("Workplace dates:");
     }));
 });
 
@@ -349,6 +416,17 @@ describe("Shift form workplace mode", () => {
         expect(element("#shift-role-field").hidden).toBe(false);
         expect(element("#shift-job-field").hidden).toBe(true);
         expect(element("#shift-workplace").value).toBe("wp-1");
+    }));
+
+    test("workplace dates do not restrict shift logging", () => withApp({ workplaces: (() => {
+        const data = sampleData();
+        data.workplaces[0].startDate = "2026-10-29";
+        data.workplaces[0].endDate = "2026-10-29";
+        return data;
+    })() }, ({ element, openView }) => {
+        openView("new-shift");
+        expect(element("#shift-workplace").disabled).toBe(false);
+        expect(element("#shift-role").disabled).toBe(false);
     }));
 
     test("applies template values only to empty fields", () => withApp({ workplaces: sampleDataWithTemplate() }, ({ element, change, openView }) => {
