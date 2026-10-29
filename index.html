@@ -558,6 +558,21 @@
                     <input type="text" id="setup-workplace-name" maxlength="60" autocomplete="off" aria-describedby="setup-workplace-error">
                     <span class="field-error" id="setup-workplace-error" hidden></span>
                 </div>
+                <div class="field">
+                    <label for="setup-pay-period-type">Pay period</label>
+                    <select id="setup-pay-period-type" aria-describedby="setup-pay-period-error">
+                        <option value="">Use the week start setting</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="biweekly">Every two weeks</option>
+                        <option value="semimonthly">Twice a month (1st and 16th)</option>
+                        <option value="monthly">Monthly</option>
+                    </select>
+                </div>
+                <div class="field" id="setup-pay-period-anchor-field" hidden>
+                    <label for="setup-pay-period-anchor">A date a pay period starts</label>
+                    <input type="date" id="setup-pay-period-anchor" aria-describedby="setup-pay-period-error">
+                </div>
+                <span class="field-error" id="setup-pay-period-error" hidden></span>
                 <fieldset class="field setup-roles-field">
                     <legend>Roles</legend>
                     <small class="field-hint" id="setup-roles-hint"></small>

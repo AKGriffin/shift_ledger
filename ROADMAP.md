@@ -19,15 +19,22 @@ The first round of polish, reliability, and accessibility work is done. The next
 Findings from hands-on testing. Do the first three first, since they change the workplace flow the others build on. The Settings redesign comes last so it reflects the merged flow.
 
 - [x] **Merge "Set up workplace" and "Add workplace" into one flow** - They should be the same form and behavior, reused by first-run setup and Settings.
-- [ ] **Add pay period to the new-workplace form** - Choose the pay period when creating a workplace instead of editing it afterward.
+- [x] **Add pay period to the new-workplace form** - Choose the pay period when creating a workplace instead of editing it afterward.
 - [ ] **Add optional start and end dates to workplaces** - For data tracking only; they must not restrict logging shifts or filter history unless the user asks.
 - [ ] **Split workplace and role into their own card in the new shift form** - Separate "where and as what" from the time, sales, and tip fields.
 - [ ] **Add workplaces and roles from inside the shift form** - Evaluate an inline "Add new…" option that opens the shared workplace/role form and returns to the unfinished shift with the new item selected, without losing typed values.
-- [ ] **Redesign the Settings workplace section** - The buttons flow awkwardly and feel cramped. Explore clearer grouping, per-workplace cards with a single actions menu, and larger touch targets; verify on phones.
+- [ ] **Add an hourly wage to roles** - Optional per-role hourly wage, set in the role form and kept in backups. Stored for tracking and later earnings estimates; never required to log a shift.
+- [ ] **Let shifts be saved without a sales report** - A server always has a report but may not have it on hand (lost, not printed). For roles that track sales, allow saving a shift with the report left out, shown as "No report" and excluded from sales totals, so sales can be added later by editing the shift. Builds on the existing report-coverage model.
+- [ ] **Replace role templates with yes/no capability switches** - Rework the role form as a short series of switches, for example: has a sales report, receives tips, tips out to others, receives a tip-out. Exact set to be decided; keep them mapped onto the existing "no report" role setting so current data migrates cleanly.
+- [ ] **Make the shift form react to the role's capabilities** - Show only the inputs the selected role needs (sales, tips, tip-out, tip-out received) and hide the rest. Hidden fields save as empty, not zero, and editing an old shift keeps any values already stored. Depends on the capability switches above.
+- [ ] **Redesign the Settings workplace section** - Show a list of workplaces, each with a short summary (roles active and archived, pay period, dates) and an Edit button that opens a dialog with the workplace form and its roles. Larger touch targets; verify on phones. Open question to settle first: edit roles inside the same larger workplace form, or close it and open a separate role dialog. Prefer one dialog with an inline role section so no context is lost; prototype both before committing.
 ## Next: everyday polish
 
 Smaller improvements that make the app more comfortable to use and do not depend on the workplace work.
 
+- [ ] **Filter history by sales and tips ranges** - Add minimum and maximum sales and tips filters to Previous Shifts, with removable chips like the existing filters. Shifts with no report must not match a sales range.
+- [ ] **Use icons beside labels** - Add consistent icons next to labels in forms, the dashboard, and history for scanning and accessibility. Icons must be decorative, with text labels staying the accessible name.
+- [ ] **Add an option to show or hide icons** - Worth doing if icons are added: a Settings toggle, on by default, so the interface stays clean for those who prefer text only. Can share a settings pattern with the descriptive-text option.
 - [ ] **Add a manual app update check in Settings** - Complement automatic checks with an on-demand check. Show checking, up-to-date, update-ready, offline, and error states; reuse the current update/reload flow and preserve the unsaved-form safeguard.
 - [ ] **Improve transient notification feedback** - Add dismissible notices with a visible countdown, sensible timeout, reduced-motion support, and Settings controls for adjusting or disabling them.
 - [ ] **Extend zero-value hiding to totals** - History already can hide zero-value shift details. Add the same show/hide choice for zero total hours, sales, and tips in the dashboard and summaries, keeping "No report" distinct from a received zero report.
@@ -63,6 +70,8 @@ These share the dashboard code, so plan them together. Start with the stat layou
 - [ ] **Offer a non-destructive demo mode** - Let users explore sample data without mixing it with real shifts, and make entering and exiting demo mode clear.
 - [ ] **Evaluate pull-to-refresh on mobile** - Add a custom gesture only if normal browser refresh is insufficient and the gesture does not conflict with scrolling or accessibility.
 - [ ] **Explore optional accounts and synchronization** - Keep local-only use account-free; consider sync only if needed, with clear privacy and data controls.
+- [ ] **Rethink the lunch/dinner/double shift type** - It may be too restrictive for non-restaurant work and could be derived from start/end times rather than declared. Brainstorm first: infer a label from times, keep it optional, and preserve how double-shift reports work today.
+- [ ] **Broaden Shift Ledger beyond restaurants** - Long-term goal: a ledger for anyone tracking work. Use neutral wording, and keep restaurant-specific fields (sales, tip-outs) as role capabilities rather than defaults.
 - [ ] **Broaden shift workflows** - Explore multiple named templates per role, recurring shifts, faster entry, and additional export formats based on user needs.
 
 ## Recently completed

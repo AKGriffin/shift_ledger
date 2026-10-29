@@ -172,7 +172,10 @@ describe("Workplace setup", () => {
             expect(roleValues()).toEqual(["Server", "Host"]);
         const original = localStorage.getItem("shift-ledger-shifts-v1");
         element("#setup-workplace-name").value = "Bistro";
-        element("#setup-roles .note-input").value = "Server";
+            element("#setup-pay-period-type").value = "weekly";
+            fire(element("#setup-pay-period-type"), "change");
+            element("#setup-pay-period-anchor").value = "2026-10-19";
+            element("#setup-roles .note-input").value = "Server";
         elements("#setup-roles .note-input")[1].value = "Bartender";
         fire(element("#add-setup-role"), "click");
         elements("#setup-roles .note-input")[2].value = "Host";
@@ -183,6 +186,7 @@ describe("Workplace setup", () => {
 
         const saved = savedWorkplaces();
         expect(saved.workplaces[0].name).toBe("Bistro");
+        expect(saved.workplaces[0].payPeriod).toEqual({ type: "weekly", anchorDate: "2026-10-19" });
         expect(saved.workplaces[0].roles).toHaveLength(2);
         const shifts = savedShifts();
         expect(shifts[0].roleId).toBe(saved.workplaces[0].roles[0].id);
@@ -211,6 +215,18 @@ describe("Workplace setup", () => {
         expect(element("#workplace-setup-dialog").open).toBe(true);
         expect(savedWorkplaces()).toBeNull();
     }));
+
+    test("requires a start date for a weekly pay period", () => withApp({ workplaces: null }, async ({ win, element, fire, savedWorkplaces }) => {
+        element("#setup-workplace-name").value = "Bistro";
+        element("#setup-pay-period-type").value = "weekly";
+        fire(element("#setup-pay-period-type"), "change");
+        fire(element("#workplace-setup-form"), "submit");
+        await tick(win);
+        expect(element("#setup-pay-period-error").hidden).toBe(false);
+        expect(element("#setup-pay-period-anchor").getAttribute("aria-invalid")).toBe("true");
+        expect(element("#workplace-setup-dialog").open).toBe(true);
+        expect(savedWorkplaces()).toBeNull();
+    }));
 });
 
 describe("Workplace manager in Settings", () => {
@@ -232,12 +248,16 @@ describe("Workplace manager in Settings", () => {
         element("#add-workplace").click();
         expect(element("#workplace-setup-dialog").open).toBe(true);
         element("#setup-workplace-name").value = "Cafe";
+        element("#setup-pay-period-type").value = "biweekly";
+        fire(element("#setup-pay-period-type"), "change");
+        element("#setup-pay-period-anchor").value = "2026-10-16";
         element("#setup-roles .note-input").value = "Barista";
         fire(element("#add-setup-role"), "click");
         elements("#setup-roles .note-input")[1].value = "Host";
         fire(element("#workplace-setup-form"), "submit");
         await tick(win);
         expect(savedWorkplaces().workplaces[0].name).toBe("Cafe");
+        expect(savedWorkplaces().workplaces[0].payPeriod).toEqual({ type: "biweekly", anchorDate: "2026-10-16" });
         expect(savedWorkplaces().workplaces[0].roles).toHaveLength(2);
         expect(savedWorkplaces().workplaces[0].roles[1].name).toBe("Host");
         expect(element("#workplace-list").textContent).toContain("Barista");

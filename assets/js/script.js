@@ -134,6 +134,10 @@ const nameError = document.getElementById("name-input-error");
 const setupDialog = document.getElementById("workplace-setup-dialog");
 const setupForm = document.getElementById("workplace-setup-form");
 const setupWorkplaceName = document.getElementById("setup-workplace-name");
+const setupPayPeriodType = document.getElementById("setup-pay-period-type");
+const setupPayPeriodAnchor = document.getElementById("setup-pay-period-anchor");
+const setupPayPeriodAnchorField = document.getElementById("setup-pay-period-anchor-field");
+const setupPayPeriodError = document.getElementById("setup-pay-period-error");
 const setupRoles = document.getElementById("setup-roles");
 const systemTheme = window.matchMedia("(prefers-color-scheme: dark)");
 
@@ -327,6 +331,15 @@ function bindEvents() {
     fields.workplace.addEventListener("change", handleWorkplaceFieldChange);
     fields.role.addEventListener("change", applyRoleTemplate);
     document.getElementById("pay-period-type").addEventListener("change", updatePayPeriodAnchor);
+    setupPayPeriodType.addEventListener("change", () => {
+        updatePayPeriodAnchor(setupPayPeriodType, setupPayPeriodAnchorField);
+        showFieldError(setupPayPeriodType, setupPayPeriodError, "");
+        setupPayPeriodAnchor.removeAttribute("aria-invalid");
+    });
+    setupPayPeriodAnchor.addEventListener("input", () => {
+        showFieldError(setupPayPeriodType, setupPayPeriodError, "");
+        setupPayPeriodAnchor.removeAttribute("aria-invalid");
+    });
     document.getElementById("open-workplace-setup").addEventListener("click", openWorkplaceSetup);
     workplaceList.addEventListener("click", handleWorkplaceAction);
     setupForm.addEventListener("submit", handleSetupSubmit);
@@ -2101,9 +2114,9 @@ function askForPayPeriod(workplace) {
     });
 }
 
-function updatePayPeriodAnchor() {
-    const needsAnchor = ["weekly", "biweekly"].includes(document.getElementById("pay-period-type").value);
-    document.getElementById("pay-period-anchor-field").hidden = !needsAnchor;
+function updatePayPeriodAnchor(typeInput = document.getElementById("pay-period-type"), anchorField = document.getElementById("pay-period-anchor-field")) {
+    const needsAnchor = ["weekly", "biweekly"].includes(typeInput.value);
+    anchorField.hidden = !needsAnchor;
 }
 
 async function handleWorkplaceAction(event) {
@@ -2213,12 +2226,17 @@ function openWorkplaceSetup(options) {
     document.getElementById("skip-workplace-setup").textContent = firstRun ? "Skip for now" : "Cancel";
     document.getElementById("workplace-setup-title").textContent = firstRun ? "Set up your workplace" : "Add a workplace";
     document.getElementById("workplace-setup-text").textContent = firstRun
-        ? "Tell Shift Ledger where you work so shifts can be grouped by workplace and role. You can change all of this later in Settings, or skip it for now."
-        : "Add a workplace and any roles you have there. You can add or change roles later in Settings.";
+        ? "Tell Shift Ledger where you work and choose its pay period so shifts can be grouped by workplace and role. You can change these later in Settings, or skip setup for now."
+        : "Add a workplace, choose its pay period, and add any roles you have there. You can change these later in Settings.";
     document.getElementById("save-workplace-setup").textContent = firstRun ? "Save and continue" : "Add workplace";
     const jobs = firstRun ? window.Workplaces.distinctJobs(state.shifts) : [];
     setupSaved = false;
     setupWorkplaceName.value = "";
+    setupPayPeriodType.value = "";
+    setupPayPeriodAnchor.value = "";
+    updatePayPeriodAnchor(setupPayPeriodType, setupPayPeriodAnchorField);
+    showFieldError(setupPayPeriodType, setupPayPeriodError, "");
+    setupPayPeriodAnchor.removeAttribute("aria-invalid");
     fillRoleList(setupRoles, jobs);
     document.getElementById("setup-roles-hint").textContent = firstRun && jobs.length
         ? "These came from your saved shifts, and shifts with matching jobs will be linked to them. Press Enter for the next role."
@@ -2367,6 +2385,8 @@ function handleSetupSubmit(event) {
     const rolesError = document.getElementById("setup-roles-error");
     rolesError.textContent = roles.error;
     rolesError.hidden = !roles.error;
+    showFieldError(setupPayPeriodType, setupPayPeriodError, "");
+    setupPayPeriodAnchor.removeAttribute("aria-invalid");
     if (nameProblem || roles.error) {
         (nameProblem ? setupWorkplaceName : roleInputs[0]).focus();
         return;
@@ -2374,6 +2394,20 @@ function handleSetupSubmit(event) {
 
     const draft = structuredClone(state.workplaces);
     const { item: workplace } = window.Workplaces.addWorkplace(draft, setupWorkplaceName.value);
+    const payPeriod = setupPayPeriodType.value
+        ? { type: setupPayPeriodType.value, anchorDate: setupPayPeriodAnchor.value }
+        : null;
+    const payPeriodResult = window.Workplaces.setPayPeriod(draft, workplace.id, payPeriod);
+    if (payPeriodResult.error) {
+        showFieldError(setupPayPeriodType, setupPayPeriodError, payPeriodResult.error);
+        if (["weekly", "biweekly"].includes(setupPayPeriodType.value)) {
+            setupPayPeriodAnchor.setAttribute("aria-invalid", "true");
+            setupPayPeriodAnchor.focus();
+        } else {
+            setupPayPeriodType.focus();
+        }
+        return;
+    }
     roles.names.forEach((name) => window.Workplaces.addRole(draft, workplace.id, name));
     draft.setupDismissed = true;
     if (!persistWorkplaces(draft)) {
