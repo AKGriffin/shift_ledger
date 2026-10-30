@@ -23,11 +23,11 @@ Findings from hands-on testing. Do the first three first, since they change the 
 - [x] **Add optional start and end dates to workplaces** - For data tracking only; they must not restrict logging shifts or filter history unless the user asks.
 - [x] **Split workplace and role into their own card in the new shift form** - Separate "where and as what" from the time, sales, and tip fields.
 - [x] **Add workplaces and roles from inside the shift form** - Inline "Add new…" options open the existing creation forms, then return to the unfinished shift with the new workplace or role selected without losing typed values.
-- [ ] **Add an hourly wage to roles** - Optional per-role hourly wage, set in the role form and kept in backups. Stored for tracking and later earnings estimates; never required to log a shift.
+- [x] **Add an hourly wage to roles** - Optional per-role hourly wage, set in role settings and kept in backups. Stored for tracking and later earnings estimates; never required to log a shift.
 - [ ] **Let shifts be saved without a sales report** - A server always has a report but may not have it on hand (lost, not printed). For roles that track sales, allow saving a shift with the report left out, shown as "No report" and excluded from sales totals, so sales can be added later by editing the shift. Builds on the existing report-coverage model.
 - [ ] **Replace role templates with yes/no capability switches** - Rework the role form as a short series of switches, for example: has a sales report, receives tips, tips out to others, receives a tip-out. Exact set to be decided; keep them mapped onto the existing "no report" role setting so current data migrates cleanly.
 - [ ] **Make the shift form react to the role's capabilities** - Show only the inputs the selected role needs (sales, tips, tip-out, tip-out received) and hide the rest. Hidden fields save as empty, not zero, and editing an old shift keeps any values already stored. Depends on the capability switches above.
-- [ ] **Redesign the Settings workplace section** - Show a list of workplaces, each with a short summary (roles active and archived, pay period, dates) and an Edit button that opens a dialog with the workplace form and its roles. Larger touch targets; verify on phones. Open question to settle first: edit roles inside the same larger workplace form, or close it and open a separate role dialog. Prefer one dialog with an inline role section so no context is lost; prototype both before committing.
+- [ ] **Redesign the Settings workplace section** - Show a list of workplaces, each with a short summary (show roles active (but hide archived), pay period, dates) and an Edit button that opens a dialog with the workplace form and its roles. Larger touch targets; verify on phones. Open question to settle first: edit roles inside the same larger workplace form, or close it and open a separate role dialog. Prefer one dialog with an inline role section so no context is lost; prototype both before committing.
 ## Next: everyday polish
 
 Smaller improvements that make the app more comfortable to use and do not depend on the workplace work.
@@ -79,6 +79,7 @@ These share the dashboard code, so plan them together. Start with the stat layou
 - Workplace filter, role-aware Job filter, "Role · Workplace" cards, and a Workplace CSV column in history.
 - Workplace and role selection now has its own card in the shift form, separate from date, meal period, and legacy job selection.
 - Workplaces and roles can be created from the shift selectors; the in-progress shift stays intact and selects the new workplace and first role.
+- Roles can store an optional hourly wage in Settings; it is validated, shown in the role summary, and preserved in JSON backups.
 - Shared workplace creation form for first-run setup and Settings, including role creation.
 - Roles that don't track sales or tip reports (set in the role's template dialog), with the shift form hiding report fields for them.
 - Workplace and role selection in the shift form, with role templates that prefill empty fields only and per-workplace pay periods managed in Settings.

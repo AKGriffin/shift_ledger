@@ -140,6 +140,10 @@
                 }
                 claimId(role.id);
                 const normalizedRole = { id: role.id, name: readName(role.name), archived: role.archived === true };
+                const hourlyWage = readHourlyWage(role.hourlyWage);
+                if (hourlyWage !== null) {
+                    normalizedRole.hourlyWage = hourlyWage;
+                }
                 const template = readTemplate(role.template);
                 if (template) {
                     normalizedRole.template = template;
@@ -301,6 +305,35 @@
         return { item: found.item };
     }
 
+    function readHourlyWage(value) {
+        if (value === undefined || value === null || value === "") {
+            return null;
+        }
+        if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+            throw new Error("Enter a valid non-negative hourly wage.");
+        }
+        return value;
+    }
+
+    function setHourlyWage(data, roleId, value) {
+        const found = locate(data, "role", roleId);
+        if (!found) {
+            return { error: "That role no longer exists." };
+        }
+        try {
+            const hourlyWage = value === "" || value === null || value === undefined ? null : Number(value);
+            const clean = readHourlyWage(hourlyWage);
+            if (clean === null) {
+                delete found.item.hourlyWage;
+            } else {
+                found.item.hourlyWage = clean;
+            }
+        } catch (error) {
+            return { error: error.message };
+        }
+        return { item: found.item };
+    }
+
     function setTracksReports(data, roleId, tracksReports) {
         const found = locate(data, "role", roleId);
         if (!found) {
@@ -440,6 +473,7 @@
         rename,
         save,
         setArchived,
+        setHourlyWage,
         validateName,
     };
 })(window);

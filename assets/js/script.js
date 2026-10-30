@@ -1970,7 +1970,7 @@ function createItemActions(kind, entry) {
         actions.append(createActionButton(`Set pay period for ${entry.name}`, "Pay period", { ...data, action: "pay-period" }));
         actions.append(createActionButton(`Set dates for ${entry.name}`, "Dates", { ...data, action: "dates" }));
     } else {
-        actions.append(createActionButton(`Edit template for role ${entry.name}`, "Template", { ...data, action: "template" }));
+        actions.append(createActionButton(`Edit settings for role ${entry.name}`, "Role settings", { ...data, action: "template" }));
     }
     actions.append(
         createActionButton(`Rename ${kind} ${entry.name}`, "Rename", { ...data, action: "rename" }),
@@ -2034,7 +2034,7 @@ function formatWorkplaceDates(workplace) {
     return `Workplace dates: ${workplace.startDate ? formatDate(workplace.startDate) : "not set"} – ${workplace.endDate ? formatDate(workplace.endDate) : "ongoing"}`;
 }
 
-function formatTemplate(template, tracksReports) {
+function formatTemplate(template, tracksReports, hourlyWage) {
     const parts = [template?.mealPeriod];
     if (template?.clockIn || template?.clockOut) {
         parts.push(`${template.clockIn || "?"}–${template.clockOut || "?"}`);
@@ -2043,7 +2043,14 @@ function formatTemplate(template, tracksReports) {
         parts.push(`break ${template.breakStart}–${template.breakEnd}`);
     }
     const text = template ? `Template: ${parts.filter(Boolean).join(", ")}` : "No template";
-    return tracksReports === false ? `${text} · No sales or tip reports` : text;
+    const details = [text];
+    if (hourlyWage !== undefined) {
+        details.push(`${formatCurrency(hourlyWage)}/hr`);
+    }
+    if (tracksReports === false) {
+        details.push("No sales or tip reports");
+    }
+    return details.join(" · ");
 }
 
 function createWorkplaceItem(workplace) {
@@ -2084,7 +2091,7 @@ function createWorkplaceItem(workplace) {
         if (role.archived) {
             roleItem.append(createArchivedPill());
         }
-        roleItem.append(createItemActions("role", role), createItemSummary(formatTemplate(role.template, role.tracksReports)));
+        roleItem.append(createItemActions("role", role), createItemSummary(formatTemplate(role.template, role.tracksReports, role.hourlyWage)));
         roles.append(roleItem);
     });
 
@@ -2199,15 +2206,18 @@ function askForTemplate(role) {
     };
     const errorElement = document.getElementById("template-error");
     const noReportsInput = document.getElementById("template-no-reports");
+    const hourlyWageInput = document.getElementById("template-hourly-wage");
     return runFormDialog({
         dialog: document.getElementById("template-dialog"),
         form: document.getElementById("template-form"),
         cancelButton: document.getElementById("cancel-template"),
         onOpen: () => {
-            document.getElementById("template-dialog-title").textContent = `Template for ${role.name}`;
+            document.getElementById("template-dialog-title").textContent = `Role settings for ${role.name}`;
             Object.entries(inputs).forEach(([key, input]) => {
                 input.value = role.template?.[key] || "";
             });
+            hourlyWageInput.value = role.hourlyWage === undefined ? "" : String(role.hourlyWage);
+            hourlyWageInput.removeAttribute("aria-invalid");
             showDialogError(errorElement, "");
             noReportsInput.checked = role.tracksReports === false;
             inputs.mealPeriod.focus();
@@ -2219,9 +2229,21 @@ function askForTemplate(role) {
                 showDialogError(errorElement, check.error);
                 return undefined;
             }
+            const wageCheck = window.Workplaces.setHourlyWage(
+                structuredClone(state.workplaces),
+                role.id,
+                hourlyWageInput.value
+            );
+            if (wageCheck.error) {
+                showDialogError(errorElement, wageCheck.error);
+                hourlyWageInput.setAttribute("aria-invalid", "true");
+                hourlyWageInput.focus();
+                return undefined;
+            }
             return {
                 value: Object.values(value).some(Boolean) ? value : null,
                 tracksReports: !noReportsInput.checked,
+                hourlyWage: hourlyWageInput.value === "" ? null : Number(hourlyWageInput.value),
             };
         },
     });
@@ -2370,16 +2392,20 @@ async function handleWorkplaceAction(event) {
         result = commitWorkplaces((draft) => window.Workplaces.rename(draft, kind, id, name));
         message = `Renamed to “${name}”.`;
     } else if (action === "template") {
-        const template = await askForTemplate(entry);
-        if (template === null) {
+        const roleSettings = await askForTemplate(entry);
+        if (roleSettings === null) {
             button.focus();
             return;
         }
         result = commitWorkplaces((draft) => {
-            const saved = window.Workplaces.setTemplate(draft, id, template.value);
-            return saved.error ? saved : window.Workplaces.setTracksReports(draft, id, template.tracksReports);
+            const saved = window.Workplaces.setTemplate(draft, id, roleSettings.value);
+            if (saved.error) {
+                return saved;
+            }
+            const wage = window.Workplaces.setHourlyWage(draft, id, roleSettings.hourlyWage);
+            return wage.error ? wage : window.Workplaces.setTracksReports(draft, id, roleSettings.tracksReports);
         });
-        message = `Saved the template and report settings for ${entry.name}.`;
+        message = `Saved role settings for ${entry.name}.`;
     } else if (action === "pay-period") {
         const payPeriod = await askForPayPeriod(entry);
         if (payPeriod === null) {

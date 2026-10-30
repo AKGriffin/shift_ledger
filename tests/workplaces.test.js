@@ -64,6 +64,22 @@ describe("Workplaces data module", () => {
         expect(Workplaces.setTracksReports(data, "nope", false).error).toBeTruthy();
     });
 
+    test("stores optional hourly wages and validates restored values", () => {
+        const data = sampleData();
+        expect(Workplaces.setHourlyWage(data, "r-1", "18.75").item.hourlyWage).toBe(18.75);
+        expect(Workplaces.normalizeData(data).workplaces[0].roles[0].hourlyWage).toBe(18.75);
+        expect(Workplaces.setHourlyWage(data, "r-1", "").item.hourlyWage).toBeUndefined();
+        expect(Workplaces.setHourlyWage(data, "r-1", "-1").error).toContain("non-negative");
+        expect(Workplaces.setHourlyWage(data, "missing", 20).error).toContain("no longer exists");
+        expect(() => Workplaces.normalizeData({
+            ...sampleData(),
+            workplaces: [{
+                ...sampleData().workplaces[0],
+                roles: [{ id: "r-1", name: "Server", hourlyWage: -5 }],
+            }],
+        })).toThrow("hourly wage");
+    });
+
     test("adds, renames, archives and deletes", () => {
         const data = sampleData();
         const role = Workplaces.addRole(data, "wp-1", "Host").item;
@@ -389,12 +405,16 @@ describe("Workplace manager in Settings", () => {
     test("edits role templates and workplace pay periods", () => withApp({ workplaces: sampleData() }, async ({ win, element, openView, fire, savedWorkplaces }) => {
         openView("settings");
         element('button[data-action="template"][data-id="r-1"]').click();
+        expect(element("#template-dialog-title").textContent).toBe("Role settings for Server");
+        element("#template-hourly-wage").value = "24.50";
         element("#template-meal-period").value = "Lunch";
         element("#template-clock-in").value = "11:00";
         element("#template-clock-out").value = "15:00";
         fire(element("#template-form"), "submit");
         await tick(win);
         expect(savedWorkplaces().workplaces[0].roles[0].template.clockIn).toBe("11:00");
+        expect(savedWorkplaces().workplaces[0].roles[0].hourlyWage).toBe(24.5);
+        expect(element(".role-item").textContent).toContain("$24.50/hr");
 
         element('button[data-action="pay-period"][data-id="wp-1"]').click();
         element("#pay-period-type").value = "biweekly";
@@ -583,6 +603,21 @@ describe("Shift form workplace mode", () => {
         expect(savedWorkplaces().workplaces[0].roles[0].tracksReports).toBe(false);
         expect(element(".role-item").textContent).toContain("No sales or tip reports");
     }));
+
+    test("rejects a negative hourly wage and keeps role settings open for correction", () => withApp({
+        workplaces: sampleData(),
+    }, async ({ win, element, openView, fire, savedWorkplaces }) => {
+        openView("settings");
+        element('button[data-action="template"][data-id="r-1"]').click();
+        element("#template-hourly-wage").value = "-1";
+        fire(element("#template-form"), "submit");
+        await tick(win);
+
+        expect(element("#template-dialog").open).toBe(true);
+        expect(element("#template-error").textContent).toContain("non-negative");
+        expect(element("#template-hourly-wage").getAttribute("aria-invalid")).toBe("true");
+        expect(savedWorkplaces().workplaces[0].roles[0].hourlyWage).toBeUndefined();
+    }));
 });
 
 describe("Editing shifts without a role", () => {
@@ -669,7 +704,13 @@ describe("Backup with workplaces", () => {
         await new Promise((resolve) => win.setTimeout(resolve, 100));
     };
 
-    test("exports version 2 with workplaces", () => withApp({ workplaces: sampleData() }, async ({ win, element, openView }) => {
+    test("exports version 2 with workplaces and hourly wages", () => withApp({
+        workplaces: (() => {
+            const data = sampleData();
+            data.workplaces[0].roles[0].hourlyWage = 19.25;
+            return data;
+        })(),
+    }, async ({ win, element, openView }) => {
         let exported = "";
         win.Blob = class { constructor(parts) { exported = parts.join(""); } };
         win.URL.createObjectURL = () => "blob:test";
@@ -679,12 +720,16 @@ describe("Backup with workplaces", () => {
         const backup = JSON.parse(exported);
         expect(backup.version).toBe(2);
         expect(backup.workplaces[0].name).toBe("Bistro");
+        expect(backup.workplaces[0].roles[0].hourlyWage).toBe(19.25);
     }));
 
     test("restores workplaces together with shifts", () => withApp(async (app) => {
         const shift = makeShift({ workplaceId: "wp-1", roleId: "r-1" });
-        await restore(app, JSON.stringify({ format: "shift-ledger-backup", version: 2, shifts: [shift], workplaces: sampleData().workplaces }));
+        const workplaces = sampleData().workplaces;
+        workplaces[0].roles[0].hourlyWage = 21.75;
+        await restore(app, JSON.stringify({ format: "shift-ledger-backup", version: 2, shifts: [shift], workplaces }));
         expect(app.savedWorkplaces().workplaces[0].name).toBe("Bistro");
+        expect(app.savedWorkplaces().workplaces[0].roles[0].hourlyWage).toBe(21.75);
         expect(app.savedShifts()[0].roleId).toBe("r-1");
         expect(app.element("#workplace-list").textContent).toContain("Bistro");
     }));

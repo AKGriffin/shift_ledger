@@ -640,9 +640,14 @@
             <form id="template-form" novalidate>
                 <div class="filter-dialog-header">
                     <div>
-                        <h3 id="template-dialog-title">Role template</h3>
-                        <p>These values prefill a new shift for this role, only in fields you haven't filled in. You can still change everything on the shift. Leave a field empty to skip it.</p>
+                        <h3 id="template-dialog-title">Role settings</h3>
+                        <p>Set an optional hourly wage and shift defaults. Defaults only fill empty fields, and you can change everything on the shift. Leave fields empty to skip them.</p>
                     </div>
+                </div>
+                <div class="field">
+                    <label for="template-hourly-wage">Hourly wage (optional)</label>
+                    <input type="number" id="template-hourly-wage" min="0" step="0.01" inputmode="decimal" aria-describedby="template-hourly-wage-hint template-error">
+                    <small id="template-hourly-wage-hint" class="field-hint">Saved for tracking and future estimates; it does not change shift totals.</small>
                 </div>
                 <div class="field">
                     <label for="template-meal-period">Meal period</label>
@@ -679,7 +684,7 @@
                 <span class="field-error" id="template-error" hidden></span>
                 <div class="filter-dialog-actions">
                     <button type="button" id="cancel-template" class="ghost-button">Cancel</button>
-                    <button type="submit" class="primary-button">Save template</button>
+                    <button type="submit" class="primary-button">Save role settings</button>
                 </div>
             </form>
         </dialog>
