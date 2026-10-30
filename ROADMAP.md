@@ -21,8 +21,8 @@ Findings from hands-on testing. Do the first three first, since they change the 
 - [x] **Merge "Set up workplace" and "Add workplace" into one flow** - They should be the same form and behavior, reused by first-run setup and Settings.
 - [x] **Add pay period to the new-workplace form** - Choose the pay-period frequency and starting weekday when creating a workplace; every-two-weeks periods retain a reference date for cycle alignment.
 - [x] **Add optional start and end dates to workplaces** - For data tracking only; they must not restrict logging shifts or filter history unless the user asks.
-- [ ] **Split workplace and role into their own card in the new shift form** - Separate "where and as what" from the time, sales, and tip fields.
-- [ ] **Add workplaces and roles from inside the shift form** - Evaluate an inline "Add new…" option that opens the shared workplace/role form and returns to the unfinished shift with the new item selected, without losing typed values.
+- [x] **Split workplace and role into their own card in the new shift form** - Separate "where and as what" from the time, sales, and tip fields.
+- [x] **Add workplaces and roles from inside the shift form** - Inline "Add new…" options open the existing creation forms, then return to the unfinished shift with the new workplace or role selected without losing typed values.
 - [ ] **Add an hourly wage to roles** - Optional per-role hourly wage, set in the role form and kept in backups. Stored for tracking and later earnings estimates; never required to log a shift.
 - [ ] **Let shifts be saved without a sales report** - A server always has a report but may not have it on hand (lost, not printed). For roles that track sales, allow saving a shift with the report left out, shown as "No report" and excluded from sales totals, so sales can be added later by editing the shift. Builds on the existing report-coverage model.
 - [ ] **Replace role templates with yes/no capability switches** - Rework the role form as a short series of switches, for example: has a sales report, receives tips, tips out to others, receives a tip-out. Exact set to be decided; keep them mapped onto the existing "no report" role setting so current data migrates cleanly.
@@ -77,6 +77,8 @@ These share the dashboard code, so plan them together. Start with the stat layou
 ## Recently completed
 
 - Workplace filter, role-aware Job filter, "Role · Workplace" cards, and a Workplace CSV column in history.
+- Workplace and role selection now has its own card in the shift form, separate from date, meal period, and legacy job selection.
+- Workplaces and roles can be created from the shift selectors; the in-progress shift stays intact and selects the new workplace and first role.
 - Shared workplace creation form for first-run setup and Settings, including role creation.
 - Roles that don't track sales or tip reports (set in the role's template dialog), with the shift form hiding report fields for them.
 - Workplace and role selection in the shift form, with role templates that prefill empty fields only and per-workplace pay periods managed in Settings.

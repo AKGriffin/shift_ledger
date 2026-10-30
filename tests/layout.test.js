@@ -232,6 +232,29 @@ describe("New shift layout", () => {
         expect(elements("#shift-form fieldset").length).toBeGreaterThan(0);
     }));
 
+    test("keeps workplace and role in their own card when workplace mode is enabled", () => withApp({
+        workplaces: {
+            version: 1,
+            setupDismissed: true,
+            workplaces: [{
+                id: "wp-1",
+                name: "Bistro",
+                archived: false,
+                roles: [{ id: "r-1", name: "Server", archived: false }],
+            }],
+        },
+    }, ({ element, openView }) => {
+        openView("new-shift");
+
+        const generalCard = element("#shift-date").closest("fieldset");
+        const workplaceCard = element("#shift-workplace-card");
+
+        expect(workplaceCard.hidden).toBe(false);
+        expect(workplaceCard.querySelector("legend").textContent).toBe("Workplace and role");
+        expect(workplaceCard).not.toBe(generalCard);
+        expect(generalCard.contains(element("#shift-job"))).toBe(true);
+    }));
+
     test("stacks the inputs inside each sub card", () => withApp({ width: 1400, height: 1000 }, ({ element, openView }) => {
         openView("new-shift");
 

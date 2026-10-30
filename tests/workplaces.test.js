@@ -419,12 +419,92 @@ describe("Workplace manager in Settings", () => {
 });
 
 describe("Shift form workplace mode", () => {
+    test("adds a workplace and role from a legacy shift form without losing entered values", () => withApp(async (app) => {
+        const { win, element, change, fillForm, fire, openView, submitForm, savedShifts, savedWorkplaces } = app;
+        openView("new-shift");
+        fillForm({
+            date: "2026-10-22",
+            mealPeriod: "Dinner",
+            job: "Server",
+            clockIn: "16:00",
+            clockOut: "22:00",
+            foodSales: "125.50",
+            ccTips: "30",
+        });
+
+        change("#shift-job", "__add_workplace__");
+        expect(element("#workplace-setup-dialog").open).toBe(true);
+        element("#setup-workplace-name").value = "Cafe";
+        element("#setup-roles .note-input").value = "Barista";
+        fire(element("#workplace-setup-form"), "submit");
+        await tick(win);
+
+        const workplace = savedWorkplaces().workplaces[0];
+        expect(element("#workplace-setup-dialog").open).toBe(false);
+        expect(element("#shift-workplace").value).toBe(workplace.id);
+        expect(element("#shift-role").value).toBe(workplace.roles[0].id);
+        expect(element("#shift-date").value).toBe("2026-10-22");
+        expect(element("#shift-meal-period").value).toBe("Dinner");
+        expect(element("#shift-clock-in").value).toBe("16:00");
+        expect(element("#shift-clock-out").value).toBe("22:00");
+        expect(element("#shift-food-sales").value).toBe("125.50");
+        expect(element("#shift-cc-tips").value).toBe("30");
+
+        submitForm();
+        expect(savedShifts()).toHaveLength(1);
+        expect(savedShifts()[0].workplaceId).toBe(workplace.id);
+        expect(savedShifts()[0].roleId).toBe(workplace.roles[0].id);
+        expect(savedShifts()[0].foodSales).toBe(125.5);
+    }));
+
     test("shows workplace and role selects and hides the legacy job field", () => withApp({ workplaces: sampleData() }, ({ element, openView }) => {
         openView("new-shift");
+        expect(element("#shift-workplace-card").hidden).toBe(false);
         expect(element("#shift-workplace-field").hidden).toBe(false);
         expect(element("#shift-role-field").hidden).toBe(false);
         expect(element("#shift-job-field").hidden).toBe(true);
+        expect(element("#shift-workplace-field").closest("fieldset")).toBe(element("#shift-workplace-card"));
+        expect(element("#shift-role-field").closest("fieldset")).toBe(element("#shift-workplace-card"));
         expect(element("#shift-workplace").value).toBe("wp-1");
+    }));
+
+    test("adds a role from the shift form, selects it, and preserves entered values", () => withApp({ workplaces: sampleData() }, async (app) => {
+        const { win, element, change, fillForm, fire, openView, savedWorkplaces } = app;
+        openView("new-shift");
+        fillForm({
+            date: "2026-10-22",
+            mealPeriod: "Dinner",
+            clockIn: "16:00",
+            clockOut: "22:00",
+            foodSales: "80",
+        });
+
+        change("#shift-role", "__add_role__");
+        expect(element("#add-roles-dialog").open).toBe(true);
+        element("#add-roles-list .note-input").value = "Host";
+        fire(element("#add-roles-form"), "submit");
+        await tick(win);
+
+        const role = savedWorkplaces().workplaces[0].roles.find((entry) => entry.name === "Host");
+        expect(element("#add-roles-dialog").open).toBe(false);
+        expect(element("#shift-workplace").value).toBe("wp-1");
+        expect(element("#shift-role").value).toBe(role.id);
+        expect(element("#shift-date").value).toBe("2026-10-22");
+        expect(element("#shift-meal-period").value).toBe("Dinner");
+        expect(element("#shift-clock-in").value).toBe("16:00");
+        expect(element("#shift-clock-out").value).toBe("22:00");
+        expect(element("#shift-food-sales").value).toBe("80");
+    }));
+
+    test("canceling inline workplace creation restores the previous job selection", () => withApp(({ element, change, openView }) => {
+        openView("new-shift");
+        change("#shift-job", "Expo");
+        change("#shift-job", "__add_workplace__");
+
+        expect(element("#workplace-setup-dialog").open).toBe(true);
+        element("#skip-workplace-setup").click();
+        expect(element("#workplace-setup-dialog").open).toBe(false);
+        expect(element("#shift-job").value).toBe("Expo");
     }));
 
     test("workplace dates do not restrict shift logging", () => withApp({ workplaces: (() => {

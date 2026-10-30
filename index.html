@@ -149,7 +149,7 @@
                     <div class="form-context-grid">
                         <fieldset>
                             <legend>General</legend>
-                            <div class="form-grid form-grid-3">
+                            <div class="form-grid">
                                 <label class="field">
                                     <span>Date (shift start)</span>
                                     <input type="date" id="shift-date" aria-describedby="shift-date-error" required>
@@ -165,6 +165,22 @@
                                     </select>
                                     <span class="field-error" id="shift-meal-period-error" hidden></span>
                                 </label>
+                                <label class="field" id="shift-job-field">
+                                    <span>Job</span>
+                                    <select id="shift-job" aria-describedby="shift-job-error" required>
+                                        <option value="">Select</option>
+                                        <option value="Server">Server</option>
+                                        <option value="Expo">Expo</option>
+                                        <option value="__add_workplace__">+ Add workplace…</option>
+                                    </select>
+                                    <span class="field-error" id="shift-job-error" hidden></span>
+                                </label>
+                            </div>
+                        </fieldset>
+
+                        <fieldset id="shift-workplace-card" hidden>
+                            <legend>Workplace and role</legend>
+                            <div class="form-grid">
                                 <label class="field" id="shift-workplace-field" hidden>
                                     <span>Workplace</span>
                                     <select id="shift-workplace" aria-describedby="shift-workplace-error"></select>
@@ -175,15 +191,6 @@
                                     <select id="shift-role" aria-describedby="shift-role-hint shift-role-error"></select>
                                     <small class="field-hint" id="shift-role-hint" aria-live="polite"></small>
                                     <span class="field-error" id="shift-role-error" hidden></span>
-                                </label>
-                                <label class="field" id="shift-job-field">
-                                    <span>Job</span>
-                                    <select id="shift-job" aria-describedby="shift-job-error" required>
-                                        <option value="">Select</option>
-                                        <option value="Server">Server</option>
-                                        <option value="Expo">Expo</option>
-                                    </select>
-                                    <span class="field-error" id="shift-job-error" hidden></span>
                                 </label>
                             </div>
                         </fieldset>

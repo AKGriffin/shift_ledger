@@ -25,6 +25,8 @@ const RECOVERY_KEY = "shift-ledger-shifts-v1-recovery";
 const PRE_WORKPLACES_KEY = "shift-ledger-shifts-v1-pre-workplaces";
 const MEAL_PERIODS = ["Lunch", "Dinner", "Double"];
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
+const ADD_WORKPLACE_OPTION = "__add_workplace__";
+const ADD_ROLE_OPTION = "__add_role__";
 const reportAmountFields = [
     "foodSales", "bawSales", "liquorSales", "naBevSales", "additionalSales",
     "ccTips", "cashTips", "autoGratuity", "tipsPaidOut", "tipOutReceived",
@@ -32,6 +34,7 @@ const reportAmountFields = [
 let loadNotice = "";
 let setupSaved = false;
 let setupFirstRun = false;
+let setupReturnToShift = false;
 
 const workplaceLoad = window.Workplaces.load(localStorage);
 
@@ -339,7 +342,8 @@ function bindEvents() {
     document.getElementById("clear-all-data").addEventListener("click", clearAllShifts);
     document.getElementById("add-workplace").addEventListener("click", () => openWorkplaceSetup());
     fields.workplace.addEventListener("change", handleWorkplaceFieldChange);
-    fields.role.addEventListener("change", applyRoleTemplate);
+    fields.role.addEventListener("change", handleRoleFieldChange);
+    fields.job.addEventListener("change", handleLegacyJobFieldChange);
     const payPeriodType = document.getElementById("pay-period-type");
     const payPeriodStartDay = document.getElementById("pay-period-start-day");
     const payPeriodAnchor = document.getElementById("pay-period-anchor");
@@ -922,6 +926,7 @@ function fillSelect(select, options, value) {
 
 function renderWorkplaceFields() {
     const mode = isWorkplaceMode();
+    document.getElementById("shift-workplace-card").hidden = !mode;
     document.getElementById("shift-workplace-field").hidden = !mode;
     document.getElementById("shift-role-field").hidden = !mode;
     document.getElementById("shift-job-field").hidden = mode;
@@ -938,7 +943,9 @@ function renderWorkplaceFields() {
     state.workplaces.workplaces
         .filter((workplace) => !workplace.archived || workplace.id === editing?.workplaceId)
         .forEach((workplace) => options.push([workplace.id, workplace.archived ? `${workplace.name} (archived)` : workplace.name]));
+    options.push([ADD_WORKPLACE_OPTION, "+ Add workplace…"]);
     fillSelect(fields.workplace, options, current);
+    fields.workplace.dataset.previousValue = fields.workplace.value;
     renderRoleOptions();
 }
 
@@ -953,7 +960,11 @@ function renderRoleOptions() {
     (workplace?.roles || [])
         .filter((role) => !role.archived || role.id === editing?.roleId)
         .forEach((role) => options.push([role.id, role.archived ? `${role.name} (archived)` : role.name]));
+    if (workplace && !workplace.archived) {
+        options.push([ADD_ROLE_OPTION, "+ Add role…"]);
+    }
     fillSelect(fields.role, options, current);
+    fields.role.dataset.previousValue = fields.role.value;
 }
 
 function applyRoleTemplate() {
@@ -987,9 +998,80 @@ function applyRoleTemplate() {
 }
 
 function handleWorkplaceFieldChange() {
+    if (fields.workplace.value === ADD_WORKPLACE_OPTION) {
+        fields.workplace.value = fields.workplace.dataset.previousValue || "";
+        renderRoleOptions();
+        openWorkplaceSetup({ returnToShift: true });
+        return;
+    }
+    fields.workplace.dataset.previousValue = fields.workplace.value;
     renderRoleOptions();
     updateMealPeriodFields();
     document.getElementById("shift-role-hint").textContent = "";
+}
+
+function handleRoleFieldChange() {
+    if (fields.role.value === ADD_ROLE_OPTION) {
+        fields.role.value = fields.role.dataset.previousValue || "";
+        void addRoleFromShift();
+        return;
+    }
+    fields.role.dataset.previousValue = fields.role.value;
+    applyRoleTemplate();
+}
+
+function handleLegacyJobFieldChange() {
+    if (fields.job.value !== ADD_WORKPLACE_OPTION) {
+        fields.job.dataset.previousValue = fields.job.value;
+        return;
+    }
+    fields.job.value = fields.job.dataset.previousValue || "";
+    openWorkplaceSetup({ returnToShift: true });
+}
+
+async function addRoleFromShift() {
+    const workplace = state.workplaces.workplaces.find((entry) => (
+        entry.id === fields.workplace.value && !entry.archived
+    ));
+    if (!workplace) {
+        return;
+    }
+    const added = await askForRoles(workplace);
+    if (added === null) {
+        fields.role.focus();
+        return;
+    }
+    const result = commitWorkplaces((draft) => {
+        let last = {};
+        for (const name of added.names) {
+            last = window.Workplaces.addRole(draft, workplace.id, name);
+            if (last.error) {
+                return last;
+            }
+        }
+        return last;
+    });
+    if (result.error) {
+        setStatus(result.error, true);
+        return;
+    }
+    if (result.failed) {
+        return;
+    }
+    renderWorkplaces();
+    fields.workplace.value = workplace.id;
+    fields.workplace.dataset.previousValue = workplace.id;
+    renderRoleOptions();
+    const role = state.workplaces.workplaces
+        .find((entry) => entry.id === workplace.id)
+        ?.roles.find((entry) => entry.name === added.names[0]);
+    if (role) {
+        fields.role.value = role.id;
+        fields.role.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    setStatus(added.names.length === 1
+        ? `Added role “${added.names[0]}” to ${workplace.name}.`
+        : `Added ${added.names.length} roles to ${workplace.name}.`);
 }
 
 function resetForm(shouldClearStatus = true) {
@@ -1026,6 +1108,7 @@ function populateForm(shift) {
     renderWorkplaceFields();
     document.getElementById("shift-role-hint").textContent = "";
     fields.job.value = shift.job || "";
+    fields.job.dataset.previousValue = fields.job.value;
     fields.clockIn.value = shift.clockIn || "";
     fields.clockOut.value = shift.clockOut || "";
     fields.breakStart.value = shift.breakStart || "";
@@ -2348,6 +2431,7 @@ function openWorkplaceSetup(options) {
     }
     const firstRun = options?.firstRun === true;
     setupFirstRun = firstRun;
+    setupReturnToShift = options?.returnToShift === true;
     document.getElementById("skip-workplace-setup").textContent = firstRun ? "Skip for now" : "Cancel";
     document.getElementById("workplace-setup-title").textContent = firstRun ? "Set up your workplace" : "Add a workplace";
     document.getElementById("workplace-setup-text").textContent = firstRun
@@ -2507,6 +2591,7 @@ function handleSetupClose() {
 
 function handleSetupSubmit(event) {
     event.preventDefault();
+    const returnToShift = setupReturnToShift;
     const nameProblem = window.Workplaces.validateName(setupWorkplaceName.value, state.workplaces.workplaces, "workplace");
     const roleInputs = [...setupRoles.querySelectorAll(".note-input")];
     const roles = window.Workplaces.parseRoleNames(roleInputs.map((input) => input.value).join("\n"));
@@ -2582,7 +2667,21 @@ function handleSetupSubmit(event) {
     }
 
     setupDialog.close();
-    renderWorkplaces("h3");
+    renderWorkplaces(returnToShift ? null : "h3");
+    if (returnToShift && state.currentView === "new-shift") {
+        fields.workplace.value = workplace.id;
+        fields.workplace.dataset.previousValue = workplace.id;
+        renderRoleOptions();
+        const role = workplace.roles.find((entry) => !entry.archived);
+        if (role) {
+            fields.role.value = role.id;
+            fields.role.dispatchEvent(new Event("change", { bubbles: true }));
+            fields.role.focus();
+        } else {
+            fields.workplace.focus();
+        }
+    }
+    setupReturnToShift = false;
     const roleCount = roles.names.length;
     const status = [
         `${setupFirstRun ? "Created" : "Added"} workplace “${workplace.name}”${roleCount ? ` with ${roleCount} ${roleCount === 1 ? "role" : "roles"}` : ""}.`,
