@@ -180,6 +180,11 @@ function registerServiceWorker() {
         }
     });
 
+    // The offline cache cannot hold file: URLs, so the worker only installs over http(s).
+    if (!/^https?:$/.test(window.location.protocol)) {
+        return;
+    }
+
     navigator.serviceWorker.register("./sw.js")
         .then((registration) => {
             serviceWorkerRegistration = registration;

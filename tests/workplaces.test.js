@@ -168,7 +168,16 @@ describe("Workplaces data module", () => {
             setItem: (key, value) => store.set(key, value),
             removeItem: (key) => store.delete(key),
         };
-        const result = Workplaces.load(storage);
+        const originalError = console.error;
+        const logged = [];
+        console.error = (...args) => logged.push(args);
+        let result;
+        try {
+            result = Workplaces.load(storage);
+        } finally {
+            console.error = originalError;
+        }
+        expect(logged.length).toBeGreaterThan(0);
         expect(result.notice.length).toBeGreaterThan(0);
         expect(result.data.workplaces).toEqual([]);
         expect(result.data.setupDismissed).toBe(true);
@@ -606,7 +615,7 @@ describe("Backup with workplaces", () => {
         expect(app.savedShifts()).toHaveLength(1);
     }));
 
-    test("rejects invalid workplace data without changing anything", () => withApp({ workplaces: sampleData(), shifts: [makeShift()] }, async (app) => {
+    test("rejects invalid workplace data without changing anything", () =>     withApp({ workplaces: sampleData(), shifts: [makeShift()], expectConsoleErrors: true }, async (app) => {
         await restore(app, JSON.stringify({ shifts: [makeShift(), makeShift()], workplaces: [{ id: 1 }] }));
         expect(app.savedShifts()).toHaveLength(1);
         expect(app.savedWorkplaces().workplaces[0].name).toBe("Bistro");

@@ -88,7 +88,8 @@ export function withApp(options, callback) {
     return run;
 }
 
-async function runWithApp({ width = 1200, height = 1000, shifts, settings, workplaces } = {}, callback) {
+async function runWithApp({ width = 1200, height = 1000, shifts, settings, workplaces, expectConsoleErrors = false } = {}, callback) {
+    const consoleErrors = [];
     const previous = {
         shifts: localStorage.getItem(SHIFT_STORAGE_KEY),
         settings: localStorage.getItem(SETTINGS_STORAGE_KEY),
@@ -131,12 +132,30 @@ async function runWithApp({ width = 1200, height = 1000, shifts, settings, workp
         });
         frame.src = "../index.html";
         document.body.appendChild(frame);
+        if (expectConsoleErrors) {
+            // Tests that exercise error handling capture the app's logged errors instead of printing them.
+            // Patch repeatedly so the stub is in place before the app's scripts run on load.
+            const capture = (...args) => consoleErrors.push(args);
+            const patch = () => {
+                try {
+                    frame.contentWindow.console.error = capture;
+                } catch {
+                    // The frame is between documents.
+                }
+            };
+            const timer = window.setInterval(patch, 0);
+            frame.addEventListener("load", () => {
+                window.clearInterval(timer);
+                patch();
+            }, { once: true });
+            patch();
+        }
         await loaded;
         await new Promise((resolve) => frame.contentWindow.requestAnimationFrame(() => (
             frame.contentWindow.requestAnimationFrame(resolve)
         )));
 
-        return await callback(createHarness(frame));
+        return await callback(createHarness(frame, consoleErrors));
     } finally {
         frame.remove();
         restoreItem(SHIFT_STORAGE_KEY, previous.shifts);
@@ -156,7 +175,7 @@ function restoreItem(key, value) {
     }
 }
 
-function createHarness(frame) {
+function createHarness(frame, consoleErrors) {
     const win = frame.contentWindow;
     const doc = frame.contentDocument;
 
@@ -198,6 +217,7 @@ function createHarness(frame) {
 
     return {
         frame,
+        consoleErrors,
         win,
         doc,
         element,

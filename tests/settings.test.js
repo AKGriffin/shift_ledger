@@ -245,6 +245,7 @@ describe("Data reliability", () => {
 
     test("keeps a recovery copy and warns when stored data cannot be read", () => withApp({
         shifts: "{not json",
+        expectConsoleErrors: true,
     }, ({ element }) => {
         expect(element("#form-status").hidden).toBe(false);
         expect(element("#form-status").textContent).toContain("could not be read");
@@ -253,6 +254,7 @@ describe("Data reliability", () => {
 
     test("skips unreadable stored shifts, keeps valid ones and preserves the original", () => withApp({
         shifts: [makeShift({ job: "Expo" }), { id: 9, date: "bad" }],
+        expectConsoleErrors: true,
     }, ({ element, savedShifts }) => {
         expect(element("#summary-total-shifts").textContent).toBe("1");
         expect(element("#form-status").textContent).toContain("1 saved shift was unreadable");
@@ -262,6 +264,7 @@ describe("Data reliability", () => {
 
     test("restores a valid backup and rejects invalid times or meal periods", () => withApp({
         shifts: [makeShift()],
+        expectConsoleErrors: true,
     }, async (app) => {
         const { element, savedShifts, openView } = app;
         openView("settings");
