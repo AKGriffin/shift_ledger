@@ -233,29 +233,22 @@
 
                     <p id="role-no-reports-note" class="field-hint" hidden>This role doesn't track sales or tip reports, so this shift is saved without them.</p>
 
-                    <div id="single-report-toggle" class="no-report-toggle">
-                        <label class="report-toggle">
-                            <input type="checkbox" id="shift-no-report" aria-describedby="shift-no-report-hint">
-                            <span>No sales or tip report for this shift</span>
-                        </label>
-                        <small id="shift-no-report-hint" class="field-hint">Check this if you don't have the numbers. The shift is kept without sales or tips, and nothing is recorded as zero.</small>
-                    </div>
-
                     <div id="single-report-fields" class="form-report-grid">
                         <fieldset>
                             <legend>Sales</legend>
-                            <div class="form-grid">
-                                <label class="field">
-                                    <span>Food</span>
-                                    <input type="number" id="shift-food-sales" min="0" step="0.01" value="0">
-                                </label>
-                                <label class="field">
-                                    <span>Additional</span>
-                                    <input type="number" id="shift-additional-sales" min="0" step="0.01" value="0">
-                                </label>
+                            <label class="report-toggle">
+                                <input type="checkbox" id="shift-no-sales-report" aria-describedby="shift-no-sales-report-hint">
+                                <span>No sales report for this shift</span>
+                            </label>
+                            <small id="shift-no-sales-report-hint" class="field-hint">Check this if you don't have your sales numbers. Sales are left out of totals, and nothing is recorded as zero.</small>
+                            <div class="sub-card-grid" data-report-inputs="sales">
                                 <label class="field">
                                     <span>Beer &amp; wine</span>
                                     <input type="number" id="shift-baw-sales" min="0" step="0.01" value="0">
+                                </label>
+                                <label class="field">
+                                    <span>Food</span>
+                                    <input type="number" id="shift-food-sales" min="0" step="0.01" value="0">
                                 </label>
                                 <label class="field">
                                     <span>Liquor</span>
@@ -265,12 +258,24 @@
                                     <span>NA beverage</span>
                                     <input type="number" id="shift-na-sales" min="0" step="0.01" value="0">
                                 </label>
+                                <div class="sub-card" role="group" aria-labelledby="additional-sales-card-title">
+                                    <h4 class="sub-card-title" id="additional-sales-card-title">Additional sales</h4>
+                                    <label class="field">
+                                        <span>Additional</span>
+                                        <input type="number" id="shift-additional-sales" min="0" step="0.01" value="0">
+                                    </label>
+                                </div>
                             </div>
                         </fieldset>
 
                         <fieldset>
                             <legend>Tips</legend>
-                            <div class="sub-card-grid">
+                            <label class="report-toggle">
+                                <input type="checkbox" id="shift-no-tips-report" aria-describedby="shift-no-tips-report-hint">
+                                <span>No tip report for this shift</span>
+                            </label>
+                            <small id="shift-no-tips-report-hint" class="field-hint">Check this if you don't have your tip numbers. Tips are left out of totals, and nothing is recorded as zero.</small>
+                            <div class="sub-card-grid" data-report-inputs="tips">
                                 <label class="field">
                                     <span>CC tips</span>
                                     <input type="number" id="shift-cc-tips" min="0" step="0.01" value="0">
@@ -854,11 +859,11 @@
                         <button type="button" class="card-stat-toggle" aria-expanded="false" aria-label="Show sales details"></button>
                     </div>
                     <div class="card-substats" role="group" aria-label="Sales breakdown">
-                        <p><span>Food</span> <strong class="card-food-sales"></strong></p>
                         <p><span>Beer/wine</span> <strong class="card-baw-sales"></strong></p>
+                        <p><span>Food</span> <strong class="card-food-sales"></strong></p>
                         <p><span>Liquor</span> <strong class="card-liquor-sales"></strong></p>
                         <p><span>NA bev</span> <strong class="card-na-bev-sales"></strong></p>
-                        <p><span>Additional</span> <strong class="card-additional-sales"></strong></p>
+                        <p class="card-substat-divider"><span>Additional</span> <strong class="card-additional-sales"></strong></p>
                     </div>
                 </div>
                 <div class="card-stat card-stat-tips">
@@ -894,11 +899,16 @@
                         <h4>Sales</h4>
                         <div class="report-field-subgroup">
                             <div class="report-field-grid">
-                                <label class="field"><span>Food</span><input type="number" min="0" step="0.01" value="0" data-report-field="foodSales"></label>
-                                <label class="field"><span>Additional</span><input type="number" min="0" step="0.01" value="0" data-report-field="additionalSales"></label>
                                 <label class="field"><span>Beer &amp; wine</span><input type="number" min="0" step="0.01" value="0" data-report-field="bawSales"></label>
+                                <label class="field"><span>Food</span><input type="number" min="0" step="0.01" value="0" data-report-field="foodSales"></label>
                                 <label class="field"><span>Liquor</span><input type="number" min="0" step="0.01" value="0" data-report-field="liquorSales"></label>
                                 <label class="field"><span>NA beverage</span><input type="number" min="0" step="0.01" value="0" data-report-field="naBevSales"></label>
+                            </div>
+                        </div>
+                        <div class="report-field-subgroup">
+                            <h5>Additional sales</h5>
+                            <div class="report-field-grid">
+                                <label class="field"><span>Additional</span><input type="number" min="0" step="0.01" value="0" data-report-field="additionalSales"></label>
                             </div>
                         </div>
                     </section>

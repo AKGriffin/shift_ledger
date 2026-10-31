@@ -27,23 +27,64 @@ function saveDouble(harness, reports = {}) {
 }
 
 describe("Single-shift report coverage", () => {
-    const markNoReport = ({ element, fire }) => {
-        const box = element("#shift-no-report");
+    const check = ({ element, fire }, id) => {
+        const box = element(id);
         box.checked = true;
         fire(box, "change");
     };
+    const markNoReport = (harness) => {
+        check(harness, "#shift-no-sales-report");
+        check(harness, "#shift-no-tips-report");
+    };
 
     test("lets a single shift be saved with no report and disables its amount fields", () => withApp((harness) => {
-        const { element, fillForm, openView, submitForm, savedShifts } = harness;
+        const { fillForm, openView, submitForm, savedShifts } = harness;
         openView("new-shift");
         fillForm({ date: "2026-10-23", mealPeriod: "Dinner", job: "Server", clockIn: "16:00", clockOut: "22:00", foodSales: 150 });
         markNoReport(harness);
-        expect([...harness.elements("#single-report-fields fieldset")].every((fieldset) => fieldset.disabled)).toBe(true);
+        expect([...harness.elements("[data-report-inputs] input")].every((input) => input.disabled)).toBe(true);
         submitForm();
 
         const [saved] = savedShifts();
         expect(saved.noReport).toBe(true);
         expect(saved.foodSales).toBe(0);
+    }));
+
+    test("saves a shift with tips but no sales report", () => withApp((harness) => {
+        const { fillForm, openView, submitForm, savedShifts } = harness;
+        openView("new-shift");
+        fillForm({ date: "2026-10-23", mealPeriod: "Dinner", job: "Server", clockIn: "16:00", clockOut: "22:00", foodSales: 150, ccTips: 30 });
+        check(harness, "#shift-no-sales-report");
+        submitForm();
+
+        const [saved] = savedShifts();
+        expect(saved.noSales).toBe(true);
+        expect(saved.noReport).toBeUndefined();
+        expect(saved.foodSales).toBe(0);
+        expect(saved.ccTips).toBe(30);
+    }));
+
+    test("saves a shift with sales but no tip report", () => withApp((harness) => {
+        const { fillForm, openView, submitForm, savedShifts } = harness;
+        openView("new-shift");
+        fillForm({ date: "2026-10-23", mealPeriod: "Dinner", job: "Server", clockIn: "16:00", clockOut: "22:00", foodSales: 150, ccTips: 30 });
+        check(harness, "#shift-no-tips-report");
+        submitForm();
+
+        const [saved] = savedShifts();
+        expect(saved.noTips).toBe(true);
+        expect(saved.foodSales).toBe(150);
+        expect(saved.ccTips).toBe(0);
+    }));
+
+    test("shows only the missing report as No report", () => withApp({
+        shifts: [makeShift({ noSales: true, ccTips: 30 })],
+    }, ({ element, openView }) => {
+        openView("previous-shifts");
+        const card = element(".shift-card");
+        expect(card.querySelector(".card-report-status").textContent).toBe("No sales report");
+        expect(card.querySelector(".card-sales").textContent).toBe("No report");
+        expect(card.querySelector(".card-tips").textContent).toBe("$30.00");
     }));
 
     test("shows no-report shifts as such instead of as zero dollars", () => withApp({
@@ -60,25 +101,26 @@ describe("Single-shift report coverage", () => {
         expect(reported.querySelector(".card-report-status").hidden).toBe(true);
     }));
 
-    test("restores the no-report choice when editing and clears it for a new shift", () => withApp({
-        shifts: [makeShift({ noReport: true })],
+    test("restores the no-report choices when editing and clears them for a new shift", () => withApp({
+        shifts: [makeShift({ noTips: true })],
     }, ({ element, openView }) => {
         openView("previous-shifts");
         element(".card-menu-toggle").click();
         element(".edit-shift").click();
-        expect(element("#shift-no-report").checked).toBe(true);
+        expect(element("#shift-no-tips-report").checked).toBe(true);
+        expect(element("#shift-no-sales-report").checked).toBe(false);
 
         element("#clear-form").click();
-        expect(element("#shift-no-report").checked).toBe(false);
-        expect([...element("#single-report-fields").querySelectorAll("fieldset")].every((fieldset) => !fieldset.disabled)).toBe(true);
+        expect(element("#shift-no-tips-report").checked).toBe(false);
+        expect([...element("#single-report-fields").querySelectorAll("input")].every((input) => !input.disabled)).toBe(true);
     }));
 
-    test("hides the no-report choice for doubles", () => withApp(({ element, fire, openView }) => {
+    test("hides the no-report choices for doubles", () => withApp(({ element, fire, openView }) => {
         openView("new-shift");
         const mealPeriod = element("#shift-meal-period");
         mealPeriod.value = "Double";
         fire(mealPeriod, "change");
-        expect(element("#single-report-toggle").hidden).toBe(true);
+        expect(element("#single-report-fields").hidden).toBe(true);
     }));
 
     test("keeps no-report shifts through backup restore and zeroes their amounts", () => withApp(async (harness) => {

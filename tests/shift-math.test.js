@@ -1,8 +1,25 @@
 import { describe, expect, test } from "./assert.js";
 
-const { getAutoGratuity, getDurationMinutes, getFinancialBreakdown, getNetTips, getSalesTotal, hasReport, toMinutes } = window.ShiftMath;
+const { getAutoGratuity, getDurationMinutes, getFinancialBreakdown, getNetTips, getSalesTotal, hasReport, hasSalesReport, hasTipReport, toMinutes } = window.ShiftMath;
 
 describe("report coverage", () => {
+    test("covers sales and tips independently on single shifts", () => {
+        const noSales = { mealPeriod: "Dinner", noSales: true, foodSales: 99, ccTips: 20, tipsPaidOut: 5 };
+        expect(hasSalesReport(noSales)).toBe(false);
+        expect(hasTipReport(noSales)).toBe(true);
+        expect(getSalesTotal(noSales)).toBe(0);
+        expect(getNetTips(noSales)).toBe(15);
+
+        const noTips = { mealPeriod: "Dinner", noTips: true, foodSales: 99, ccTips: 20, autoGratuity: 4 };
+        expect(hasSalesReport(noTips)).toBe(true);
+        expect(hasTipReport(noTips)).toBe(false);
+        expect(getSalesTotal(noTips)).toBe(99);
+        expect(getNetTips(noTips)).toBe(0);
+        expect(getAutoGratuity(noTips)).toBe(0);
+        expect(getFinancialBreakdown(noTips).ccTips).toBe(0);
+        expect(getFinancialBreakdown(noTips).foodSales).toBe(99);
+    });
+
     test("treats single shifts as reported unless marked without a report", () => {
         expect(hasReport({ mealPeriod: "Dinner", foodSales: 0 })).toBe(true);
         expect(hasReport({ mealPeriod: "Dinner", noReport: true })).toBe(false);

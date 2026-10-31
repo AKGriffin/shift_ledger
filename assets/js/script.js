@@ -8,7 +8,7 @@ const VIEW_TITLES = {
     "previous-shifts": "Previous Shifts",
     "settings": "Settings",
 };
-const { getAutoGratuity, getDurationMinutes, getFinancialBreakdown, getNetTips, getSalesTotal, hasReport, toMinutes } = window.ShiftMath;
+const { getAutoGratuity, getDurationMinutes, getFinancialBreakdown, getNetTips, getSalesTotal, hasSalesReport, hasTipReport, toMinutes } = window.ShiftMath;
 const CARD_BREAKDOWN_SELECTORS = {
     foodSales: ".card-food-sales",
     bawSales: ".card-baw-sales",
@@ -31,6 +31,8 @@ const reportAmountFields = [
     "foodSales", "bawSales", "liquorSales", "naBevSales", "additionalSales",
     "ccTips", "cashTips", "autoGratuity", "tipsPaidOut", "tipOutReceived",
 ];
+const salesAmountFields = reportAmountFields.slice(0, 5);
+const tipAmountFields = reportAmountFields.slice(5);
 let loadNotice = "";
 let setupSaved = false;
 let setupFirstRun = false;
@@ -337,7 +339,8 @@ function bindEvents() {
         appUpdateDialog.close();
     });
     fields.mealPeriod.addEventListener("change", updateMealPeriodFields);
-    document.getElementById("shift-no-report").addEventListener("change", updateMealPeriodFields);
+    document.getElementById("shift-no-sales-report").addEventListener("change", updateMealPeriodFields);
+    document.getElementById("shift-no-tips-report").addEventListener("change", updateMealPeriodFields);
     doubleReportList.addEventListener("change", handleDoubleReportToggle);
     form.addEventListener("focusin", selectNumberOnFocus);
     form.addEventListener("mouseup", (event) => {
@@ -1186,7 +1189,11 @@ function populateForm(shift) {
     state.editingShiftId = shift.id;
     fields.date.value = shift.date || "";
     fields.mealPeriod.value = shift.mealPeriod || "";
-    document.getElementById("shift-no-report").checked = shift.noReport === true && shift.mealPeriod !== "Double";
+    const single = shift.mealPeriod !== "Double";
+    document.getElementById("shift-no-sales-report").checked = single
+        && (shift.noReport === true || shift.noSales === true);
+    document.getElementById("shift-no-tips-report").checked = single
+        && (shift.noReport === true || shift.noTips === true);
     updateMealPeriodFields();
     fields.workplace.value = "";
     fields.role.value = "";
@@ -1298,12 +1305,25 @@ function readFormValues() {
     }
 
     const skipReports = !roleTracksReports();
-    if (skipReports || (baseline.mealPeriod !== "Double" && document.getElementById("shift-no-report").checked)) {
-        reportAmountFields.forEach((field) => {
-            baseline[field] = 0;
-        });
-        if (baseline.mealPeriod !== "Double") {
+    if (baseline.mealPeriod !== "Double") {
+        const noSales = skipReports || document.getElementById("shift-no-sales-report").checked;
+        const noTips = skipReports || document.getElementById("shift-no-tips-report").checked;
+        if (noSales) {
+            salesAmountFields.forEach((field) => {
+                baseline[field] = 0;
+            });
+        }
+        if (noTips) {
+            tipAmountFields.forEach((field) => {
+                baseline[field] = 0;
+            });
+        }
+        if (noSales && noTips) {
             baseline.noReport = true;
+        } else if (noSales) {
+            baseline.noSales = true;
+        } else if (noTips) {
+            baseline.noTips = true;
         }
     }
 
@@ -1483,7 +1503,7 @@ function renderDashboard() {
         const description = document.createElement("span");
         description.textContent = shift.mealPeriod === "Double"
             ? `${shift.job} · Double · ${getDoubleReportStatus(shift)}`
-            : `${shift.job} · ${shift.mealPeriod}${hasReport(shift) ? "" : " · No report"}`;
+            : `${shift.job} · ${shift.mealPeriod}${getRecentReportNote(shift)}`;
         details.append(date, description);
 
         const metrics = document.createElement("div");
@@ -1492,13 +1512,13 @@ function renderDashboard() {
         [
             ["sales", "Sales", getSalesTotal(shift)],
             ["tips", "Net tips", getNetTips(shift)],
-        ].filter(([key]) => state.settings.dashboard.stats[key]).forEach(([, label, amount]) => {
+        ].filter(([key]) => state.settings.dashboard.stats[key]).forEach(([key, label, amount]) => {
             const metric = document.createElement("div");
             metric.className = "recent-metric";
             const metricLabel = document.createElement("small");
             metricLabel.textContent = label;
             const metricValue = document.createElement("strong");
-            metricValue.textContent = formatReportAmount(shift, amount);
+            metricValue.textContent = formatReportAmount(shift, amount, key);
             metric.append(metricLabel, metricValue);
             metrics.appendChild(metric);
         });
@@ -1555,8 +1575,8 @@ function renderPreviousShifts() {
         reportStatus.hidden = !reportStatusText;
         card.querySelector(".card-job").textContent = [shift.job, getWorkplaceName(shift.workplaceId)].filter(Boolean).join(" · ");
         card.querySelector(".card-hours").textContent = formatDuration(getDurationMinutes(shift));
-        card.querySelector(".card-sales").textContent = formatReportAmount(shift, getSalesTotal(shift));
-        card.querySelector(".card-tips").textContent = formatReportAmount(shift, getNetTips(shift));
+        card.querySelector(".card-sales").textContent = formatReportAmount(shift, getSalesTotal(shift), "sales");
+        card.querySelector(".card-tips").textContent = formatReportAmount(shift, getNetTips(shift), "tips");
         const autoGratuity = getAutoGratuity(shift);
         const autoGratuityValue = card.querySelector(".card-auto-gratuity");
         autoGratuityValue.textContent = formatCurrency(autoGratuity);
@@ -1798,11 +1818,11 @@ function exportShiftsCsv() {
             ...(isDouble ? Array(5).fill("") : [
                 shift.foodSales, shift.bawSales, shift.liquorSales, shift.naBevSales, shift.additionalSales,
             ]),
-            hasReport(shift) ? getSalesTotal(shift) : "",
+            hasSalesReport(shift) ? getSalesTotal(shift) : "",
             ...(isDouble ? Array(5).fill("") : [
                 shift.ccTips, shift.cashTips, Number(shift.autoGratuity) || 0, shift.tipsPaidOut, shift.tipOutReceived,
             ]),
-            hasReport(shift) ? getNetTips(shift) : "",
+            hasTipReport(shift) ? getNetTips(shift) : "",
             getReportStatus(shift),
             ...reportPeriods.flatMap(([period]) => reportAmountFields.map((field) => (
                 reports[period] ? reports[period][field] : ""
@@ -1988,13 +2008,22 @@ function normalizeImportedShift(shift, index) {
         }
     });
 
-    if (shift.noReport === true && shift.mealPeriod !== "Double") {
-        reportAmountFields.forEach((field) => {
-            normalized[field] = 0;
-        });
-    } else {
-        delete normalized.noReport;
+    const single = shift.mealPeriod !== "Double";
+    const noSales = single && (shift.noReport === true || shift.noSales === true);
+    const noTips = single && (shift.noReport === true || shift.noTips === true);
+    delete normalized.noReport;
+    delete normalized.noSales;
+    delete normalized.noTips;
+    if (noSales && noTips) {
+        normalized.noReport = true;
+    } else if (noSales) {
+        normalized.noSales = true;
+    } else if (noTips) {
+        normalized.noTips = true;
     }
+    salesAmountFields.filter(() => noSales).concat(tipAmountFields.filter(() => noTips)).forEach((field) => {
+        normalized[field] = 0;
+    });
 
     return normalized;
 }
@@ -2948,12 +2977,16 @@ function roleTracksReports() {
 function updateMealPeriodFields() {
     const isDouble = fields.mealPeriod.value === "Double";
     const tracks = roleTracksReports();
-    const noReport = document.getElementById("shift-no-report").checked;
     document.getElementById("role-no-reports-note").hidden = tracks;
-    document.getElementById("single-report-toggle").hidden = isDouble || !tracks;
     document.getElementById("single-report-fields").hidden = isDouble || !tracks;
-    document.querySelectorAll("#single-report-fields fieldset").forEach((fieldset) => {
-        fieldset.disabled = noReport;
+    [
+        ["shift-no-sales-report", "sales"],
+        ["shift-no-tips-report", "tips"],
+    ].forEach(([toggleId, kind]) => {
+        const missing = document.getElementById(toggleId).checked;
+        document.querySelectorAll(`[data-report-inputs="${kind}"] input`).forEach((input) => {
+            input.disabled = missing;
+        });
     });
     document.getElementById("double-report-fields").hidden = !isDouble || !tracks;
     reportPeriods.forEach(([period]) => {
@@ -2981,15 +3014,29 @@ function handleDoubleReportToggle(event) {
     setReportInputsEnabled(event.target.closest(".double-report"), event.target.checked);
 }
 
+function getRecentReportNote(shift) {
+    const status = getReportStatus(shift);
+    return status ? ` · ${status === "No sales or tip report" ? "No report" : status}` : "";
+}
+
 function getReportStatus(shift) {
     if (shift.mealPeriod === "Double") {
         return getDoubleReportStatus(shift);
     }
-    return hasReport(shift) ? "" : "No sales or tip report";
+    const hasSales = hasSalesReport(shift);
+    const hasTips = hasTipReport(shift);
+    if (!hasSales && !hasTips) {
+        return "No sales or tip report";
+    }
+    if (!hasSales) {
+        return "No sales report";
+    }
+    return hasTips ? "" : "No tip report";
 }
 
-function formatReportAmount(shift, amount) {
-    return hasReport(shift) ? formatCurrency(amount) : "No report";
+function formatReportAmount(shift, amount, kind) {
+    const covered = kind === "sales" ? hasSalesReport(shift) : hasTipReport(shift);
+    return covered ? formatCurrency(amount) : "No report";
 }
 
 function getDoubleReportStatus(shift) {

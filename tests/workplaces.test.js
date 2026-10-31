@@ -577,7 +577,6 @@ describe("Shift form workplace mode", () => {
         expect(element("#single-report-fields").hidden).toBe(false);
         change("#shift-role", "r-2");
         expect(element("#single-report-fields").hidden).toBe(true);
-        expect(element("#single-report-toggle").hidden).toBe(true);
         expect(element("#role-no-reports-note").hidden).toBe(false);
         fillForm({ date: "2026-10-22", mealPeriod: "Dinner", workplace: "wp-1", role: "r-2", clockIn: "16:00", clockOut: "22:00", foodSales: "50" });
         submitForm();

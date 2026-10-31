@@ -28,11 +28,7 @@ _Nothing is in progress. Move the top Ready item here when work starts._
 
 Listed in build order.
 
-1. **Separate sales and tip reports** · `reports` `shift-form` `data`
-   A shift may have a sales report but no tip numbers, or the reverse. Give each its own card, coverage state, and validation so either can be saved without the other, with "No report" shown separately for each. Existing shifts and backups must load unchanged; update totals, CSV, and tests. Supersedes "Let shifts be saved without a sales report".
-
-2. **Order sales alphabetically and overflow into a sub-card** · `shift-form` `reports`
-   Show the first four sales categories in alphabetical order; additional sales go in a separate sub-card after them, like breaks and tip-out. `needs:` the sales/tip split.
+_Nothing is ready. Move the next Backlog item here once it is designed enough to start._
 
 ---
 
@@ -137,6 +133,8 @@ Plan these together; they share dashboard code. Start with the stat layout.
 
 Newest first.
 
+- Sales are listed alphabetically (Beer & wine, Food, Liquor, NA beverage) in the shift form, double-shift reports, and history; Additional sales sit in their own sub-card after them.
+- Separate sales and tip reports: single shifts can be saved without a sales report, a tip report, or both. Each has its own toggle in its own card, is excluded from totals, and shows "No report" independently in history, recent activity, and CSV. Existing shifts and backups load unchanged (`noReport` still means both). Double shifts keep their per-report coverage.
 - Load flash fix: saved theme and style apply from a small inline script before first paint, and the page stays hidden until the saved view has rendered. Confirm on a real device that it's gone; if flashing persists, capture which part flashes.
 - Manual "Check for updates" button in Settings with checking, up-to-date, update-ready, offline, and error messages.
 - App updates now appear in a dialog ("Update now" / "Later") and survive refreshes: the new worker waits until you accept, and the page detects a waiting worker on load.

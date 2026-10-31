@@ -1182,22 +1182,18 @@ legend {
     accent-color: var(--primary);
 }
 
-.no-report-toggle {
+#single-report-fields fieldset {
     display: grid;
-    gap: 6px;
+    gap: 8px;
 }
 
-.no-report-toggle[hidden] {
-    display: none;
-}
-
-.no-report-toggle:has(input:focus-visible) label {
+#single-report-fields .report-toggle:has(input:focus-visible) {
     outline: 3px solid var(--primary);
     outline-offset: 3px;
     border-radius: 6px;
 }
 
-#single-report-fields fieldset:disabled {
+#single-report-fields [data-report-inputs]:has(input:disabled) {
     opacity: 0.55;
 }
 

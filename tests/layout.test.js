@@ -219,8 +219,8 @@ describe("New shift layout", () => {
         const rect = (selector) => element(selector).getBoundingClientRect();
         const ids = [
             "shift-date", "shift-meal-period", "shift-job", "shift-clock-in", "shift-clock-out",
-            "shift-break-start", "shift-break-end", "shift-food-sales", "shift-additional-sales",
-            "shift-baw-sales", "shift-cc-tips", "shift-tip-out-paid",
+            "shift-break-start", "shift-break-end", "shift-baw-sales", "shift-food-sales",
+            "shift-additional-sales", "shift-cc-tips", "shift-tip-out-paid",
         ];
         const lefts = ids.map((id) => rect(`#${id}`).left);
 
@@ -273,9 +273,11 @@ describe("New shift layout", () => {
 
         expect(top("#shift-meal-period")).toBeGreaterThan(top("#shift-date"));
         expect(top("#break-card-title")).toBeGreaterThan(top("#shift-clock-out"));
-        expect(elements("#single-report-fields fieldset:first-child .sub-card")).toHaveLength(0);
-        expect(top("#shift-additional-sales")).toBeGreaterThan(top("#shift-food-sales"));
-        expect(top("#shift-liquor-sales")).toBeGreaterThan(top("#shift-additional-sales"));
+        expect(elements("#single-report-fields fieldset:first-child .sub-card")).toHaveLength(1);
+        expect(top("#shift-food-sales")).toBeGreaterThan(top("#shift-baw-sales"));
+        expect(top("#shift-liquor-sales")).toBeGreaterThan(top("#shift-food-sales"));
+        expect(top("#shift-na-sales")).toBeGreaterThan(top("#shift-liquor-sales"));
+        expect(top("#additional-sales-card-title")).toBeGreaterThan(top("#shift-na-sales"));
         expect(top("#tipout-card-title")).toBeGreaterThan(top("#shift-auto-gratuity"));
         expect(top("#single-report-fields fieldset:last-child")).toBeGreaterThan(top("#single-report-fields fieldset:first-child"));
         expect(doc.documentElement.scrollWidth).toBeLessThanOrEqual(win.innerWidth);
