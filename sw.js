@@ -1,4 +1,4 @@
-const CACHE_NAME = "shift-ledger-shell-v72";
+const CACHE_NAME = "shift-ledger-shell-v74";
 const APP_SHELL = [
     "./",
     "./index.html",
@@ -16,8 +16,14 @@ self.addEventListener("install", (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => cache.addAll(APP_SHELL))
-            .then(() => self.skipWaiting())
     );
+});
+
+// A new worker waits until the page asks it to take over, so the update prompt survives refreshes.
+self.addEventListener("message", (event) => {
+    if (event.data && event.data.type === "SKIP_WAITING") {
+        self.skipWaiting();
+    }
 });
 
 self.addEventListener("activate", (event) => {

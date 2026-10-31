@@ -52,13 +52,16 @@ let formStatusTimeout = null;
 let formStatusExpiresAt = null;
 let shiftFormDirty = false;
 let allowUpdateReload = false;
+let updateRequested = false;
 let serviceWorkerRegistration = null;
 let hadServiceWorkerController = "serviceWorker" in navigator
     && Boolean(navigator.serviceWorker.controller);
 
 const navButtons = document.querySelectorAll("[data-view]");
 const formStatus = document.getElementById("form-status");
-const appUpdateNotice = document.getElementById("app-update-notice");
+const appUpdateDialog = document.getElementById("app-update-dialog");
+const checkForUpdatesButton = document.getElementById("check-for-updates");
+const updateCheckStatus = document.getElementById("update-check-status");
 const reloadAppButton = document.getElementById("reload-app");
 const dismissAppUpdateButton = document.getElementById("dismiss-app-update");
 const form = document.getElementById("shift-form");
@@ -157,6 +160,7 @@ renderWorkplaces();
 renderDashboard();
 renderPreviousShifts();
 showView(getInitialView(), { historyAction: "replace" });
+document.documentElement.classList.remove("is-booting");
 if (loadNotice) {
     setStatus(loadNotice, true);
 }
@@ -171,8 +175,13 @@ function registerServiceWorker() {
     }
 
     navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (updateRequested) {
+            allowUpdateReload = true;
+            window.location.reload();
+            return;
+        }
         if (hadServiceWorkerController) {
-            appUpdateNotice.hidden = false;
+            showAppUpdateDialog();
         }
         hadServiceWorkerController = true;
     });
@@ -191,6 +200,18 @@ function registerServiceWorker() {
     navigator.serviceWorker.register("./sw.js")
         .then((registration) => {
             serviceWorkerRegistration = registration;
+            offerWaitingWorker(registration);
+            registration.addEventListener("updatefound", () => {
+                const installing = registration.installing;
+                if (!installing) {
+                    return;
+                }
+                installing.addEventListener("statechange", () => {
+                    if (installing.state === "installed") {
+                        offerWaitingWorker(registration);
+                    }
+                });
+            });
         })
         .catch((error) => {
             console.error("Unable to register the offline app worker:", error);
@@ -207,8 +228,71 @@ function checkForServiceWorkerUpdate() {
     });
 }
 
+async function runManualUpdateCheck() {
+    const setResult = (message) => {
+        updateCheckStatus.textContent = message;
+    };
+
+    if (!serviceWorkerRegistration) {
+        setResult("Updates are only available when the app is opened from its web address.");
+        return;
+    }
+    if (!navigator.onLine) {
+        setResult("You're offline. Connect to the internet and try again.");
+        return;
+    }
+
+    checkForUpdatesButton.disabled = true;
+    setResult("Checking for updates…");
+    try {
+        await serviceWorkerRegistration.update();
+        const installing = serviceWorkerRegistration.installing;
+        if (installing) {
+            await new Promise((resolve) => {
+                installing.addEventListener("statechange", () => {
+                    if (installing.state === "installed" || installing.state === "redundant") {
+                        resolve();
+                    }
+                });
+            });
+        }
+
+        if (serviceWorkerRegistration.waiting) {
+            setResult("An update is ready.");
+            showAppUpdateDialog();
+        } else {
+            setResult("Shift Ledger is up to date.");
+        }
+    } catch (error) {
+        console.warn("Unable to check for app updates:", error);
+        setResult("Couldn't check for updates. Try again later.");
+    } finally {
+        checkForUpdatesButton.disabled = false;
+    }
+}
+
+function showAppUpdateDialog() {
+    if (!appUpdateDialog.open) {
+        appUpdateDialog.showModal();
+    }
+}
+
+// A first install has no controller, so only a replacement worker counts as an update.
+function offerWaitingWorker(registration) {
+    if (registration.waiting && navigator.serviceWorker.controller) {
+        showAppUpdateDialog();
+    }
+}
+
 function reloadForAppUpdate() {
     if (shiftFormDirty && !window.confirm("Reload now and discard the unsaved shift changes?")) {
+        return;
+    }
+
+    const waitingWorker = serviceWorkerRegistration && serviceWorkerRegistration.waiting;
+    if (waitingWorker) {
+        updateRequested = true;
+        waitingWorker.postMessage({ type: "SKIP_WAITING" });
         return;
     }
 
@@ -248,8 +332,9 @@ function bindEvents() {
     form.addEventListener("change", updateValidationErrors);
     window.addEventListener("beforeunload", guardUnsavedShiftChanges);
     reloadAppButton.addEventListener("click", reloadForAppUpdate);
+    checkForUpdatesButton.addEventListener("click", runManualUpdateCheck);
     dismissAppUpdateButton.addEventListener("click", () => {
-        appUpdateNotice.hidden = true;
+        appUpdateDialog.close();
     });
     fields.mealPeriod.addEventListener("change", updateMealPeriodFields);
     document.getElementById("shift-no-report").addEventListener("change", updateMealPeriodFields);

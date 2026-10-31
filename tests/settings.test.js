@@ -12,10 +12,11 @@ const styleOptions = [
 ];
 
 describe("Settings page", () => {
-    test("shows the appearance, formats, dashboard, work setup, and data cards", () => withApp(({ element, elements, openView }) => {
+    test("shows the appearance, formats, dashboard, work setup, data, and updates cards", () => withApp(({ element, elements, openView }) => {
         openView("settings");
 
-        expect(elements(".settings-card")).toHaveLength(5);
+        expect(elements(".settings-card")).toHaveLength(6);
+        expect(element("#app-updates-title").textContent).toBe("App updates");
         expect(element("#appearance-title").textContent).toBe("Appearance");
         expect(element("#formats-title").textContent).toBe("Formats & display");
         expect(element("#work-setup-title").textContent).toBe("Workplaces & roles");

@@ -10,6 +10,23 @@
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="icon" href="assets/icons/icon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="assets/css/style.css">
+    <script>
+        // Apply saved appearance and hide the page until the app has rendered, avoiding a flash of default views.
+        (function () {
+            var root = document.documentElement;
+            try {
+                var settings = JSON.parse(localStorage.getItem("shift-ledger-settings-v1")) || {};
+                if (/^[a-z-]+$/.test(settings.visualStyle || "")) {
+                    root.dataset.style = settings.visualStyle;
+                }
+                if (settings.colorMode === "light" || settings.colorMode === "dark") {
+                    root.dataset.theme = settings.colorMode;
+                }
+            } catch (error) { }
+            root.classList.add("is-booting");
+            window.setTimeout(function () { root.classList.remove("is-booting"); }, 3000);
+        })();
+    </script>
 </head>
 
 <body>
@@ -31,19 +48,8 @@
 
         <div class="app-content">
             <p id="form-status" class="form-status" role="status" aria-live="polite" hidden></p>
-            <section id="app-update-notice" class="app-update-notice" aria-labelledby="app-update-title" hidden>
-                <div>
-                    <h2 id="app-update-title">Update ready</h2>
-                    <p role="status" aria-live="polite">A new version of Shift Ledger is ready. Reload when convenient. Unsaved shift changes are protected by a confirmation.</p>
-                </div>
-                <div class="app-update-actions">
-                    <button type="button" id="reload-app" class="primary-button">Reload now</button>
-                    <button type="button" id="dismiss-app-update" class="ghost-button">Later</button>
-                </div>
-            </section>
-
         <main id="main-content" tabindex="-1">
-            <section id="dashboard" class="view is-visible">
+            <section id="dashboard" class="view is-hidden">
                 <header class="dashboard-heading view-header">
                     <div class="view-heading">
                         <p class="eyebrow">At a glance</p>
@@ -527,10 +533,38 @@
                                 <button type="button" id="clear-all-data" class="danger-button">Delete all shifts</button>
                             </div>
                         </section>
+
+                        <section class="settings-card app-updates-card" aria-labelledby="app-updates-title">
+                            <div class="settings-card-heading">
+                                <span class="settings-card-icon" aria-hidden="true">06</span>
+                                <div>
+                                    <p class="eyebrow">Version</p>
+                                    <h2 id="app-updates-title">App updates</h2>
+                                </div>
+                            </div>
+                            <p class="settings-description">Shift Ledger checks for updates automatically. You can also check now.</p>
+                            <div class="settings-actions">
+                                <button type="button" id="check-for-updates" class="secondary-button">Check for updates</button>
+                            </div>
+                            <p id="update-check-status" class="settings-description" role="status" aria-live="polite"></p>
+                        </section>
                     </div>
                 </div>
             </section>
         </main>
+
+        <dialog id="app-update-dialog" class="history-filter-dialog" aria-labelledby="app-update-title">
+            <div class="filter-dialog-header">
+                <div>
+                    <h3 id="app-update-title">Update ready</h3>
+                    <p>A new version of Shift Ledger is ready. Unsaved shift changes are protected by a confirmation.</p>
+                </div>
+            </div>
+            <div class="filter-dialog-actions">
+                <button type="button" id="dismiss-app-update" class="ghost-button">Later</button>
+                <button type="button" id="reload-app" class="primary-button">Update now</button>
+            </div>
+        </dialog>
 
         <dialog id="name-dialog" class="history-filter-dialog" aria-labelledby="name-dialog-title">
             <form id="name-form" novalidate>

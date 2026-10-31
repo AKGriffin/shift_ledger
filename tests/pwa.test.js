@@ -12,8 +12,8 @@ describe("PWA updates", () => {
         controllerChange();
         controllerChange();
 
-        const notice = harness.element("#app-update-notice");
-        expect(notice.hidden).toBe(false);
+        const dialog = harness.element("#app-update-dialog");
+        expect(dialog.open).toBe(true);
         expect(harness.element("#app-update-title").textContent).toBe("Update ready");
 
         const foodSales = harness.element("#shift-food-sales");
@@ -22,10 +22,16 @@ describe("PWA updates", () => {
         harness.win.confirm = () => false;
         harness.element("#reload-app").click();
         expect(foodSales.value).toBe("25");
-        expect(notice.hidden).toBe(false);
+        expect(dialog.open).toBe(true);
 
         harness.element("#dismiss-app-update").click();
-        expect(notice.hidden).toBe(true);
+        expect(dialog.open).toBe(false);
+    }));
+
+    test("explains manual update checks when no app worker is registered", () => withApp(async (harness) => {
+        harness.element("#check-for-updates").click();
+        await Promise.resolve();
+        expect(harness.element("#update-check-status").textContent).toContain("only available");
     }));
 
     test("preserves saved shifts after an app refresh", () => withApp(async (harness) => {

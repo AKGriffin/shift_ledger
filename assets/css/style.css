@@ -571,6 +571,10 @@ main {
     display: block;
 }
 
+.is-booting body {
+    visibility: hidden;
+}
+
 .panel {
     min-width: 0;
     background: var(--panel);
@@ -1041,44 +1045,6 @@ main {
 }
 
 #form-status[hidden] {
-    display: none;
-}
-
-.app-update-notice {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    margin: 18px 0;
-    padding: 14px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--panel);
-    box-shadow: var(--shadow);
-}
-
-.app-update-notice h2,
-.app-update-notice p {
-    margin: 0;
-}
-
-.app-update-notice h2 {
-    font-size: 1rem;
-}
-
-.app-update-notice p {
-    margin-top: 4px;
-    color: var(--muted);
-    line-height: 1.5;
-}
-
-.app-update-actions {
-    display: flex;
-    flex: 0 0 auto;
-    gap: 8px;
-}
-
-#app-update-notice[hidden] {
     display: none;
 }
 
@@ -2092,15 +2058,6 @@ main:focus,
     .mobile-bottom-nav-button[aria-current="page"] {
         background: var(--panel-alt);
         color: var(--primary-dark);
-    }
-
-    .app-update-notice {
-        align-items: stretch;
-        flex-direction: column;
-    }
-
-    .app-update-actions {
-        flex-wrap: wrap;
     }
 
     .dashboard-heading {

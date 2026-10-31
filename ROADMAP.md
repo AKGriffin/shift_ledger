@@ -28,22 +28,10 @@ _Nothing is in progress. Move the top Ready item here when work starts._
 
 Listed in build order.
 
-1. **Fix the update prompt disappearing on refresh** · `bug` `pwa`
-   The "update now" notice is in-memory state set only on `controllerchange`, and the worker calls `skipWaiting()` on install, so a refreshed page never offers the update. Remove `skipWaiting()` from install; on page load, check `registration.waiting` (and `updatefound` → `installed`) and show the prompt; the Update action posts a `SKIP_WAITING` message and reloads on `controllerchange`. Keep the unsaved-form safeguard. Bump the cache version.
-
-2. **Show app updates in a dialog** · `pwa` `design`
-   Replace the show/hide update section with a `<dialog>` offering "Update now" and "Later". "Later" dismisses until the next launch or manual check. `needs:` the update fix above.
-
-3. **Add a manual update check in Settings** · `pwa` `settings`
-   A "Check for updates" button that calls `registration.update()`, with checking, up-to-date, update-ready, offline, and error states. Update-ready opens the same dialog. Also show the app version.
-
-4. **Stop the flash of different view states on load** · `bug` `design`
-   Refreshing flashes different views and breakpoint layouts. Apply theme, style, and mode from storage with a tiny inline script in `<head>` before first paint, hide views by default in CSS until the active one is shown, and replace any breakpoint logic done in JS with CSS media queries. `?` Confirm which part flashes (theme, navigation layout, or view swap) on a real device first.
-
-5. **Separate sales and tip reports** · `reports` `shift-form` `data`
+1. **Separate sales and tip reports** · `reports` `shift-form` `data`
    A shift may have a sales report but no tip numbers, or the reverse. Give each its own card, coverage state, and validation so either can be saved without the other, with "No report" shown separately for each. Existing shifts and backups must load unchanged; update totals, CSV, and tests. Supersedes "Let shifts be saved without a sales report".
 
-6. **Order sales alphabetically and overflow into a sub-card** · `shift-form` `reports`
+2. **Order sales alphabetically and overflow into a sub-card** · `shift-form` `reports`
    Show the first four sales categories in alphabetical order; additional sales go in a separate sub-card after them, like breaks and tip-out. `needs:` the sales/tip split.
 
 ---
@@ -149,6 +137,9 @@ Plan these together; they share dashboard code. Start with the stat layout.
 
 Newest first.
 
+- Load flash fix: saved theme and style apply from a small inline script before first paint, and the page stays hidden until the saved view has rendered. Confirm on a real device that it's gone; if flashing persists, capture which part flashes.
+- Manual "Check for updates" button in Settings with checking, up-to-date, update-ready, offline, and error messages.
+- App updates now appear in a dialog ("Update now" / "Later") and survive refreshes: the new worker waits until you accept, and the page detects a waiting worker on load.
 - Add an hourly wage to roles: optional, validated, shown in the role summary, and kept in JSON backups.
 - Shared workplace creation form for first-run setup and Settings, with pay-period frequency, anchor date for every-two-weeks periods, and optional start and end dates that never restrict logging.
 - Workplaces and roles can be created from the shift selectors without losing the in-progress shift.
