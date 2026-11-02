@@ -2301,6 +2301,19 @@ main:focus,
         box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.08);
     }
 
+    #previous-shifts {
+        padding-bottom: 52px;
+    }
+
+    #previous-shifts #open-new-shift {
+        position: fixed;
+        z-index: 11;
+        right: 16px;
+        bottom: calc(78px + env(safe-area-inset-bottom) + 10px);
+        min-height: 48px;
+        box-shadow: 0 8px 20px rgba(42, 109, 246, 0.32);
+    }
+
     .mobile-bottom-nav-button {
         display: grid;
         min-width: 0;

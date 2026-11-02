@@ -74,6 +74,23 @@ describe("Mobile navigation", () => {
         expect(style(element(".sidebar")).display).toBe("none");
     }));
 
+    test("floats the new shift button above mobile navigation", () => withApp({
+        width: 390,
+        height: 844,
+    }, ({ element, win, style, openView }) => {
+        openView("previous-shifts");
+        const button = element("#open-new-shift");
+        const buttonBounds = button.getBoundingClientRect();
+        const navBounds = element(".mobile-bottom-nav").getBoundingClientRect();
+
+        expect(style(button).position).toBe("fixed");
+        expect(buttonBounds.right).toBeLessThanOrEqual(win.innerWidth);
+        expect(buttonBounds.bottom < navBounds.top).toBe(true);
+        expect(buttonBounds.bottom).toBeGreaterThan(win.innerHeight / 2);
+        expect(style(element(".mobile-bottom-nav")).zIndex).toBe("10");
+        expect(style(button).zIndex).toBe("11");
+    }));
+
     test("keeps the dashboard overview copy visible and hides its actions on phones", () => withApp({
         width: 390,
         height: 844,
