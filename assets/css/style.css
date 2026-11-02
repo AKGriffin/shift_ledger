@@ -1070,6 +1070,32 @@ form {
     gap: 16px;
 }
 
+.shift-form-details {
+    display: grid;
+    gap: 16px;
+}
+
+.progressive-section:not([hidden]) {
+    animation: shift-form-reveal 220ms ease-out;
+}
+
+.progressive-section[hidden],
+.shift-form-details[hidden] {
+    display: none;
+}
+
+@keyframes shift-form-reveal {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .form-context-grid,
 .form-report-grid {
     display: grid;

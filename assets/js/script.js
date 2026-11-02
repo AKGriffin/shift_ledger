@@ -27,6 +27,7 @@ const MEAL_PERIODS = ["Lunch", "Dinner", "Double"];
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 const ADD_WORKPLACE_OPTION = "__add_workplace__";
 const ADD_ROLE_OPTION = "__add_role__";
+const LEGACY_ROLE = "__legacy__";
 const reportAmountFields = [
     "foodSales", "bawSales", "liquorSales", "naBevSales", "additionalSales",
     "ccTips", "cashTips", "autoGratuity", "tipsPaidOut", "tipOutReceived",
@@ -53,6 +54,7 @@ if (workplaceLoad.notice) {
 let formStatusTimeout = null;
 let formStatusExpiresAt = null;
 let shiftFormDirty = false;
+let shiftFormProgress = { workplace: false, details: false };
 let allowUpdateReload = false;
 let updateRequested = false;
 let serviceWorkerRegistration = null;
@@ -331,7 +333,13 @@ function bindEvents() {
     form.addEventListener("submit", handleFormSubmit);
     form.addEventListener("input", markShiftFormDirty);
     form.addEventListener("change", markShiftFormDirty);
-    form.addEventListener("change", updateValidationErrors);
+    form.addEventListener("input", updateShiftFormProgression);
+    form.addEventListener("change", updateShiftFormProgression);
+    form.addEventListener("change", (event) => {
+        if (![fields.workplace, fields.role, fields.job].includes(event.target)) {
+            updateValidationErrors();
+        }
+    });
     window.addEventListener("beforeunload", guardUnsavedShiftChanges);
     reloadAppButton.addEventListener("click", reloadForAppUpdate);
     checkForUpdatesButton.addEventListener("click", runManualUpdateCheck);
@@ -974,8 +982,6 @@ function readNotes() {
         .filter(Boolean);
 }
 
-const LEGACY_ROLE = "__legacy__";
-
 function getEditingShift() {
     return state.editingShiftId === null
         ? null
@@ -994,7 +1000,9 @@ function findRole(roleId) {
 
 function isWorkplaceMode() {
     const editing = getEditingShift();
-    return state.workplaces.workplaces.some((workplace) => !workplace.archived)
+    return state.editingShiftId === null
+        || state.workplaces.workplaces.some((workplace) => !workplace.archived)
+        || Boolean(editing?.workplaceId)
         || Boolean(editing?.roleId && findRole(editing.roleId));
 }
 
@@ -1014,9 +1022,8 @@ function fillSelect(select, options, value) {
 
 function renderWorkplaceFields() {
     const mode = isWorkplaceMode();
-    document.getElementById("shift-workplace-card").hidden = !mode;
+    document.getElementById("shift-workplace-card").hidden = !mode || !shiftFormProgress.workplace;
     document.getElementById("shift-workplace-field").hidden = !mode;
-    document.getElementById("shift-role-field").hidden = !mode;
     document.getElementById("shift-job-field").hidden = mode;
     if (!mode) {
         return;
@@ -1024,22 +1031,38 @@ function renderWorkplaceFields() {
 
     const editing = getEditingShift();
     const active = state.workplaces.workplaces.filter((workplace) => !workplace.archived);
+    const preferred = getPreferredWorkplace(active);
+    const notInitialized = fields.workplace.dataset.initialized !== "true";
     const current = fields.workplace.value
         || editing?.workplaceId
-        || (!editing && active.length === 1 ? active[0].id : "");
+        || (notInitialized && !editing ? preferred : "");
     const options = [["", "Select"]];
     state.workplaces.workplaces
         .filter((workplace) => !workplace.archived || workplace.id === editing?.workplaceId)
         .forEach((workplace) => options.push([workplace.id, workplace.archived ? `${workplace.name} (archived)` : workplace.name]));
     options.push([ADD_WORKPLACE_OPTION, "+ Add workplace…"]);
     fillSelect(fields.workplace, options, current);
+    fields.workplace.dataset.initialized = "true";
     fields.workplace.dataset.previousValue = fields.workplace.value;
     renderRoleOptions();
+    updateShiftFormProgression();
+}
+
+function getPreferredWorkplace(activeWorkplaces) {
+    const activeIds = new Set(activeWorkplaces.map((workplace) => workplace.id));
+    const lastUsed = [...state.shifts].reverse().find((shift) => activeIds.has(shift.workplaceId));
+    return lastUsed?.workplaceId || (activeWorkplaces.length === 1 ? activeWorkplaces[0].id : "");
+}
+
+function getActiveRoles(workplace) {
+    return (workplace?.roles || []).filter((role) => !role.archived);
 }
 
 function renderRoleOptions() {
     const editing = getEditingShift();
     const workplace = state.workplaces.workplaces.find((entry) => entry.id === fields.workplace.value);
+    const activeRoles = getActiveRoles(workplace);
+    const hasLegacyRole = hasLegacyJob(editing);
     const current = fields.role.value || editing?.roleId || (hasLegacyJob(editing) ? LEGACY_ROLE : "");
     const options = [["", "Select"]];
     if (hasLegacyJob(editing)) {
@@ -1051,8 +1074,47 @@ function renderRoleOptions() {
     if (workplace && !workplace.archived) {
         options.push([ADD_ROLE_OPTION, "+ Add role…"]);
     }
-    fillSelect(fields.role, options, current);
+    const hasCurrent = Boolean(current) && options.some(([value]) => value === current);
+    const autoSelected = !hasCurrent && !editing && activeRoles.length === 1;
+    fillSelect(fields.role, options, autoSelected ? activeRoles[0].id : current);
+    fields.role.required = activeRoles.length > 0;
+    document.getElementById("shift-role-field").hidden = !isWorkplaceMode()
+        || !workplace
+        || (activeRoles.length === 0 && !editing?.roleId);
+    document.getElementById("shift-role-hint").textContent = "";
+    if (autoSelected) {
+        fields.role.dataset.autoSelected = "true";
+    } else {
+        delete fields.role.dataset.autoSelected;
+    }
     fields.role.dataset.previousValue = fields.role.value;
+}
+
+function updateShiftFormProgression() {
+    const editing = getEditingShift();
+    if (fields.date.value || editing) {
+        shiftFormProgress.workplace = true;
+    }
+
+    const workplace = state.workplaces.workplaces.find((entry) => entry.id === fields.workplace.value);
+    const hasRoles = getActiveRoles(workplace).length > 0;
+    const roleMatch = findRole(fields.role.value);
+    const hasSelectedRole = fields.role.value === LEGACY_ROLE
+        ? Boolean(hasLegacyJob(editing))
+        : Boolean(workplace && roleMatch?.workplace.id === workplace.id);
+    if (editing || (shiftFormProgress.workplace && workplace && (!hasRoles || hasSelectedRole))) {
+        shiftFormProgress.details = true;
+    }
+
+    document.getElementById("shift-workplace-card").hidden = !shiftFormProgress.workplace
+        || !isWorkplaceMode();
+    const details = document.getElementById("shift-details");
+    const wasHidden = details.hidden;
+    details.hidden = !shiftFormProgress.details;
+    if (wasHidden && !details.hidden && fields.date.value && fields.role.dataset.autoSelected === "true") {
+        delete fields.role.dataset.autoSelected;
+        applyRoleTemplate();
+    }
 }
 
 function applyRoleTemplate() {
@@ -1089,13 +1151,21 @@ function handleWorkplaceFieldChange() {
     if (fields.workplace.value === ADD_WORKPLACE_OPTION) {
         fields.workplace.value = fields.workplace.dataset.previousValue || "";
         renderRoleOptions();
+        updateShiftFormProgression();
+        updateValidationErrors();
         openWorkplaceSetup({ returnToShift: true });
         return;
     }
     fields.workplace.dataset.previousValue = fields.workplace.value;
     renderRoleOptions();
+    if (fields.role.dataset.autoSelected === "true") {
+        delete fields.role.dataset.autoSelected;
+        applyRoleTemplate();
+    }
     updateMealPeriodFields();
     document.getElementById("shift-role-hint").textContent = "";
+    updateShiftFormProgression();
+    updateValidationErrors();
 }
 
 function handleRoleFieldChange() {
@@ -1105,15 +1175,20 @@ function handleRoleFieldChange() {
         return;
     }
     fields.role.dataset.previousValue = fields.role.value;
+    delete fields.role.dataset.autoSelected;
     applyRoleTemplate();
+    updateShiftFormProgression();
+    updateValidationErrors();
 }
 
 function handleLegacyJobFieldChange() {
     if (fields.job.value !== ADD_WORKPLACE_OPTION) {
         fields.job.dataset.previousValue = fields.job.value;
+        updateValidationErrors();
         return;
     }
     fields.job.value = fields.job.dataset.previousValue || "";
+    updateValidationErrors();
     openWorkplaceSetup({ returnToShift: true });
 }
 
@@ -1165,11 +1240,14 @@ async function addRoleFromShift() {
 function resetForm(shouldClearStatus = true) {
     form.reset();
     shiftFormDirty = false;
+    shiftFormProgress = { workplace: false, details: false };
+    delete fields.workplace.dataset.initialized;
     updateMealPeriodFields();
     setNoteRows([]);
     state.editingShiftId = null;
     renderWorkplaceFields();
     updateMealPeriodFields();
+    updateShiftFormProgression();
     document.getElementById("shift-role-hint").textContent = "";
     formTitle.textContent = "New Shift";
     Object.values(fields).forEach((field) => {
@@ -1186,6 +1264,7 @@ function resetForm(shouldClearStatus = true) {
 
 function populateForm(shift) {
     shiftFormDirty = false;
+    shiftFormProgress = { workplace: true, details: true };
     state.editingShiftId = shift.id;
     fields.date.value = shift.date || "";
     fields.mealPeriod.value = shift.mealPeriod || "";
@@ -1228,6 +1307,7 @@ function populateForm(shift) {
         setReportInputsEnabled(reportNode, toggle.checked);
     });
     updateMealPeriodFields();
+    updateShiftFormProgression();
 }
 
 function markShiftFormDirty() {
@@ -1238,6 +1318,7 @@ function handleFormSubmit(event) {
     event.preventDefault();
 
     try {
+        updateShiftFormProgression();
         const shift = readFormValues();
         const issues = validateShift(shift);
         if (issues.length > 0) {
@@ -1295,11 +1376,15 @@ function readFormValues() {
     if (isWorkplaceMode()) {
         const editing = getEditingShift();
         const match = findRole(fields.role.value);
+        const workplace = state.workplaces.workplaces.find((entry) => entry.id === fields.workplace.value);
         if (match) {
             baseline.workplaceId = match.workplace.id;
             baseline.roleId = match.role.id;
             baseline.job = editing?.roleId === match.role.id ? editing.job : match.role.name;
         } else {
+            if (workplace) {
+                baseline.workplaceId = workplace.id;
+            }
             baseline.job = fields.role.value === LEGACY_ROLE && editing ? editing.job : "";
         }
     }
@@ -1348,13 +1433,31 @@ function readFormValues() {
 function validateShift(shift) {
     const issues = [];
 
-    if (!shift.date) issues.push({ field: "date", message: "Date is required." });
-    if (!shift.mealPeriod) issues.push({ field: "mealPeriod", message: "Meal period is required." });
-    if (!shift.job) {
-        issues.push(isWorkplaceMode()
-            ? { field: "role", message: "Choose a workplace and role." }
-            : { field: "job", message: "Job is required." });
+    if (!shift.date) {
+        issues.push({ field: "date", message: "Date is required." });
+        return issues;
     }
+
+    const editing = getEditingShift();
+    const legacyEdit = editing && !editing.workplaceId && !editing.roleId;
+    if (isWorkplaceMode() && !legacyEdit) {
+        const workplace = state.workplaces.workplaces.find((entry) => entry.id === shift.workplaceId);
+        if (!workplace || workplace.archived) {
+            issues.push({ field: "workplace", message: "Choose a workplace." });
+            return issues;
+        }
+        const roleMatch = findRole(shift.roleId);
+        if (getActiveRoles(workplace).length > 0
+            && (!roleMatch || roleMatch.workplace.id !== workplace.id)) {
+            issues.push({ field: "role", message: "Choose a role for this workplace." });
+            return issues;
+        }
+    } else if (!shift.job) {
+        issues.push({ field: "job", message: "Job is required." });
+        return issues;
+    }
+
+    if (!shift.mealPeriod) issues.push({ field: "mealPeriod", message: "Meal period is required." });
     if (!shift.clockIn) issues.push({ field: "clockIn", message: "Clock in is required." });
     if (!shift.clockOut) issues.push({ field: "clockOut", message: "Clock out is required." });
 

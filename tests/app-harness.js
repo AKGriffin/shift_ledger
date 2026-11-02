@@ -29,6 +29,16 @@ const DEFAULT_FORM_VALUES = {
     clockIn: "16:00",
     clockOut: "22:00",
 };
+const DEFAULT_WORKPLACES = {
+    version: 1,
+    setupDismissed: true,
+    workplaces: [{
+        id: "test-workplace",
+        name: "Test Workplace",
+        archived: false,
+        roles: [{ id: "test-server", name: "Server", archived: false }],
+    }],
+};
 
 let nextShiftId = 1;
 
@@ -109,9 +119,10 @@ async function runWithApp({ width = 1200, height = 1000, shifts, settings, workp
     if (workplaces === null) {
         localStorage.removeItem(WORKPLACES_STORAGE_KEY);
     } else {
-        localStorage.setItem(WORKPLACES_STORAGE_KEY, typeof workplaces === "string"
-            ? workplaces
-            : JSON.stringify({ version: 1, setupDismissed: true, workplaces: [], ...workplaces }));
+        const fixture = workplaces === undefined ? DEFAULT_WORKPLACES : workplaces;
+        localStorage.setItem(WORKPLACES_STORAGE_KEY, typeof fixture === "string"
+            ? fixture
+            : JSON.stringify({ version: 1, setupDismissed: true, workplaces: [], ...fixture }));
     }
     if (shifts) {
         localStorage.setItem(SHIFT_STORAGE_KEY, typeof shifts === "string" ? shifts : JSON.stringify(shifts));

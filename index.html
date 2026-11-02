@@ -153,43 +153,23 @@
 
                 <form id="shift-form" class="shift-form" novalidate>
                     <div class="form-context-grid">
-                        <fieldset>
-                            <legend>General</legend>
+                        <fieldset id="shift-date-card">
+                            <legend>Shift date</legend>
                             <div class="form-grid">
                                 <label class="field">
                                     <span>Date (shift start)</span>
                                     <input type="date" id="shift-date" aria-describedby="shift-date-error" required>
                                     <span class="field-error" id="shift-date-error" hidden></span>
                                 </label>
-                                <label class="field">
-                                    <span>Meal period</span>
-                                    <select id="shift-meal-period" aria-describedby="shift-meal-period-error" required>
-                                        <option value="">Select</option>
-                                        <option value="Lunch">Lunch</option>
-                                        <option value="Dinner">Dinner</option>
-                                        <option value="Double">Double</option>
-                                    </select>
-                                    <span class="field-error" id="shift-meal-period-error" hidden></span>
-                                </label>
-                                <label class="field" id="shift-job-field">
-                                    <span>Job</span>
-                                    <select id="shift-job" aria-describedby="shift-job-error" required>
-                                        <option value="">Select</option>
-                                        <option value="Server">Server</option>
-                                        <option value="Expo">Expo</option>
-                                        <option value="__add_workplace__">+ Add workplace…</option>
-                                    </select>
-                                    <span class="field-error" id="shift-job-error" hidden></span>
-                                </label>
                             </div>
                         </fieldset>
 
-                        <fieldset id="shift-workplace-card" hidden>
+                        <fieldset id="shift-workplace-card" class="progressive-section" hidden>
                             <legend>Workplace and role</legend>
                             <div class="form-grid">
                                 <label class="field" id="shift-workplace-field" hidden>
                                     <span>Workplace</span>
-                                    <select id="shift-workplace" aria-describedby="shift-workplace-error"></select>
+                                    <select id="shift-workplace" aria-describedby="shift-workplace-error" required></select>
                                     <span class="field-error" id="shift-workplace-error" hidden></span>
                                 </label>
                                 <label class="field" id="shift-role-field" hidden>
@@ -200,7 +180,35 @@
                                 </label>
                             </div>
                         </fieldset>
+                    </div>
 
+                    <div id="shift-details" class="shift-form-details progressive-section" hidden>
+                        <div class="form-context-grid">
+                            <fieldset>
+                                <legend>General</legend>
+                                <div class="form-grid">
+                                    <label class="field">
+                                        <span>Meal period</span>
+                                        <select id="shift-meal-period" aria-describedby="shift-meal-period-error" required>
+                                            <option value="">Select</option>
+                                            <option value="Lunch">Lunch</option>
+                                            <option value="Dinner">Dinner</option>
+                                            <option value="Double">Double</option>
+                                        </select>
+                                        <span class="field-error" id="shift-meal-period-error" hidden></span>
+                                    </label>
+                                    <label class="field" id="shift-job-field">
+                                        <span>Job</span>
+                                        <select id="shift-job" aria-describedby="shift-job-error" required>
+                                            <option value="">Select</option>
+                                            <option value="Server">Server</option>
+                                            <option value="Expo">Expo</option>
+                                            <option value="__add_workplace__">+ Add workplace…</option>
+                                        </select>
+                                        <span class="field-error" id="shift-job-error" hidden></span>
+                                    </label>
+                                </div>
+                            </fieldset>
                         <fieldset>
                             <legend>Time tracking</legend>
                             <div class="sub-card-grid">
@@ -229,11 +237,11 @@
                                 </div>
                             </div>
                         </fieldset>
-                    </div>
+                        </div>
 
-                    <p id="role-no-reports-note" class="field-hint" hidden>This role doesn't track sales or tip reports, so this shift is saved without them.</p>
+                        <p id="role-no-reports-note" class="field-hint" hidden>This role doesn't track sales or tip reports, so this shift is saved without them.</p>
 
-                    <div id="single-report-fields" class="form-report-grid">
+                        <div id="single-report-fields" class="form-report-grid">
                         <fieldset>
                             <legend>Sales</legend>
                             <label class="report-toggle">
@@ -301,20 +309,21 @@
                                 </div>
                             </div>
                         </fieldset>
+                        </div>
+
+                        <section id="double-report-fields" hidden aria-labelledby="double-report-heading">
+                            <h3 id="double-report-heading">Double-shift reports</h3>
+                            <p>Record the reports you have. A missing report is different from a report with zero sales or tips.</p>
+                            <div id="double-report-list" class="double-report-list"></div>
+                        </section>
+
+                        <fieldset class="notes-section">
+                            <legend>Notes</legend>
+                            <p class="notes-hint" id="notes-hint">Anything important from the shift? Add one note per line. Press Enter for the next note.</p>
+                            <ul id="notes-list" class="notes-list" aria-describedby="notes-hint"></ul>
+                            <button type="button" id="add-note" class="secondary-button">+ Add note</button>
+                        </fieldset>
                     </div>
-
-                    <section id="double-report-fields" hidden aria-labelledby="double-report-heading">
-                        <h3 id="double-report-heading">Double-shift reports</h3>
-                        <p>Record the reports you have. A missing report is different from a report with zero sales or tips.</p>
-                        <div id="double-report-list" class="double-report-list"></div>
-                    </section>
-
-                    <fieldset class="notes-section">
-                        <legend>Notes</legend>
-                        <p class="notes-hint" id="notes-hint">Anything important from the shift? Add one note per line. Press Enter for the next note.</p>
-                        <ul id="notes-list" class="notes-list" aria-describedby="notes-hint"></ul>
-                        <button type="button" id="add-note" class="secondary-button">+ Add note</button>
-                    </fieldset>
 
                     <div id="form-errors" class="form-errors" role="alert" hidden>
                         <p>Please fix the following before saving:</p>

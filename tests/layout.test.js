@@ -1,6 +1,12 @@
 import { describe, expect, test } from "./assert.js";
 import { makeShift, withApp } from "./app-harness.js";
 
+function revealShiftDetails({ element, fire, openView }) {
+    openView("new-shift");
+    element("#shift-date").value = "2026-10-22";
+    fire(element("#shift-date"), "input");
+}
+
 describe("Branding", () => {
     test("uses the app icon in the sidebar", () => withApp({ width: 390, height: 667 }, ({ doc }) => {
         expect(doc.querySelector(".brand img").getAttribute("src")).toBe("assets/icons/icon.svg");
@@ -213,12 +219,13 @@ describe("New shift layout", () => {
         expect(element("#form-title").closest(".panel")).toBe(null);
     }));
 
-    test("flows the form in one vertical column on a wide screen", () => withApp({ width: 1400, height: 1000 }, ({ element, elements, openView }) => {
-        openView("new-shift");
+    test("flows the form in one vertical column on a wide screen", () => withApp({ width: 1400, height: 1000 }, (harness) => {
+        const { element, elements } = harness;
+        revealShiftDetails(harness);
 
         const rect = (selector) => element(selector).getBoundingClientRect();
         const ids = [
-            "shift-date", "shift-meal-period", "shift-job", "shift-clock-in", "shift-clock-out",
+            "shift-date", "shift-meal-period", "shift-clock-in", "shift-clock-out",
             "shift-break-start", "shift-break-end", "shift-baw-sales", "shift-food-sales",
             "shift-additional-sales", "shift-cc-tips", "shift-tip-out-paid",
         ];
@@ -227,6 +234,7 @@ describe("New shift layout", () => {
         ids.slice(1).forEach((id, index) => {
             expect(rect(`#${id}`).top).toBeGreaterThan(rect(`#${ids[index]}`).top);
         });
+        expect(element("#shift-job-field").hidden).toBe(true);
         expect(Math.max(...lefts) - Math.min(...lefts)).toBeLessThanOrEqual(60);
         expect(rect("#shift-form").width).toBeLessThanOrEqual(680);
         expect(elements("#shift-form fieldset").length).toBeGreaterThan(0);
@@ -243,8 +251,9 @@ describe("New shift layout", () => {
                 roles: [{ id: "r-1", name: "Server", archived: false }],
             }],
         },
-    }, ({ element, openView }) => {
-        openView("new-shift");
+    }, (harness) => {
+        const { element } = harness;
+        revealShiftDetails(harness);
 
         const generalCard = element("#shift-date").closest("fieldset");
         const workplaceCard = element("#shift-workplace-card");
@@ -252,11 +261,13 @@ describe("New shift layout", () => {
         expect(workplaceCard.hidden).toBe(false);
         expect(workplaceCard.querySelector("legend").textContent).toBe("Workplace and role");
         expect(workplaceCard).not.toBe(generalCard);
-        expect(generalCard.contains(element("#shift-job"))).toBe(true);
+        expect(generalCard.contains(element("#shift-job"))).toBe(false);
+        expect(element("#shift-job").closest("fieldset")).not.toBe(workplaceCard);
     }));
 
-    test("stacks the inputs inside each sub card", () => withApp({ width: 1400, height: 1000 }, ({ element, openView }) => {
-        openView("new-shift");
+    test("stacks the inputs inside each sub card", () => withApp({ width: 1400, height: 1000 }, (harness) => {
+        const { element } = harness;
+        revealShiftDetails(harness);
 
         const top = (selector) => element(selector).getBoundingClientRect().top;
 
@@ -266,8 +277,9 @@ describe("New shift layout", () => {
         expect(top("#shift-tip-out-received")).toBeGreaterThan(top("#shift-tip-out-paid"));
     }));
 
-    test("stacks the form cards on a phone without horizontal overflow", () => withApp({ width: 390, height: 844 }, ({ doc, element, elements, win, openView }) => {
-        openView("new-shift");
+    test("stacks the form cards on a phone without horizontal overflow", () => withApp({ width: 390, height: 844 }, (harness) => {
+        const { doc, element, elements, win } = harness;
+        revealShiftDetails(harness);
 
         const top = (selector) => element(selector).getBoundingClientRect().top;
 
@@ -286,8 +298,9 @@ describe("New shift layout", () => {
     test("keeps double-shift report details in one vertical column", () => withApp({
         width: 1400,
         height: 1000,
-    }, ({ element, fire, openView }) => {
-        openView("new-shift");
+    }, (harness) => {
+        const { element, fire } = harness;
+        revealShiftDetails(harness);
         const mealPeriod = element("#shift-meal-period");
         mealPeriod.value = "Double";
         fire(mealPeriod, "change");
@@ -305,8 +318,9 @@ describe("New shift layout", () => {
     test("stacks double-shift groups on a phone without horizontal overflow", () => withApp({
         width: 390,
         height: 844,
-    }, ({ doc, element, fire, openView, win }) => {
-        openView("new-shift");
+    }, (harness) => {
+        const { doc, element, fire, win } = harness;
+        revealShiftDetails(harness);
         const mealPeriod = element("#shift-meal-period");
         mealPeriod.value = "Double";
         fire(mealPeriod, "change");

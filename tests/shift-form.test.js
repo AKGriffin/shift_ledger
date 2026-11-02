@@ -1,20 +1,26 @@
 import { describe, expect, test } from "./assert.js";
 import { makeShift, withApp } from "./app-harness.js";
 
+function revealShiftDetails(harness) {
+    harness.openView("new-shift");
+    harness.element("#shift-date").value = "2026-10-22";
+    harness.fire(harness.element("#shift-date"), "input");
+}
+
 describe("Shift form validation", () => {
-    test("marks every missing required field and focuses the first", () => withApp(({ doc, element, elements, openView, submitForm, savedShifts }) => {
+    test("starts with the date and focuses its error before revealing later fields", () => withApp(({ doc, element, elements, openView, submitForm, savedShifts }) => {
         openView("new-shift");
+        expect(element("#shift-workplace-card").hidden).toBe(true);
+        expect(element("#shift-details").hidden).toBe(true);
         submitForm();
 
         expect(element("#shift-date").getAttribute("aria-invalid")).toBe("true");
         expect(element("#shift-date-error").textContent).toBe("Date is required.");
-        expect(element("#shift-meal-period-error").textContent).toBe("Meal period is required.");
-        expect(element("#shift-job-error").textContent).toBe("Job is required.");
-        expect(element("#shift-clock-in-error").textContent).toBe("Clock in is required.");
-        expect(element("#shift-clock-out-error").textContent).toBe("Clock out is required.");
+        expect(element("#shift-meal-period-error").textContent).toBe("");
+        expect(element("#shift-clock-in-error").textContent).toBe("");
         expect(element("#form-errors").hidden).toBe(false);
         expect(element("#form-errors").textContent).toContain("Please fix the following before saving:");
-        expect(elements("#form-errors a")[0].getAttribute("href")).toBe("#shift-date");
+        expect(elements("#form-errors a").map((link) => link.getAttribute("href"))).toEqual(["#shift-date"]);
         expect(doc.activeElement.id).toBe("shift-date");
         expect(savedShifts()).toHaveLength(0);
     }));
@@ -220,7 +226,7 @@ describe("Shift notes", () => {
     };
 
     test("starts with one empty note and adds more only after one is filled in", () => withApp((harness) => {
-        harness.openView("new-shift");
+        revealShiftDetails(harness);
 
         expect(harness.elements(".note-input")).toHaveLength(1);
         harness.element("#add-note").click();
@@ -237,7 +243,7 @@ describe("Shift notes", () => {
     }));
 
     test("saves each note separately and ignores blank ones", () => withApp((harness) => {
-        harness.openView("new-shift");
+        revealShiftDetails(harness);
         typeNote(harness, 0, "  Large party  ");
         harness.element("#add-note").click();
         harness.element("#add-note").click();
@@ -255,7 +261,7 @@ describe("Shift notes", () => {
     }));
 
     test("Enter adds the next note only when the current one has text, and Backspace on an empty note removes it", () => withApp((harness) => {
-        harness.openView("new-shift");
+        revealShiftDetails(harness);
         const pressEnter = (target) => target.dispatchEvent(new harness.win.KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
         const first = harness.element(".note-input");
         first.focus();
@@ -275,7 +281,7 @@ describe("Shift notes", () => {
     }));
 
     test("removes a note with its button and keeps one empty row when all are removed", () => withApp((harness) => {
-        harness.openView("new-shift");
+        revealShiftDetails(harness);
         typeNote(harness, 0, "One");
         harness.element("#add-note").click();
         typeNote(harness, 1, "Two");

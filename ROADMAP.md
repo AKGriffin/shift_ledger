@@ -36,10 +36,6 @@ _Nothing is ready. Move the next Backlog item here once it is designed enough to
 
 ### Shift form
 
-- **Unfold the new shift form as it is filled in** · `shift-form` `design`
-  Start with the date. Once picked, reveal workplace and role; once those are chosen, reveal the rest. Use one scrolling form with animated reveals, not a wizard, so quick entry stays fast. Never re-hide a section that has data, and show everything when editing an existing shift. Pre-select the last-used workplace. `?` Decisions: require a workplace (reports and pay periods depend on it); require a role only when the workplace has roles, auto-selecting it when there is one.
-- **Disable the role field until a workplace is selected** · `shift-form` `workplaces`
-  Roles belong to a workplace, so the control should be disabled with a clear hint until one is chosen. Small step that can ship before the full unfold. May be folded into the unfold item.
 - **Replace role templates with yes/no capability switches** · `workplaces` `settings`
   Rework the role form as short switches, for example: has a sales report, receives tips, tips out to others, receives a tip-out. `?` Exact set to be decided; keep them mapped onto the existing "no report" role setting so current data migrates cleanly.
 - **Make the shift form react to the role's capabilities** · `shift-form` `workplaces`
@@ -133,6 +129,8 @@ Plan these together; they share dashboard code. Start with the stat layout.
 
 Newest first.
 
+- The new shift form unfolds from date to required workplace, then to the remaining fields once a role is selected when active roles exist. It preselects the last-used workplace, auto-selects a single role, keeps revealed sections open, and shows all fields when editing. The role control appears only when the selected workplace has roles to choose.
+- Separate role selection from workplace selection in the new-shift flow; folded into the progressive form.
 - Sales are listed alphabetically (Beer & wine, Food, Liquor, NA beverage) in the shift form, double-shift reports, and history; Additional sales sit in their own sub-card after them.
 - Separate sales and tip reports: single shifts can be saved without a sales report, a tip report, or both. Each has its own toggle in its own card, is excluded from totals, and shows "No report" independently in history, recent activity, and CSV. Existing shifts and backups load unchanged (`noReport` still means both). Double shifts keep their per-report coverage.
 - Load flash fix: saved theme and style apply from a small inline script before first paint, and the page stays hidden until the saved view has rendered. Confirm on a real device that it's gone; if flashing persists, capture which part flashes.
