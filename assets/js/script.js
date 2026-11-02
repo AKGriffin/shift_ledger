@@ -107,6 +107,7 @@ const fields = {
     clockOut: document.getElementById("shift-clock-out"),
     breakStart: document.getElementById("shift-break-start"),
     breakEnd: document.getElementById("shift-break-end"),
+    hadBreak: document.getElementById("shift-had-break-yes"),
     foodSales: document.getElementById("shift-food-sales"),
     bawSales: document.getElementById("shift-baw-sales"),
     liquorSales: document.getElementById("shift-liquor-sales"),
@@ -346,6 +347,11 @@ function bindEvents() {
     document.getElementById("guided-next").addEventListener("click", () => moveGuidedStep(1));
     form.addEventListener("change", (event) => {
         if (![fields.workplace, fields.role, fields.job].includes(event.target)) {
+            updateValidationErrors();
+        }
+        if (event.target.matches('input[name="guided-had-break"]')) {
+            handleGuidedBreakAnswer();
+            updateGuidedBreakQuestion();
             updateValidationErrors();
         }
     });
@@ -1136,12 +1142,37 @@ function setEntryMode(mode) {
     focusGuidedStep();
 }
 
-const GUIDED_STEP_SELECTOR = ".field, .report-toggle, .notes-section";
+const GUIDED_STEP_SELECTOR = "[data-guided-step]";
 const GUIDED_CONTAINER_SELECTOR = "fieldset, .sub-card, #double-report-fields, #double-report-list > *, #role-no-reports-note";
 
 function getGuidedSteps() {
-    return [...document.getElementById("shift-entry-fields").querySelectorAll(GUIDED_STEP_SELECTOR)]
-        .filter((element) => !element.closest("[hidden]") && !element.parentElement.closest(GUIDED_STEP_SELECTOR));
+    const steps = [...document.getElementById("shift-entry-fields").querySelectorAll(GUIDED_STEP_SELECTOR)]
+        .filter((element) => !element.closest("[hidden]"));
+    const clockOutStep = steps.find((step) => step.contains(fields.clockOut));
+    const breakStep = steps.find((step) => step.id === "break-time-fields")
+        || steps.find((step) => step.id === "guided-break-question");
+    if (clockOutStep && breakStep) {
+        steps.splice(steps.indexOf(clockOutStep), 1);
+        steps.splice(steps.indexOf(breakStep) + 1, 0, clockOutStep);
+    }
+    return steps;
+}
+
+function updateGuidedBreakQuestion(guided = entryMode === "guided") {
+    const question = document.getElementById("guided-break-question");
+    question.hidden = !guided;
+    document.getElementById("break-time-fields").hidden = guided && getGuidedBreakAnswer() !== "yes";
+}
+
+function getGuidedBreakAnswer() {
+    return form.querySelector('input[name="guided-had-break"]:checked')?.value || "";
+}
+
+function handleGuidedBreakAnswer() {
+    if (getGuidedBreakAnswer() === "no") {
+        fields.breakStart.value = "";
+        fields.breakEnd.value = "";
+    }
 }
 
 function renderEntryMode() {
@@ -1160,7 +1191,8 @@ function renderEntryMode() {
     const controls = document.getElementById("guided-controls");
     const save = document.getElementById("save-shift");
     controls.hidden = !guided;
-    save.hidden = false;
+    save.hidden = !chosen;
+    updateGuidedBreakQuestion(guided);
     container.querySelectorAll(".guided-off").forEach((element) => element.classList.remove("guided-off"));
     if (!guided) {
         return;
@@ -1170,46 +1202,63 @@ function renderEntryMode() {
     if (steps.length === 0) {
         return;
     }
-    let index = steps.indexOf(guidedStep.element);
-    if (index < 0) {
-        index = Math.min(guidedStep.index, steps.length - 1);
+    let index = guidedStep.element ? steps.indexOf(guidedStep.element) : guidedStep.index;
+    if (index < 0 || index > steps.length) {
+        index = Math.min(guidedStep.index, steps.length);
     }
-    guidedStep = { element: steps[index], index };
-    const current = steps[index];
-    steps.forEach((step) => {
-        step.classList.toggle("guided-off", step !== current);
-    });
-    container.querySelectorAll(GUIDED_CONTAINER_SELECTOR).forEach((element) => {
-        element.classList.toggle("guided-off", !element.contains(current));
-    });
-    const last = index === steps.length - 1 && shiftFormProgress.details;
-    document.getElementById("guided-progress").textContent = `Step ${index + 1} of ${steps.length}`;
+    const review = shiftFormProgress.details && index === steps.length;
+    const current = review ? null : steps[index];
+    guidedStep = { element: current, index };
+    if (review) {
+        document.getElementById("guided-question").textContent = "Review your shift and make any changes below.";
+        document.getElementById("guided-progress").textContent = `Review · Step ${steps.length + 1} of ${steps.length + 1}`;
+    } else {
+        steps.forEach((step) => {
+            step.classList.toggle("guided-off", step !== current);
+        });
+        container.querySelectorAll(GUIDED_CONTAINER_SELECTOR).forEach((element) => {
+            element.classList.toggle("guided-off", !element.contains(current));
+        });
+        document.getElementById("guided-question").textContent = current.dataset.guidedPrompt || "";
+        document.getElementById("guided-progress").textContent = shiftFormProgress.details
+            ? `Step ${index + 1} of ${steps.length + 1}`
+            : `Step ${index + 1}`;
+    }
     document.getElementById("guided-back").disabled = index === 0;
-    document.getElementById("guided-next").hidden = last;
-    save.hidden = !last;
+    const next = document.getElementById("guided-next");
+    next.hidden = review;
+    next.textContent = shiftFormProgress.details && index === steps.length - 1 ? "Review shift" : "Next";
+    save.hidden = !review;
 }
 
 function moveGuidedStep(direction) {
     const steps = getGuidedSteps();
-    const current = steps.indexOf(guidedStep.element);
-    if (direction > 0 && current === steps.length - 1 && !shiftFormProgress.details) {
-        shiftFormProgress.workplace = true;
-        updateShiftFormProgression();
-        const next = getGuidedSteps();
-        if (next.length === steps.length) {
-            document.getElementById("guided-progress").textContent = "Choose a workplace and role to continue.";
+    const current = guidedStep.element ? steps.indexOf(guidedStep.element) : guidedStep.index;
+    if (direction > 0 && current < steps.length) {
+        const step = steps[current];
+        const issues = validateShift(readFormValues()).filter(({ field }) => step.contains(fields[field]));
+        if (issues.length > 0) {
+            showValidationErrors(issues);
             return;
         }
-        steps.splice(0, steps.length, ...next);
     }
-    const index = Math.max(0, Math.min(steps.length - 1, current + direction));
-    guidedStep = { element: steps[index], index };
+    if (direction > 0 && current >= steps.length) {
+        return;
+    }
+    updateShiftFormProgression();
+    const refreshedSteps = getGuidedSteps();
+    const index = Math.max(0, Math.min(refreshedSteps.length, current + direction));
+    guidedStep = { element: refreshedSteps[index] || null, index };
     updateShiftFormProgression();
     focusGuidedStep();
 }
 
 function focusGuidedStep() {
-    if (entryMode !== "guided" || !guidedStep.element) {
+    if (entryMode !== "guided") {
+        return;
+    }
+    if (!guidedStep.element) {
+        document.getElementById("guided-question").focus({ preventScroll: true });
         return;
     }
     guidedStep.element.querySelector("input, select, textarea, button")?.focus({ preventScroll: true });
@@ -1384,6 +1433,8 @@ function populateForm(shift) {
     fields.clockOut.value = shift.clockOut || "";
     fields.breakStart.value = shift.breakStart || "";
     fields.breakEnd.value = shift.breakEnd || "";
+    const hadBreak = Boolean(shift.breakStart || shift.breakEnd);
+    form.querySelector(`input[name="guided-had-break"][value="${hadBreak ? "yes" : "no"}"]`).checked = true;
     fields.foodSales.value = formatInputAmount(shift.foodSales);
     fields.bawSales.value = formatInputAmount(shift.bawSales);
     fields.liquorSales.value = formatInputAmount(shift.liquorSales);
@@ -1620,6 +1671,17 @@ function validateShift(shift) {
     if (shift.breakEnd && !shift.breakStart) {
         issues.push({ field: "breakStart", message: "Break start is required when a break ends." });
     }
+    if (entryMode === "guided" && !getGuidedBreakAnswer()) {
+        issues.push({ field: "hadBreak", message: "Choose whether you had a break." });
+    }
+    if (getGuidedBreakAnswer() === "yes") {
+        if (!shift.breakStart) {
+            issues.push({ field: "breakStart", message: "Break start is required when you had a break." });
+        }
+        if (!shift.breakEnd) {
+            issues.push({ field: "breakEnd", message: "Break end is required when you had a break." });
+        }
+    }
 
     if (shift.breakStart && shift.breakEnd) {
         const shiftStartMinutes = toMinutes(shift.clockIn);
@@ -1669,7 +1731,8 @@ function showValidationErrors(issues, shouldFocus = true) {
 
     issues.forEach(({ field, message }) => {
         const input = fields[field];
-        const error = document.getElementById(`${input.id}-error`);
+        const errorId = field === "hadBreak" ? "shift-had-break-error" : `${input.id}-error`;
+        const error = document.getElementById(errorId);
         input.setAttribute("aria-invalid", "true");
         error.textContent = message;
         error.hidden = false;
@@ -1727,7 +1790,8 @@ function clearValidationErrors() {
         }
 
         field.removeAttribute("aria-invalid");
-        const error = document.getElementById(`${field.id}-error`);
+        const errorId = field === fields.hadBreak ? "shift-had-break-error" : `${field.id}-error`;
+        const error = document.getElementById(errorId);
         error.textContent = "";
         error.hidden = true;
     });

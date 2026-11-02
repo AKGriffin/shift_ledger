@@ -66,22 +66,68 @@ describe("Shift form validation", () => {
 });
 
 describe("Guided and manual entry", () => {
-    const visibleFields = (elements) => elements("#shift-entry-fields .field:not(.guided-off)")
-        .filter((field) => !field.closest("[hidden]"));
+    const activeGuidedSteps = (elements) => elements("#shift-entry-fields [data-guided-step]")
+        .filter((step) => !step.classList.contains("guided-off") && !step.closest("[hidden]"));
 
     function chooseMode(harness, mode) {
         harness.openView("new-shift", { entryMode: null });
         harness.element(`#choose-${mode}`).click();
     }
 
+    function answerGuidedStep(harness) {
+        const prompt = harness.element("#guided-question").textContent;
+        if (prompt.includes("date did your shift start")) {
+            harness.fillForm({ date: "2026-10-22" });
+            harness.fire(harness.element("#shift-date"), "input");
+        } else if (prompt.includes("Where did you work")) {
+            if (harness.element("#shift-workplace").value !== "test-workplace") {
+                harness.change("#shift-workplace", "test-workplace");
+            }
+        } else if (prompt.includes("lunch, dinner, or double")) {
+            harness.change("#shift-meal-period", "Dinner");
+        } else if (prompt.includes("clock in")) {
+            harness.fillForm({ clockIn: "16:00" });
+        } else if (prompt.includes("Did you have a break")) {
+            chooseBreakAnswer(harness, "no");
+        } else if (prompt.includes("shift end")) {
+            harness.fillForm({ clockOut: "22:00" });
+        }
+    }
+
+    function advanceGuidedUntil(harness, targetPrompt) {
+        for (let guard = 0; guard < 30; guard += 1) {
+            if (harness.element("#guided-question").textContent.includes(targetPrompt)) {
+                return;
+            }
+            answerGuidedStep(harness);
+            harness.element("#guided-next").click();
+        }
+        throw new Error(`Guided entry did not reach "${targetPrompt}".`);
+    }
+
+    function advanceGuidedToReview(harness) {
+        for (let guard = 0; guard < 30 && !harness.element("#guided-next").hidden; guard += 1) {
+            answerGuidedStep(harness);
+            harness.element("#guided-next").click();
+        }
+    }
+
+    function chooseBreakAnswer(harness, answer) {
+        const radio = harness.element(`#shift-had-break-${answer}`);
+        radio.checked = true;
+        harness.fire(radio, "change");
+    }
+
     test("asks for an entry mode each time a shift is started", () => withApp(({ element, openView }) => {
         openView("new-shift", { entryMode: null });
         expect(element("#entry-mode-chooser").hidden).toBe(false);
         expect(element("#shift-entry-fields").hidden).toBe(true);
+        expect(element("#save-shift").hidden).toBe(true);
 
         element("#choose-manual").click();
         expect(element("#entry-mode-chooser").hidden).toBe(true);
         expect(element("#shift-entry-fields").hidden).toBe(false);
+        expect(element("#save-shift").hidden).toBe(false);
 
         element("#clear-form").click();
         expect(element("#entry-mode-chooser").hidden).toBe(false);
@@ -96,13 +142,14 @@ describe("Guided and manual entry", () => {
         expect(harness.element("#switch-entry-mode").textContent).toBe("Switch to guided entry");
     }));
 
-    test("guided entry shows one field at a time and moves with Next and Back", () => withApp((harness) => {
+    test("guided entry groups related fields into steps and moves with Next and Back", () => withApp((harness) => {
         const { element, elements } = harness;
         chooseMode(harness, "guided");
         expect(element("#guided-controls").hidden).toBe(false);
-        expect(element("#guided-progress").textContent).toContain("Step 1 of");
+        expect(element("#guided-progress").textContent).toBe("Step 1");
         expect(element("#guided-back").disabled).toBe(true);
-        expect(visibleFields(elements)).toHaveLength(1);
+        expect(activeGuidedSteps(elements).map((step) => step.id)).toEqual(["shift-date-card"]);
+        expect(element("#guided-question").textContent).toContain("What date");
 
         harness.fillForm({ date: "2026-10-22" });
         harness.fire(element("#shift-date"), "input");
@@ -110,10 +157,36 @@ describe("Guided and manual entry", () => {
 
         expect(element("#guided-progress").textContent).toContain("Step 2 of");
         expect(element("#shift-date-card").classList.contains("guided-off")).toBe(true);
-        expect(visibleFields(elements)).toHaveLength(1);
+        expect(activeGuidedSteps(elements).map((step) => step.id)).toEqual(["shift-workplace-card"]);
 
         element("#guided-back").click();
         expect(element("#guided-progress").textContent).toContain("Step 1 of");
+    }));
+
+    test("guided entry validates a step before continuing", () => withApp((harness) => {
+        const { element } = harness;
+        chooseMode(harness, "guided");
+        element("#guided-next").click();
+
+        expect(element("#guided-progress").textContent).toBe("Step 1");
+        expect(element("#shift-date-error").textContent).toBe("Date is required.");
+        expect(element("#shift-date").getAttribute("aria-invalid")).toBe("true");
+    }));
+
+    test("guided break question conditionally reveals and validates break times", () => withApp((harness) => {
+        const { element } = harness;
+        chooseMode(harness, "guided");
+        advanceGuidedUntil(harness, "Did you have a break");
+        element("#guided-next").click();
+        expect(element("#shift-had-break-error").textContent).toBe("Choose whether you had a break.");
+
+        chooseBreakAnswer(harness, "yes");
+        expect(element("#break-time-fields").hidden).toBe(false);
+        element("#guided-next").click();
+        expect(element("#shift-break-start-error").textContent).toBe("Break start is required when you had a break.");
+        harness.fillForm({ breakStart: "18:00", breakEnd: "18:15" });
+        element("#guided-next").click();
+        expect(element("#guided-question").textContent).toContain("shift end");
     }));
 
     test("switching modes keeps entered values", () => withApp((harness) => {
@@ -132,18 +205,24 @@ describe("Guided and manual entry", () => {
         expect(element("#shift-date").value).toBe("2026-10-22");
     }));
 
-    test("guided entry offers Save only on the last step", () => withApp((harness) => {
-        const { element } = harness;
+    test("guided entry groups reports and ends with an editable full-form review", () => withApp((harness) => {
+        const { element, fire, savedShifts } = harness;
         chooseMode(harness, "guided");
         expect(element("#save-shift").hidden).toBe(true);
-
-        harness.fillForm({ date: "2026-10-22" });
-        harness.fire(element("#shift-date"), "input");
-        harness.change("#shift-workplace", "test-workplace");
-        for (let guard = 0; guard < 40 && !element("#guided-next").hidden; guard += 1) {
-            element("#guided-next").click();
-        }
+        advanceGuidedUntil(harness, "sales report");
+        element("#guided-next").click();
+        expect(element("#guided-question").textContent).toContain("tips report");
+        element("#guided-next").click();
+        expect(element("#guided-question").textContent).toContain("tip anyone out");
+        advanceGuidedToReview(harness);
+        expect(element("#guided-question").textContent).toContain("Review your shift");
+        expect(element("#shift-entry-fields").querySelectorAll(".guided-off")).toHaveLength(0);
         expect(element("#save-shift").hidden).toBe(false);
+        element("#shift-food-sales").value = "75";
+        fire(element("#shift-food-sales"), "input");
+        element("#save-shift").click();
+        expect(savedShifts()).toHaveLength(1);
+        expect(savedShifts()[0].foodSales).toBe(75);
     }));
 
     test("editing a shift uses the manual layout without a mode prompt", () => withApp({ shifts: [makeShift()] }, ({ element }) => {

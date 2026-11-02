@@ -1103,6 +1103,8 @@ form {
 #entry-mode-chooser[hidden],
 #save-shift[hidden],
 #guided-next[hidden],
+#guided-break-question[hidden],
+#break-time-fields[hidden],
 .guided-off {
     display: none !important;
 }
@@ -1144,6 +1146,59 @@ form {
 .entry-mode-bar p,
 .guided-controls p {
     margin: 0;
+}
+
+.guided-controls .guided-question {
+    flex-basis: 100%;
+    font-size: 1.05rem;
+    font-weight: 650;
+}
+
+.guided-break-question {
+    flex-basis: 100%;
+}
+
+.guided-choice-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.guided-choice-button {
+    position: relative;
+    cursor: pointer;
+}
+
+.guided-choice-button input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+}
+
+.guided-choice-button span {
+    display: inline-flex;
+    min-width: 76px;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--panel);
+    color: var(--text);
+    font-weight: 650;
+}
+
+.guided-choice-button input:checked + span {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: var(--button-text);
+}
+
+.guided-choice-button input:focus-visible + span {
+    outline: 3px solid var(--primary);
+    outline-offset: 3px;
 }
 
 .guided-buttons {
