@@ -1,4 +1,6 @@
-const CACHE_NAME = "shift-ledger-shell-v94";
+importScripts("./assets/js/app-version.js");
+
+const CACHE_NAME = `shift-ledger-shell-${self.SHIFT_LEDGER_VERSION}`;
 const APP_SHELL = [
     "./",
     "./index.html",
@@ -6,6 +8,7 @@ const APP_SHELL = [
     "./assets/css/style.css",
     "./assets/js/shift-math.js",
     "./assets/js/workplaces.js",
+    "./assets/js/app-version.js",
     "./assets/js/script.js",
     "./assets/icons/icon.svg",
     "./assets/icons/icon-192.png",

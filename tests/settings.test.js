@@ -25,6 +25,13 @@ describe("Settings page", () => {
         expect(element("#add-workplace")).toBeDefined();
     }));
 
+    test("shows the current app version in update settings", () => withApp(({ element, openView, win }) => {
+        openView("settings");
+
+        expect(element("#current-app-version").textContent).toBe(win.SHIFT_LEDGER_VERSION);
+        expect(element("#current-app-version").textContent).toBe("v95");
+    }));
+
     test("labels every setting and links it to a hint", () => withApp(({ doc, elements, openView }) => {
         openView("settings");
 

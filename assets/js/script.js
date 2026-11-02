@@ -620,6 +620,7 @@ function initializeSettings() {
     weekStartSetting.value = state.settings.weekStartsOn;
     currencySetting.value = state.settings.currency;
     zeroDetailsSetting.value = state.settings.zeroDetails;
+    document.getElementById("current-app-version").textContent = window.SHIFT_LEDGER_VERSION;
     syncDashboardOptionControls();
     applyTheme();
 }
