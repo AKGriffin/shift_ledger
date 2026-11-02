@@ -1203,13 +1203,15 @@ function renderEntryMode() {
     if (steps.length === 0) {
         return;
     }
-    let index = guidedStep.element ? steps.indexOf(guidedStep.element) : guidedStep.index;
+    let index = guidedStep.review
+        ? steps.length
+        : guidedStep.element ? steps.indexOf(guidedStep.element) : guidedStep.index;
     if (index < 0 || index > steps.length) {
         index = Math.min(guidedStep.index, steps.length);
     }
-    const review = shiftFormProgress.details && index === steps.length;
+    const review = shiftFormProgress.details && (guidedStep.review || index === steps.length);
     const current = review ? null : steps[index];
-    guidedStep = { element: current, index };
+    guidedStep = { element: current, index: review ? steps.length : index, review };
     if (review) {
         document.getElementById("guided-question").textContent = "Review your shift and make any changes below.";
         document.getElementById("guided-progress").textContent = `Review · Step ${steps.length + 1} of ${steps.length + 1}`;
@@ -1234,7 +1236,9 @@ function renderEntryMode() {
 
 function moveGuidedStep(direction) {
     const steps = getGuidedSteps();
-    const current = guidedStep.element ? steps.indexOf(guidedStep.element) : guidedStep.index;
+    const current = guidedStep.review
+        ? steps.length
+        : guidedStep.element ? steps.indexOf(guidedStep.element) : guidedStep.index;
     if (direction > 0 && current < steps.length) {
         const step = steps[current];
         const issues = validateShift(readFormValues()).filter(({ field }) => step.contains(fields[field]));

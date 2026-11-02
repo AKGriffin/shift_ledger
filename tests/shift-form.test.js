@@ -266,6 +266,24 @@ describe("Guided and manual entry", () => {
         expect(savedShifts()[0].foodSales).toBe(75);
     }));
 
+    test("changing the break answer from review stays on the review step", () => withApp((harness) => {
+        const { element } = harness;
+        chooseMode(harness, "guided");
+        advanceGuidedToReview(harness);
+        expect(element("#guided-question").textContent).toContain("Review your shift");
+
+        chooseBreakAnswer(harness, "yes");
+        expect(element("#guided-question").textContent).toContain("Review your shift");
+        expect(element("#guided-progress").textContent).toContain("Review");
+        expect(element("#break-time-fields").hidden).toBe(false);
+        expect(element("#save-shift").hidden).toBe(false);
+
+        chooseBreakAnswer(harness, "no");
+        expect(element("#guided-question").textContent).toContain("Review your shift");
+        expect(element("#guided-progress").textContent).toContain("Review");
+        expect(element("#break-time-fields").hidden).toBe(true);
+    }));
+
     test("editing a shift uses the manual layout without a mode prompt", () => withApp({ shifts: [makeShift()] }, ({ element }) => {
         element(".main-nav [data-view=\"previous-shifts\"]").click();
         element(".edit-shift").click();
