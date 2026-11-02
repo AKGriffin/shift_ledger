@@ -87,10 +87,12 @@ describe("Guided and manual entry", () => {
             harness.change("#shift-meal-period", "Dinner");
         } else if (prompt.includes("clock in")) {
             harness.fillForm({ clockIn: "16:00" });
+            harness.fire(harness.element("#shift-clock-in"), "input");
         } else if (prompt.includes("Did you have a break")) {
             chooseBreakAnswer(harness, "no");
         } else if (prompt.includes("shift end")) {
             harness.fillForm({ clockOut: "22:00" });
+            harness.fire(harness.element("#shift-clock-out"), "input");
         }
     }
 
@@ -168,11 +170,13 @@ describe("Guided and manual entry", () => {
         expect(element("#guided-controls").hidden).toBe(false);
         expect(element("#guided-progress").textContent).toBe("Step 1");
         expect(element("#guided-back").disabled).toBe(true);
+        expect(element("#guided-next").disabled).toBe(true);
         expect(activeGuidedSteps(elements).map((step) => step.id)).toEqual(["shift-date-card"]);
         expect(element("#guided-question").textContent).toContain("What date");
 
         harness.fillForm({ date: "2026-10-22" });
         harness.fire(element("#shift-date"), "input");
+        expect(element("#guided-next").disabled).toBe(false);
         element("#guided-next").click();
 
         expect(element("#guided-progress").textContent).toContain("Step 2 of");
@@ -186,7 +190,7 @@ describe("Guided and manual entry", () => {
     test("guided entry only reports errors for the open step", () => withApp((harness) => {
         const { element } = harness;
         chooseMode(harness, "guided");
-        element("#guided-next").click();
+        harness.submitForm();
 
         expect(element("#guided-progress").textContent).toBe("Step 1");
         expect(element("#shift-date-error").textContent).toBe("Date is required.");
@@ -270,14 +274,18 @@ describe("Guided and manual entry", () => {
         const { element } = harness;
         chooseMode(harness, "guided");
         advanceGuidedUntil(harness, "Did you have a break");
+        expect(element("#guided-next").disabled).toBe(true);
         element("#guided-next").click();
-        expect(element("#shift-had-break-error").textContent).toBe("Choose whether you had a break.");
+        expect(element("#shift-had-break-error").textContent).toBe("");
 
         chooseBreakAnswer(harness, "yes");
         expect(element("#break-time-fields").hidden).toBe(false);
+        expect(element("#guided-next").disabled).toBe(true);
         element("#guided-next").click();
-        expect(element("#shift-break-start-error").textContent).toBe("Break start is required when you had a break.");
+        expect(element("#shift-break-start-error").textContent).toBe("");
         harness.fillForm({ breakStart: "18:00", breakEnd: "18:15" });
+        harness.fire(element("#shift-break-end"), "input");
+        expect(element("#guided-next").disabled).toBe(false);
         element("#guided-next").click();
         expect(element("#guided-question").textContent).toContain("shift end");
     }));

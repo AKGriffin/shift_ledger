@@ -1242,6 +1242,7 @@ function renderEntryMode() {
     const next = document.getElementById("guided-next");
     next.hidden = review;
     next.textContent = shiftFormProgress.details && index === steps.length - 1 ? "Review shift" : "Next";
+    next.disabled = !review && getGuidedStepIssues(current).length > 0;
     save.hidden = !review;
 }
 
@@ -1277,7 +1278,7 @@ function moveGuidedStep(direction) {
     }
     if (direction > 0 && current < steps.length) {
         const step = steps[current];
-        const issues = validateShift(readFormValues()).filter(({ field }) => step.contains(fields[field]));
+        const issues = getGuidedStepIssues(step);
         if (issues.length > 0) {
             showValidationErrors(issues);
             return;
@@ -1292,6 +1293,13 @@ function moveGuidedStep(direction) {
     guidedStep = { element: refreshedSteps[index] || null, index };
     updateShiftFormProgression();
     focusGuidedStep();
+}
+
+function getGuidedStepIssues(step) {
+    if (!step) {
+        return [];
+    }
+    return validateShift(readFormValues()).filter(({ field }) => step.contains(fields[field]));
 }
 
 function maybeAutoAdvanceGuidedStep(event) {

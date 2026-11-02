@@ -1,4 +1,4 @@
-const CACHE_NAME = "shift-ledger-shell-v87";
+const CACHE_NAME = "shift-ledger-shell-v88";
 const APP_SHELL = [
     "./",
     "./index.html",
