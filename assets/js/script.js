@@ -1284,16 +1284,16 @@ function populateForm(shift) {
     fields.clockOut.value = shift.clockOut || "";
     fields.breakStart.value = shift.breakStart || "";
     fields.breakEnd.value = shift.breakEnd || "";
-    fields.foodSales.value = Number(shift.foodSales || 0).toFixed(2);
-    fields.bawSales.value = Number(shift.bawSales || 0).toFixed(2);
-    fields.liquorSales.value = Number(shift.liquorSales || 0).toFixed(2);
-    fields.naSales.value = Number(shift.naBevSales || 0).toFixed(2);
-    fields.additionalSales.value = Number(shift.additionalSales || 0).toFixed(2);
-    fields.ccTips.value = Number(shift.ccTips || 0).toFixed(2);
-    fields.cashTips.value = Number(shift.cashTips || 0).toFixed(2);
-    fields.autoGratuity.value = Number(shift.autoGratuity || 0).toFixed(2);
-    fields.tipOutPaid.value = Number(shift.tipsPaidOut || 0).toFixed(2);
-    fields.tipOutReceived.value = Number(shift.tipOutReceived || 0).toFixed(2);
+    fields.foodSales.value = formatInputAmount(shift.foodSales);
+    fields.bawSales.value = formatInputAmount(shift.bawSales);
+    fields.liquorSales.value = formatInputAmount(shift.liquorSales);
+    fields.naSales.value = formatInputAmount(shift.naBevSales);
+    fields.additionalSales.value = formatInputAmount(shift.additionalSales);
+    fields.ccTips.value = formatInputAmount(shift.ccTips);
+    fields.cashTips.value = formatInputAmount(shift.cashTips);
+    fields.autoGratuity.value = formatInputAmount(shift.autoGratuity);
+    fields.tipOutPaid.value = formatInputAmount(shift.tipsPaidOut);
+    fields.tipOutReceived.value = formatInputAmount(shift.tipOutReceived);
     setNoteRows(getNotes(shift));
     reportPeriods.forEach(([period]) => {
         const report = shift.reports?.[period];
@@ -1302,7 +1302,7 @@ function populateForm(shift) {
         toggle.checked = Boolean(report);
         reportAmountFields.forEach((field) => {
             const input = reportNode.querySelector(`[data-report-field="${field}"]`);
-            input.value = Number(report?.[field] || 0).toFixed(2);
+            input.value = report ? formatInputAmount(report[field]) : "0.00";
         });
         setReportInputsEnabled(reportNode, toggle.checked);
     });
@@ -1351,6 +1351,7 @@ function handleFormSubmit(event) {
 }
 
 function readFormValues() {
+    const editing = getEditingShift();
     const baseline = {
         id: state.editingShiftId ?? createShiftId(),
         date: fields.date.value.trim(),
@@ -1374,7 +1375,6 @@ function readFormValues() {
     };
 
     if (isWorkplaceMode()) {
-        const editing = getEditingShift();
         const match = findRole(fields.role.value);
         const workplace = state.workplaces.workplaces.find((entry) => entry.id === fields.workplace.value);
         if (match) {
@@ -1389,20 +1389,37 @@ function readFormValues() {
         }
     }
 
-    const skipReports = !roleTracksReports();
+    const capabilities = selectedRoleCapabilities();
+    const hasTipFields = capabilities.receivesTips || capabilities.tipsOut || capabilities.receivesTipOut;
     if (baseline.mealPeriod !== "Double") {
-        const noSales = skipReports || document.getElementById("shift-no-sales-report").checked;
-        const noTips = skipReports || document.getElementById("shift-no-tips-report").checked;
-        if (noSales) {
-            salesAmountFields.forEach((field) => {
+        const oldNoSales = editing && (editing.noReport === true || editing.noSales === true);
+        const oldNoTips = editing && (editing.noReport === true || editing.noTips === true);
+        const noSales = !capabilities.tracksSales
+            ? Boolean(editing ? oldNoSales : true)
+            : document.getElementById("shift-no-sales-report").checked;
+        const noTips = !hasTipFields
+            ? Boolean(editing ? oldNoTips : true)
+            : document.getElementById("shift-no-tips-report").checked;
+        const fieldCapabilities = {
+            foodSales: capabilities.tracksSales,
+            bawSales: capabilities.tracksSales,
+            liquorSales: capabilities.tracksSales,
+            naBevSales: capabilities.tracksSales,
+            additionalSales: capabilities.tracksSales,
+            ccTips: capabilities.receivesTips,
+            cashTips: capabilities.receivesTips,
+            autoGratuity: capabilities.receivesTips,
+            tipsPaidOut: capabilities.tipsOut,
+            tipOutReceived: capabilities.receivesTipOut,
+        };
+        Object.entries(fieldCapabilities).forEach(([field, available]) => {
+            if (!available) {
+                baseline[field] = editing && Object.hasOwn(editing, field) ? editing[field] : "";
+            } else if ((salesAmountFields.includes(field) && noSales)
+                || (tipAmountFields.includes(field) && noTips)) {
                 baseline[field] = 0;
-            });
-        }
-        if (noTips) {
-            tipAmountFields.forEach((field) => {
-                baseline[field] = 0;
-            });
-        }
+            }
+        });
         if (noSales && noTips) {
             baseline.noReport = true;
         } else if (noSales) {
@@ -1414,16 +1431,45 @@ function readFormValues() {
 
     if (baseline.mealPeriod === "Double") {
         reportAmountFields.forEach((field) => {
-            baseline[field] = 0;
+            baseline[field] = editing && Object.hasOwn(editing, field) && !capabilityForField(field, capabilities)
+                ? editing[field]
+                : capabilityForField(field, capabilities) ? 0 : "";
         });
         baseline.reports = Object.fromEntries(reportPeriods.map(([period]) => {
             const reportNode = getReportNode(period);
-            const enabled = !skipReports && reportNode.querySelector("[data-report-toggle]").checked;
-            const values = Object.fromEntries(reportAmountFields.map((field) => [
-                field,
-                enabled ? toNumber(reportNode.querySelector(`[data-report-field="${field}"]`).value) : 0,
-            ]));
-            return [period, enabled ? values : null];
+            const enabled = reportNode.querySelector("[data-report-toggle]").checked;
+            if (!enabled) {
+                return [period, null];
+            }
+            const existing = editing?.reports?.[period];
+            const fieldCapabilities = {
+                foodSales: capabilities.tracksSales,
+                bawSales: capabilities.tracksSales,
+                liquorSales: capabilities.tracksSales,
+                naBevSales: capabilities.tracksSales,
+                additionalSales: capabilities.tracksSales,
+                ccTips: capabilities.receivesTips,
+                cashTips: capabilities.receivesTips,
+                autoGratuity: capabilities.receivesTips,
+                tipsPaidOut: capabilities.tipsOut,
+                tipOutReceived: capabilities.receivesTipOut,
+            };
+            const values = Object.fromEntries(reportAmountFields.map((field) => {
+                const available = fieldCapabilities[field];
+                const value = available
+                    ? toNumber(reportNode.querySelector(`[data-report-field="${field}"]`).value)
+                    : (existing && Object.hasOwn(existing, field) ? existing[field] : "");
+                return [field, value];
+            }));
+            const oldNoSales = existing?.noSales === true;
+            const oldNoTips = existing?.noTips === true;
+            if (editing ? oldNoSales : !capabilities.tracksSales) {
+                values.noSales = true;
+            }
+            if (editing ? oldNoTips : !hasTipFields) {
+                values.noTips = true;
+            }
+            return [period, values];
         }));
     }
 
@@ -2067,6 +2113,10 @@ function normalizeImportedShift(shift, index) {
         id: typeof shift.id === "number" && Number.isFinite(shift.id) ? shift.id : createShiftId(),
     };
     amountFields.forEach((field) => {
+        if (shift[field] === "") {
+            normalized[field] = "";
+            return;
+        }
         const amount = Number(shift[field] ?? 0);
         if (!Number.isFinite(amount) || amount < 0) {
             throw new Error(`Backup shift ${index + 1} has an invalid ${field} amount.`);
@@ -2092,12 +2142,22 @@ function normalizeImportedShift(shift, index) {
             }
             const normalizedReport = {};
             reportAmountFields.forEach((field) => {
+                if (report[field] === "") {
+                    normalizedReport[field] = "";
+                    return;
+                }
                 const amount = Number(report[field] ?? 0);
                 if (!Number.isFinite(amount) || amount < 0) {
                     throw new Error(`Backup shift ${index + 1} has an invalid ${period} ${field} amount.`);
                 }
                 normalizedReport[field] = amount;
             });
+            if (report.noSales === true) {
+                normalizedReport.noSales = true;
+            }
+            if (report.noTips === true) {
+                normalizedReport.noTips = true;
+            }
             reports[period] = normalizedReport;
         }
         normalized.reports = reports;
@@ -2125,7 +2185,9 @@ function normalizeImportedShift(shift, index) {
         normalized.noTips = true;
     }
     salesAmountFields.filter(() => noSales).concat(tipAmountFields.filter(() => noTips)).forEach((field) => {
-        normalized[field] = 0;
+        if (normalized[field] !== "") {
+            normalized[field] = 0;
+        }
     });
 
     return normalized;
@@ -2251,7 +2313,7 @@ function formatWorkplaceDates(workplace) {
     return `Workplace dates: ${workplace.startDate ? formatDate(workplace.startDate) : "not set"} – ${workplace.endDate ? formatDate(workplace.endDate) : "ongoing"}`;
 }
 
-function formatTemplate(template, tracksReports, hourlyWage) {
+function formatTemplate(template, role, hourlyWage) {
     const parts = [template?.mealPeriod];
     if (template?.clockIn || template?.clockOut) {
         parts.push(`${template.clockIn || "?"}–${template.clockOut || "?"}`);
@@ -2264,8 +2326,22 @@ function formatTemplate(template, tracksReports, hourlyWage) {
     if (hourlyWage !== undefined) {
         details.push(`${formatCurrency(hourlyWage)}/hr`);
     }
-    if (tracksReports === false) {
+    const capabilities = window.Workplaces.getRoleCapabilities(role);
+    if (!window.Workplaces.roleHasReports(role)) {
         details.push("No sales or tip reports");
+    } else {
+        if (!capabilities.tracksSales) {
+            details.push("No sales report");
+        }
+        if (!capabilities.receivesTips) {
+            details.push("No earned tips");
+        }
+        if (!capabilities.tipsOut) {
+            details.push("No tips paid out");
+        }
+        if (!capabilities.receivesTipOut) {
+            details.push("No tip-out received");
+        }
     }
     return details.join(" · ");
 }
@@ -2308,7 +2384,7 @@ function createWorkplaceItem(workplace) {
         if (role.archived) {
             roleItem.append(createArchivedPill());
         }
-        roleItem.append(createItemActions("role", role), createItemSummary(formatTemplate(role.template, role.tracksReports, role.hourlyWage)));
+        roleItem.append(createItemActions("role", role), createItemSummary(formatTemplate(role.template, role, role.hourlyWage)));
         roles.append(roleItem);
     });
 
@@ -2422,7 +2498,13 @@ function askForTemplate(role) {
         breakEnd: document.getElementById("template-break-end"),
     };
     const errorElement = document.getElementById("template-error");
-    const noReportsInput = document.getElementById("template-no-reports");
+    const capabilityInputs = {
+        tracksSales: document.getElementById("template-tracks-sales"),
+        receivesTips: document.getElementById("template-receives-tips"),
+        tipsOut: document.getElementById("template-tips-out"),
+        receivesTipOut: document.getElementById("template-receives-tip-out"),
+    };
+    const capabilities = window.Workplaces.getRoleCapabilities(role);
     const hourlyWageInput = document.getElementById("template-hourly-wage");
     return runFormDialog({
         dialog: document.getElementById("template-dialog"),
@@ -2436,7 +2518,9 @@ function askForTemplate(role) {
             hourlyWageInput.value = role.hourlyWage === undefined ? "" : String(role.hourlyWage);
             hourlyWageInput.removeAttribute("aria-invalid");
             showDialogError(errorElement, "");
-            noReportsInput.checked = role.tracksReports === false;
+            Object.entries(capabilityInputs).forEach(([name, input]) => {
+                input.checked = capabilities[name];
+            });
             inputs.mealPeriod.focus();
         },
         onSubmit: () => {
@@ -2459,7 +2543,10 @@ function askForTemplate(role) {
             }
             return {
                 value: Object.values(value).some(Boolean) ? value : null,
-                tracksReports: !noReportsInput.checked,
+                capabilities: Object.fromEntries(Object.entries(capabilityInputs).map(([name, input]) => [
+                    name,
+                    input.checked,
+                ])),
                 hourlyWage: hourlyWageInput.value === "" ? null : Number(hourlyWageInput.value),
             };
         },
@@ -2620,7 +2707,7 @@ async function handleWorkplaceAction(event) {
                 return saved;
             }
             const wage = window.Workplaces.setHourlyWage(draft, id, roleSettings.hourlyWage);
-            return wage.error ? wage : window.Workplaces.setTracksReports(draft, id, roleSettings.tracksReports);
+            return wage.error ? wage : window.Workplaces.setRoleCapabilities(draft, id, roleSettings.capabilities);
         });
         message = `Saved role settings for ${entry.name}.`;
     } else if (action === "pay-period") {
@@ -3073,15 +3160,45 @@ function initializeDoubleReports() {
     updateMealPeriodFields();
 }
 
-function roleTracksReports() {
-    return findRole(fields.role.value)?.role.tracksReports !== false;
+function selectedRoleCapabilities() {
+    const role = findRole(fields.role.value)?.role;
+    return window.Workplaces.getRoleCapabilities(role);
+}
+
+function capabilityForField(field, capabilities) {
+    if (salesAmountFields.includes(field)) {
+        return capabilities.tracksSales;
+    }
+    if (["ccTips", "cashTips", "autoGratuity"].includes(field)) {
+        return capabilities.receivesTips;
+    }
+    if (field === "tipsPaidOut") {
+        return capabilities.tipsOut;
+    }
+    if (field === "tipOutReceived") {
+        return capabilities.receivesTipOut;
+    }
+    return true;
 }
 
 function updateMealPeriodFields() {
     const isDouble = fields.mealPeriod.value === "Double";
-    const tracks = roleTracksReports();
-    document.getElementById("role-no-reports-note").hidden = tracks;
-    document.getElementById("single-report-fields").hidden = isDouble || !tracks;
+    const capabilities = selectedRoleCapabilities();
+    const hasTipFields = capabilities.receivesTips || capabilities.tipsOut || capabilities.receivesTipOut;
+    const hasReports = capabilities.tracksSales || hasTipFields;
+    document.querySelectorAll("[data-role-capability]").forEach((element) => {
+        const capability = element.dataset.roleCapability;
+        const enabled = capability === "tipReport"
+            ? hasTipFields
+            : capability === "tipOut"
+                ? capabilities.tipsOut || capabilities.receivesTipOut
+                : capabilities[capability];
+        element.hidden = !enabled;
+    });
+    const note = document.getElementById("role-no-reports-note");
+    note.hidden = hasReports;
+    note.textContent = "This role has no report or tip fields enabled. This shift is saved without a report.";
+    document.getElementById("single-report-fields").hidden = isDouble || !hasReports;
     [
         ["shift-no-sales-report", "sales"],
         ["shift-no-tips-report", "tips"],
@@ -3091,7 +3208,7 @@ function updateMealPeriodFields() {
             input.disabled = missing;
         });
     });
-    document.getElementById("double-report-fields").hidden = !isDouble || !tracks;
+    document.getElementById("double-report-fields").hidden = !isDouble || !hasReports;
     reportPeriods.forEach(([period]) => {
         const reportNode = getReportNode(period);
         setReportInputsEnabled(reportNode, reportNode.querySelector("[data-report-toggle]").checked);
@@ -3235,4 +3352,8 @@ function formatBreakEnd(shift) {
 function toNumber(value) {
     const parsed = Number.parseFloat(value);
     return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function formatInputAmount(value) {
+    return value === "" ? "" : Number(value || 0).toFixed(2);
 }

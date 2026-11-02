@@ -242,7 +242,7 @@
                         <p id="role-no-reports-note" class="field-hint" hidden>This role doesn't track sales or tip reports, so this shift is saved without them.</p>
 
                         <div id="single-report-fields" class="form-report-grid">
-                        <fieldset>
+                        <fieldset data-role-capability="tracksSales">
                             <legend>Sales</legend>
                             <label class="report-toggle">
                                 <input type="checkbox" id="shift-no-sales-report" aria-describedby="shift-no-sales-report-hint">
@@ -276,33 +276,35 @@
                             </div>
                         </fieldset>
 
-                        <fieldset>
+                        <fieldset data-role-capability="tipReport">
                             <legend>Tips</legend>
-                            <label class="report-toggle">
-                                <input type="checkbox" id="shift-no-tips-report" aria-describedby="shift-no-tips-report-hint">
-                                <span>No tip report for this shift</span>
-                            </label>
-                            <small id="shift-no-tips-report-hint" class="field-hint">Check this if you don't have your tip numbers. Tips are left out of totals, and nothing is recorded as zero.</small>
+                            <div data-role-capability="tipReport">
+                                <label class="report-toggle">
+                                    <input type="checkbox" id="shift-no-tips-report" aria-describedby="shift-no-tips-report-hint">
+                                    <span>No tip report for this shift</span>
+                                </label>
+                                <small id="shift-no-tips-report-hint" class="field-hint">Check this if you don't have your tip numbers. Tips are left out of totals, and nothing is recorded as zero.</small>
+                            </div>
                             <div class="sub-card-grid" data-report-inputs="tips">
-                                <label class="field">
+                                <label class="field" data-role-capability="receivesTips">
                                     <span>CC tips</span>
                                     <input type="number" id="shift-cc-tips" min="0" step="0.01" value="0">
                                 </label>
-                                <label class="field">
+                                <label class="field" data-role-capability="receivesTips">
                                     <span>Cash tips</span>
                                     <input type="number" id="shift-cash-tips" min="0" step="0.01" value="0">
                                 </label>
-                                <label class="field">
+                                <label class="field" data-role-capability="receivesTips">
                                     <span>Auto-gratuity</span>
                                     <input type="number" id="shift-auto-gratuity" min="0" step="0.01" value="0">
                                 </label>
-                                <div class="sub-card" role="group" aria-labelledby="tipout-card-title">
+                                <div class="sub-card" role="group" aria-labelledby="tipout-card-title" data-role-capability="tipOut">
                                     <h4 class="sub-card-title" id="tipout-card-title">Tip out</h4>
-                                    <label class="field">
+                                    <label class="field" data-role-capability="tipsOut">
                                         <span>Tips paid out</span>
                                         <input type="number" id="shift-tip-out-paid" min="0" step="0.01" value="0">
                                     </label>
-                                    <label class="field">
+                                    <label class="field" data-role-capability="receivesTipOut">
                                         <span>Tip out received</span>
                                         <input type="number" id="shift-tip-out-received" min="0" step="0.01" value="0">
                                     </label>
@@ -722,13 +724,26 @@
                     <label for="template-break-end">Break end</label>
                     <input type="time" id="template-break-end" aria-describedby="template-error">
                 </div>
-                <div class="field">
-                    <label class="report-toggle">
-                        <input type="checkbox" id="template-no-reports" aria-describedby="template-no-reports-hint">
-                        <span>This role doesn't track sales or tip reports</span>
-                    </label>
-                    <small id="template-no-reports-hint" class="field-hint">Shifts for this role hide the report fields and are saved as "No report".</small>
-                </div>
+                <fieldset class="settings-grid role-capabilities">
+                <legend>Shift reports and tips</legend>
+                <label class="report-toggle">
+                    <input type="checkbox" id="template-tracks-sales">
+                    <span>Has a sales report</span>
+                </label>
+                <label class="report-toggle">
+                    <input type="checkbox" id="template-receives-tips">
+                    <span>Receives tips</span>
+                </label>
+                <label class="report-toggle">
+                    <input type="checkbox" id="template-tips-out">
+                    <span>Tips out to others</span>
+                </label>
+                <label class="report-toggle">
+                    <input type="checkbox" id="template-receives-tip-out">
+                    <span>Receives a tip-out</span>
+                </label>
+                <small class="field-hint">These switches control future shift entry. Existing shift details stay unchanged.</small>
+                </fieldset>
                 <span class="field-error" id="template-error" hidden></span>
                 <div class="filter-dialog-actions">
                     <button type="button" id="cancel-template" class="ghost-button">Cancel</button>
@@ -904,7 +919,7 @@
             <fieldset data-report-fields disabled>
                 <legend>Report details</legend>
                 <div class="report-details-grid">
-                    <section class="report-data-group" role="group" aria-label="Sales">
+                    <section class="report-data-group" role="group" aria-label="Sales" data-role-capability="tracksSales">
                         <h4>Sales</h4>
                         <div class="report-field-subgroup">
                             <div class="report-field-grid">
@@ -921,9 +936,9 @@
                             </div>
                         </div>
                     </section>
-                    <section class="report-data-group" role="group" aria-label="Tips">
+                    <section class="report-data-group" role="group" aria-label="Tips" data-role-capability="tipReport">
                         <h4>Tips</h4>
-                        <div class="report-field-subgroup">
+                        <div class="report-field-subgroup" data-role-capability="receivesTips">
                             <h5>Earned</h5>
                             <div class="report-field-grid">
                                 <label class="field"><span>CC tips</span><input type="number" min="0" step="0.01" value="0" data-report-field="ccTips"></label>
@@ -931,11 +946,11 @@
                                 <label class="field"><span>Auto-gratuity</span><input type="number" min="0" step="0.01" value="0" data-report-field="autoGratuity"></label>
                             </div>
                         </div>
-                        <div class="report-field-subgroup">
+                        <div class="report-field-subgroup" data-role-capability="tipOut">
                             <h5>Tip out</h5>
                             <div class="report-field-grid">
-                                <label class="field"><span>Tips paid out</span><input type="number" min="0" step="0.01" value="0" data-report-field="tipsPaidOut"></label>
-                                <label class="field"><span>Tip out received</span><input type="number" min="0" step="0.01" value="0" data-report-field="tipOutReceived"></label>
+                                <label class="field" data-role-capability="tipsOut"><span>Tips paid out</span><input type="number" min="0" step="0.01" value="0" data-report-field="tipsPaidOut"></label>
+                                <label class="field" data-role-capability="receivesTipOut"><span>Tip out received</span><input type="number" min="0" step="0.01" value="0" data-report-field="tipOutReceived"></label>
                             </div>
                         </div>
                     </section>

@@ -148,8 +148,13 @@
                 if (template) {
                     normalizedRole.template = template;
                 }
-                if (role.tracksReports === false) {
-                    normalizedRole.tracksReports = false;
+                for (const capability of ["tracksSales", "receivesTips", "tipsOut", "receivesTipOut"]) {
+                    if (role[capability] !== undefined && typeof role[capability] !== "boolean") {
+                        throw new Error("Role capability setting is not valid.");
+                    }
+                    if (role[capability] === false || (role[capability] === undefined && role.tracksReports === false)) {
+                        normalizedRole[capability] = false;
+                    }
                 }
                 return normalizedRole;
             });
@@ -335,16 +340,50 @@
     }
 
     function setTracksReports(data, roleId, tracksReports) {
+        if (typeof tracksReports !== "boolean") {
+            return { error: "Role report setting is not valid." };
+        }
+        return setRoleCapabilities(data, roleId, {
+            tracksSales: tracksReports,
+            receivesTips: tracksReports,
+            tipsOut: tracksReports,
+            receivesTipOut: tracksReports,
+        });
+    }
+
+    function setRoleCapabilities(data, roleId, capabilities) {
         const found = locate(data, "role", roleId);
         if (!found) {
             return { error: "That role no longer exists." };
         }
-        if (tracksReports === false) {
-            found.item.tracksReports = false;
-        } else {
-            delete found.item.tracksReports;
+        const names = ["tracksSales", "receivesTips", "tipsOut", "receivesTipOut"];
+        if (!capabilities || names.some((name) => typeof capabilities[name] !== "boolean")) {
+            return { error: "Role capabilities are not valid." };
         }
+        delete found.item.tracksReports;
+        names.forEach((name) => {
+            if (capabilities[name]) {
+                delete found.item[name];
+            } else {
+                found.item[name] = false;
+            }
+        });
         return { item: found.item };
+    }
+
+    function getRoleCapabilities(role) {
+        const legacyDisabled = role?.tracksReports === false;
+        return {
+            tracksSales: role?.tracksSales !== false && !legacyDisabled,
+            receivesTips: role?.receivesTips !== false && !legacyDisabled,
+            tipsOut: role?.tipsOut !== false && !legacyDisabled,
+            receivesTipOut: role?.receivesTipOut !== false && !legacyDisabled,
+        };
+    }
+
+    function roleHasReports(role) {
+        const capabilities = getRoleCapabilities(role);
+        return capabilities.tracksSales || capabilities.receivesTips || capabilities.tipsOut || capabilities.receivesTipOut;
     }
 
     function setPayPeriod(data, workplaceId, payPeriod) {
@@ -459,9 +498,12 @@
         cleanName,
         distinctJobs,
         emptyData,
+        getRoleCapabilities,
         isInUse,
         setTemplate,
         setTracksReports,
+        setRoleCapabilities,
+        roleHasReports,
         setPayPeriod,
         setDates,
         linkShifts,

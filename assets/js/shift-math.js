@@ -36,11 +36,19 @@
     }
 
     function hasSalesReport(shift) {
-        return !(isSingleShift(shift) && shift.noSales === true) && hasReport(shift);
+        return hasReportForKind(shift, "noSales");
     }
 
     function hasTipReport(shift) {
-        return !(isSingleShift(shift) && shift.noTips === true) && hasReport(shift);
+        return hasReportForKind(shift, "noTips");
+    }
+
+    function hasReportForKind(shift, missingFlag) {
+        if (isSingleShift(shift) && (shift.noReport === true || shift[missingFlag] === true)) {
+            return false;
+        }
+        const reports = getFinancialReports(shift);
+        return reports === null || reports.some((report) => report[missingFlag] !== true);
     }
 
     function hasReport(shift) {
@@ -55,7 +63,7 @@
 
         const reports = getFinancialReports(shift);
         if (reports) {
-            return round(reports.reduce((sum, report) => sum
+            return round(reports.filter((report) => report.noSales !== true).reduce((sum, report) => sum
                 + (Number(report.foodSales) || 0)
                 + (Number(report.bawSales) || 0)
                 + (Number(report.liquorSales) || 0)
@@ -79,7 +87,7 @@
 
         const reports = getFinancialReports(shift);
         if (reports) {
-            return round(reports.reduce((sum, report) => sum
+            return round(reports.filter((report) => report.noTips !== true).reduce((sum, report) => sum
                 + (Number(report.ccTips) || 0)
                 + (Number(report.cashTips) || 0)
                 + (Number(report.autoGratuity) || 0)
@@ -103,7 +111,8 @@
 
         const reports = getFinancialReports(shift);
         if (reports) {
-            return round(reports.reduce((sum, report) => sum + (Number(report.autoGratuity) || 0), 0));
+            return round(reports.filter((report) => report.noTips !== true)
+                .reduce((sum, report) => sum + (Number(report.autoGratuity) || 0), 0));
         }
         return round(Number(shift.autoGratuity) || 0);
     }
@@ -116,9 +125,12 @@
         const sources = getFinancialReports(shift) || [shift];
         const breakdown = {};
         BREAKDOWN_FIELDS.forEach((field) => {
-            const covered = SALES_FIELDS.includes(field) ? hasSalesReport(shift) : hasTipReport(shift);
+            const salesField = SALES_FIELDS.includes(field);
+            const covered = salesField ? hasSalesReport(shift) : hasTipReport(shift);
+            const missingFlag = salesField ? "noSales" : "noTips";
+            const availableSources = sources.filter((source) => source[missingFlag] !== true);
             breakdown[field] = covered
-                ? round(sources.reduce((sum, source) => sum + (Number(source[field]) || 0), 0))
+                ? round(availableSources.reduce((sum, source) => sum + (Number(source[field]) || 0), 0))
                 : 0;
         });
         return breakdown;

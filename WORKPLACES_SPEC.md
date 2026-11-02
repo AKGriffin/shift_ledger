@@ -51,7 +51,10 @@ Stored in a new key, `shift-ledger-workplaces-v1`, so the shift key stays backwa
           "id": "role_1",
           "name": "Server",
           "archived": false,
-          "tracksReports": true,
+          "tracksSales": true,
+          "receivesTips": true,
+          "tipsOut": true,
+          "receivesTipOut": true,
           "template": {
             "mealPeriod": "Dinner",
             "clockIn": "16:00",
@@ -73,7 +76,9 @@ Rules:
 - Workplace `startDate` and `endDate` are optional ISO dates. If both are set, the end date cannot precede the start date. They are descriptive only and never restrict shift logging or history.
 - `payPeriod.type` is one of `weekly`, `biweekly`, `semimonthly`, `monthly`. Weekly and biweekly periods store a `startDay` weekday, defaulting to the app's week-start setting. Biweekly periods also require an `anchorDate` reference start to preserve alternating-week alignment; it must fall on `startDay`. Legacy weekly/biweekly anchor dates are normalized to their weekday, and legacy biweekly dates remain as the reference.
 - `template` fields are all optional. Time fields use the same `HH:MM` validation as shifts. `mealPeriod` is Lunch, Dinner, or Double.
-- `tracksReports: false` means sales and report fields are unavailable for that role. See "Roles without reports".
+- `tracksSales`, `receivesTips`, `tipsOut`, and `receivesTipOut` default to `true`; only `false` values need to be stored. They control sales fields, earned-tip fields, tips-paid-out fields, and tip-out-received fields independently.
+- Legacy `tracksReports: false` data normalizes to all four capabilities being `false`. Saving role settings writes the independent capabilities and removes the legacy property.
+- Templates remain separate and continue to hold only meal period and time defaults.
 
 ## Changes to shifts
 
@@ -108,7 +113,7 @@ Future: this dialog can become step one of an optional onboarding wizard (appear
 Runs only when the user confirms the first-run setup, or later starts it from Settings. It is additive and never edits shifts destructively.
 
 1. Use the workplace name, roles and pay period the user confirmed. The role list defaults to the distinct, trimmed `job` values from saved shifts. Without existing shifts, the user adds roles themselves.
-2. Create the workplace with those roles, no templates, and `tracksReports: true`.
+2. Create the workplace with those roles, no templates, and all capabilities enabled.
 3. Link existing shifts by setting `roleId` and `workplaceId` where the `job` value matches a role (case-insensitive). Unmatched shifts are left as they are.
 4. Write the workplaces key before rewriting any shift. If the write fails, leave shifts untouched and keep working with the legacy `job` behavior.
 5. Preserve the original shift data under the existing recovery key before the first linking write.
@@ -133,11 +138,13 @@ Backups: bump the backup `version` to 2 and include `workplaces`. Importing a ve
 - Editing an older shift without ids shows its `job` as a read-only legacy label with an option to choose a role.
 - "Save as template" from a shift and "Reset to template" are possible later; they are out of scope for the first version.
 
-## Roles without reports
+## Role capabilities
 
-- When `tracksReports` is false, the form hides or disables the sales, tips-related report, and double-report sections, and saves them as absent rather than `0`.
-- Dashboard totals count hours and tips only for such shifts. Sales totals exclude them, and the UI does not show `$0.00` as if a value existed.
-- This depends on the roadmap's "shift-report coverage" item, which distinguishes no report from a zero-value report. Until that is done, hidden values save as `0`, which is the existing behavior.
+- The role settings dialog independently controls sales reports, receiving earned tips, paying tips out, and receiving tip-outs. Templates and hourly wages remain in the same dialog but are not replaced by these switches.
+- New shift entry hides fields the selected role does not use. Unsupported amounts on new shifts are saved as empty strings, not zero. Report coverage remains separate from a reported zero.
+- For double reports, each report may carry `noSales` or `noTips` when a role lacks that capability. Totals and coverage exclude only the unavailable category.
+- Existing shifts are historical records: editing them preserves amounts and report coverage even if the current role hides those fields. Capability changes affect future entries, not saved history.
+- Legacy `tracksReports: false` roles migrate to all four capability switches being off; backups using the old property remain supported.
 
 ## History and dashboard
 
@@ -150,7 +157,7 @@ Backups: bump the backup `version` to 2 and include `workplaces`. Importing a ve
 Replace the "Jobs & roles" explanation with a manager:
 
 - List workplaces; add, rename, archive, unarchive, and delete if unused.
-- Per workplace: list roles with the same actions, an editable template, the reports toggle, and the pay period.
+- Per workplace: list roles with the same actions, editable time templates and role capabilities, and the pay period.
 - Validation errors appear inline with `aria-describedby`, following the existing field pattern.
 
 ## Accessibility
@@ -165,7 +172,7 @@ Replace the "Jobs & roles" explanation with a manager:
 - Backup: v1 and v2 imports, invalid workplace data is rejected, and old backups still restore.
 - Archiving: hides pickers, keeps history and filters, and blocks deleting a used role.
 - Form: template prefill does not overwrite typed values, the role list follows the workplace, and `job` snapshots.
-- Roles without reports: fields are hidden and totals are correct.
+- Role capabilities: only supported fields appear, unavailable categories stay out of totals, empty values survive backups, and editing historical shifts preserves their amounts.
 
 ## Decisions
 

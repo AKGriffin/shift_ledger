@@ -38,6 +38,22 @@ describe("report coverage", () => {
         expect(hasReport({ mealPeriod: "Double", reports: { lunch: null, dinner: null, whole: null } })).toBe(false);
     });
 
+    test("tracks sales and tips coverage independently across double reports", () => {
+        const shift = {
+            mealPeriod: "Double",
+            reports: {
+                lunch: { foodSales: 100, ccTips: 10, noSales: true },
+                dinner: { foodSales: 200, tipsPaidOut: 5, noTips: true },
+                whole: null,
+            },
+        };
+        expect(hasSalesReport(shift)).toBe(true);
+        expect(hasTipReport(shift)).toBe(true);
+        expect(getSalesTotal(shift)).toBe(200);
+        expect(getNetTips(shift)).toBe(10);
+        expect(getFinancialBreakdown(shift).tipsPaidOut).toBe(0);
+    });
+
     test("counts legacy combined doubles as reported", () => {
         expect(hasReport({ mealPeriod: "Double", foodSales: 50 })).toBe(true);
     });

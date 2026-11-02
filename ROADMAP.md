@@ -36,10 +36,6 @@ _Nothing is ready. Move the next Backlog item here once it is designed enough to
 
 ### Shift form
 
-- **Replace role templates with yes/no capability switches** · `workplaces` `settings`
-  Rework the role form as short switches, for example: has a sales report, receives tips, tips out to others, receives a tip-out. `?` Exact set to be decided; keep them mapped onto the existing "no report" role setting so current data migrates cleanly.
-- **Make the shift form react to the role's capabilities** · `shift-form` `workplaces`
-  Show only the inputs the selected role needs and hide the rest. Hidden fields save as empty, not zero, and editing an old shift keeps stored values. `needs:` capability switches.
 - **Offer a guided shift-entry flow** · `shift-form` `design`
   An optional step-by-step mode that keeps the current form for those who prefer it. Overlaps with the unfolding form; decide after that ships.
 - **Add undo and redo while editing forms** · `shift-form` `a11y`
@@ -129,6 +125,8 @@ Plan these together; they share dashboard code. Start with the stat layout.
 
 Newest first.
 
+- Role settings now keep time and meal-period templates separate from four capability switches: sales reports, tips received, tips paid out, and tip-outs received. Legacy roles with `tracksReports: false` migrate with all four capabilities off.
+- Shift entry responds to role capabilities for single and double reports. Unsupported new-shift fields save as empty; editing existing shifts preserves their stored amounts and report coverage.
 - The new shift form unfolds from date to required workplace, then to the remaining fields once a role is selected when active roles exist. It preselects the last-used workplace, auto-selects a single role, keeps revealed sections open, and shows all fields when editing. The role control appears only when the selected workplace has roles to choose.
 - Separate role selection from workplace selection in the new-shift flow; folded into the progressive form.
 - Sales are listed alphabetically (Beer & wine, Food, Liquor, NA beverage) in the shift form, double-shift reports, and history; Additional sales sit in their own sub-card after them.
