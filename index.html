@@ -275,14 +275,26 @@
                         <p id="role-no-reports-note" class="field-hint" hidden>This role doesn't track sales or tip reports, so this shift is saved without them.</p>
 
                         <div id="single-report-fields" class="form-report-grid">
-                        <fieldset data-role-capability="tracksSales" data-guided-step data-guided-prompt="Do you have your sales report? Enter the amounts below, or mark the report unavailable.">
+                        <fieldset data-role-capability="tracksSales" data-guided-step data-guided-prompt="Do you have your sales report?" data-guided-input-prompt="Fill out the sales from your report">
                             <legend>Sales</legend>
-                            <label class="report-toggle">
+                            <label id="shift-no-sales-report-control" class="report-toggle">
                                 <input type="checkbox" id="shift-no-sales-report" aria-describedby="shift-no-sales-report-hint">
                                 <span>No sales report for this shift</span>
                             </label>
                             <small id="shift-no-sales-report-hint" class="field-hint">Check this if you don't have your sales numbers. Sales are left out of totals, and nothing is recorded as zero.</small>
-                            <div class="sub-card-grid" data-report-inputs="sales">
+                            <div id="guided-sales-report-choice" class="guided-report-choice" role="radiogroup" aria-label="Do you have your sales report?" aria-describedby="shift-sales-report-error" hidden>
+                                <label class="guided-choice-button">
+                                    <input type="radio" id="shift-has-sales-report-yes" name="guided-has-sales-report" value="yes">
+                                    <span>Yes</span>
+                                </label>
+                                <label class="guided-choice-button">
+                                    <input type="radio" id="shift-has-sales-report-no" name="guided-has-sales-report" value="no">
+                                    <span>No</span>
+                                </label>
+                                <span class="field-error" id="shift-sales-report-error" hidden></span>
+                            </div>
+                            <small id="guided-sales-report-hint" class="field-hint" hidden>Choose No if you don't have the sales numbers. They won't be included in totals.</small>
+                            <div class="sub-card-grid" data-report-inputs="sales" hidden>
                                 <label class="field">
                                     <span>Beer &amp; wine</span>
                                     <input type="number" id="shift-baw-sales" min="0" step="0.01" value="0">
@@ -312,13 +324,26 @@
                         <fieldset data-role-capability="tipReport">
                             <legend>Tips</legend>
                             <div class="sub-card-grid" data-report-inputs="tips">
-                                <div data-role-capability="receivesTips" data-guided-step data-guided-prompt="Do you have your tips report? Enter the amounts below, or mark the report unavailable.">
-                                    <label class="report-toggle">
+                                <div id="guided-tips-report-step" class="sub-card" role="group" aria-labelledby="guided-tips-report-title" data-role-capability="receivesTips" data-guided-step data-guided-prompt="Do you have your tips report?" data-guided-input-prompt="Fill out the tips from your report">
+                                    <h4 class="sub-card-title" id="guided-tips-report-title">Tips report</h4>
+                                    <label id="shift-no-tips-report-control" class="report-toggle">
                                         <input type="checkbox" id="shift-no-tips-report" aria-describedby="shift-no-tips-report-hint">
                                         <span>No tip report for this shift</span>
                                     </label>
                                     <small id="shift-no-tips-report-hint" class="field-hint">Check this if you don't have your tip numbers. Tips are left out of totals, and nothing is recorded as zero.</small>
-                                    <div class="sub-card-grid">
+                                    <div id="guided-tips-report-choice" class="guided-report-choice" role="radiogroup" aria-label="Do you have your tips report?" aria-describedby="shift-tips-report-error" hidden>
+                                        <label class="guided-choice-button">
+                                            <input type="radio" id="shift-has-tips-report-yes" name="guided-has-tips-report" value="yes">
+                                            <span>Yes</span>
+                                        </label>
+                                        <label class="guided-choice-button">
+                                            <input type="radio" id="shift-has-tips-report-no" name="guided-has-tips-report" value="no">
+                                            <span>No</span>
+                                        </label>
+                                        <span class="field-error" id="shift-tips-report-error" hidden></span>
+                                    </div>
+                                    <small id="guided-tips-report-hint" class="field-hint" hidden>Choose No if you don't have the tip numbers. They won't be included in totals.</small>
+                                    <div id="guided-tips-inputs" class="sub-card-grid">
                                         <label class="field" data-role-capability="receivesTips">
                                             <span>CC tips</span>
                                             <input type="number" id="shift-cc-tips" min="0" step="0.01" value="0">

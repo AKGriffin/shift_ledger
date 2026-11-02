@@ -101,12 +101,19 @@ const reportPeriods = [
     ["dinner", "Dinner report"],
     ["whole", "Whole-double report"],
 ];
+const GUIDED_REPORT_KINDS = {
+    sales: { radioName: "guided-has-sales-report", checkboxId: "shift-no-sales-report" },
+    tips: { radioName: "guided-has-tips-report", checkboxId: "shift-no-tips-report" },
+};
+
 const fields = {
     date: document.getElementById("shift-date"),
     mealPeriod: document.getElementById("shift-meal-period"),
     job: document.getElementById("shift-job"),
     workplace: document.getElementById("shift-workplace"),
     role: document.getElementById("shift-role"),
+    salesReport: document.getElementById("shift-has-sales-report-yes"),
+    tipsReport: document.getElementById("shift-has-tips-report-yes"),
     clockIn: document.getElementById("shift-clock-in"),
     clockOut: document.getElementById("shift-clock-out"),
     breakStart: document.getElementById("shift-break-start"),
@@ -357,6 +364,9 @@ function bindEvents() {
             handleGuidedBreakAnswer();
             updateGuidedBreakQuestion();
             updateValidationErrors();
+        }
+        if (getGuidedReportKind(event.target)) {
+            handleGuidedSalesReportChange(event.target);
         }
     });
     form.addEventListener("change", maybeAutoAdvanceGuidedStep);
@@ -1169,6 +1179,35 @@ function updateGuidedBreakQuestion(guided = entryMode === "guided") {
     document.getElementById("break-time-fields").hidden = guided && getGuidedBreakAnswer() !== "yes";
 }
 
+function getGuidedReportAnswer(kind) {
+    return form.querySelector(`input[name="${GUIDED_REPORT_KINDS[kind].radioName}"]:checked`)?.value || "";
+}
+
+function getGuidedReportKind(element) {
+    return Object.keys(GUIDED_REPORT_KINDS)
+        .find((kind) => element?.matches?.(`input[name="${GUIDED_REPORT_KINDS[kind].radioName}"]`)) || "";
+}
+
+function getGuidedStepReportKind(step) {
+    return step?.dataset.guidedInputPrompt ? (step.id === "guided-tips-report-step" ? "tips" : "sales") : "";
+}
+
+function updateGuidedSalesReport(guided = entryMode === "guided") {
+    const answer = getGuidedReportAnswer("sales");
+    document.getElementById("guided-sales-report-choice").hidden = !guided || answer === "yes";
+    document.getElementById("shift-no-sales-report-control").hidden = guided;
+    document.getElementById("shift-no-sales-report-hint").hidden = guided;
+    document.getElementById("guided-sales-report-hint").hidden = !guided || answer !== "no";
+    document.querySelector('[data-report-inputs="sales"]').hidden = guided && answer !== "yes";
+
+    const tipsAnswer = getGuidedReportAnswer("tips");
+    document.getElementById("guided-tips-report-choice").hidden = !guided || tipsAnswer === "yes";
+    document.getElementById("shift-no-tips-report-control").hidden = guided;
+    document.getElementById("shift-no-tips-report-hint").hidden = guided;
+    document.getElementById("guided-tips-report-hint").hidden = !guided || tipsAnswer !== "no";
+    document.getElementById("guided-tips-inputs").hidden = guided && tipsAnswer !== "yes";
+}
+
 function getGuidedBreakAnswer() {
     return form.querySelector('input[name="guided-had-break"]:checked')?.value || "";
 }
@@ -1177,6 +1216,17 @@ function handleGuidedBreakAnswer() {
     if (getGuidedBreakAnswer() === "no") {
         fields.breakStart.value = "";
         fields.breakEnd.value = "";
+    }
+}
+
+function handleGuidedSalesReportChange(input) {
+    const kind = getGuidedReportKind(input);
+    document.getElementById(GUIDED_REPORT_KINDS[kind].checkboxId).checked = input.value === "no";
+    updateMealPeriodFields();
+    updateShiftFormProgression();
+    updateValidationErrors();
+    if (input.value === "yes") {
+        form.querySelector(kind === "sales" ? "#shift-baw-sales" : "#shift-cc-tips").focus({ preventScroll: true });
     }
 }
 
@@ -1194,6 +1244,7 @@ function renderEntryMode() {
     const guidedButtons = document.getElementById("guided-buttons");
     const formActions = document.getElementById("form-actions");
     const save = document.getElementById("save-shift");
+    const question = document.getElementById("guided-question");
     controls.hidden = !guided;
     guidedButtons.hidden = !guided;
     formActions.hidden = !chosen || (guided && !guidedStep.review);
@@ -1201,8 +1252,18 @@ function renderEntryMode() {
     cancelFormButton.hidden = !chosen || (guided && !guidedStep.review);
     guidedCancelButton.hidden = !guided || guidedStep.review;
     updateGuidedBreakQuestion(guided);
+    updateGuidedSalesReport(guided);
     container.querySelectorAll(".guided-off").forEach((element) => element.classList.remove("guided-off"));
+    container.querySelectorAll(".guided-current, .guided-active-context").forEach((element) => {
+        element.classList.remove("guided-current", "guided-active-context");
+    });
+    container.querySelectorAll("[data-guided-original]").forEach((heading) => {
+        heading.textContent = heading.dataset.guidedOriginal;
+        delete heading.dataset.guidedOriginal;
+        heading.classList.remove("guided-step-question");
+    });
     if (!guided) {
+        question.hidden = true;
         return;
     }
 
@@ -1219,6 +1280,7 @@ function renderEntryMode() {
     const review = shiftFormProgress.details && (guidedStep.review || index === steps.length);
     const current = review ? null : steps[index];
     guidedStep = { element: current, index: review ? steps.length : index, review };
+    question.hidden = !review;
     form.classList.toggle("is-guided-review", review);
     formActions.hidden = !chosen || (guided && !review);
     cancelFormButton.hidden = !chosen || (guided && !review);
@@ -1233,7 +1295,21 @@ function renderEntryMode() {
         container.querySelectorAll(GUIDED_CONTAINER_SELECTOR).forEach((element) => {
             element.classList.toggle("guided-off", !element.contains(current));
         });
-        document.getElementById("guided-question").textContent = current.dataset.guidedPrompt || "";
+        const prompt = current.dataset.guidedPrompt || "";
+        question.textContent = prompt;
+        current.classList.add("guided-current");
+        const heading = getGuidedQuestionHeading(current);
+        if (heading) {
+            const reportKind = getGuidedStepReportKind(current);
+            const showingInputs = reportKind && getGuidedReportAnswer(reportKind) === "yes";
+            heading.dataset.guidedOriginal = heading.textContent;
+            heading.textContent = showingInputs ? current.dataset.guidedInputPrompt : prompt;
+            heading.classList.add("guided-step-question");
+            const context = current.parentElement.closest("fieldset");
+            if (heading.parentElement === current && context) {
+                context.classList.add("guided-active-context");
+            }
+        }
         document.getElementById("guided-progress").textContent = shiftFormProgress.details
             ? `Step ${index + 1} of ${steps.length + 1}`
             : `Step ${index + 1}`;
@@ -1244,6 +1320,18 @@ function renderEntryMode() {
     next.textContent = shiftFormProgress.details && index === steps.length - 1 ? "Review shift" : "Next";
     next.disabled = !review && getGuidedStepIssues(current).length > 0;
     save.hidden = !review;
+}
+
+function getGuidedQuestionHeading(step) {
+    if (step.matches("fieldset")) {
+        return step.querySelector(":scope > legend");
+    }
+    if (step.matches("label.field")) {
+        return step.closest("fieldset")?.querySelector(":scope > legend") || null;
+    }
+    return step.querySelector(":scope > .sub-card-title, :scope > h3, :scope > legend")
+        || step.closest("fieldset")?.querySelector(":scope > legend")
+        || null;
 }
 
 function closeNewShiftEntry() {
@@ -1275,6 +1363,16 @@ function moveGuidedStep(direction) {
         : guidedStep.element ? steps.indexOf(guidedStep.element) : guidedStep.index;
     if (current < 0 || current > steps.length) {
         current = Math.min(guidedStep.index, steps.length);
+    }
+    const backKind = direction < 0 ? getGuidedStepReportKind(steps[current]) : "";
+    if (backKind && getGuidedReportAnswer(backKind) === "yes") {
+        const config = GUIDED_REPORT_KINDS[backKind];
+        form.querySelector(`input[name="${config.radioName}"]:checked`).checked = false;
+        document.getElementById(config.checkboxId).checked = false;
+        updateMealPeriodFields();
+        updateShiftFormProgression();
+        form.querySelector(`input[name="${config.radioName}"]`).focus({ preventScroll: true });
+        return;
     }
     if (direction > 0 && current < steps.length) {
         const step = steps[current];
@@ -1311,8 +1409,10 @@ function maybeAutoAdvanceGuidedStep(event) {
     const isBreakChoice = event.target.matches('input[name="guided-had-break"]');
     const isNoReportChoice = event.target.matches("#shift-no-sales-report, #shift-no-tips-report")
         && event.target.checked;
+    const isNoSalesChoice = Boolean(getGuidedReportKind(event.target)) && event.target.value === "no";
     const requiresBreakTimes = step.id === "break-time-fields" && getGuidedBreakAnswer() === "yes";
-    if (!step.querySelector("[required]") && !isBreakChoice && !isNoReportChoice && !requiresBreakTimes) {
+    if (!step.querySelector("[required]") && !isBreakChoice && !isNoReportChoice
+        && !isNoSalesChoice && !requiresBreakTimes) {
         return;
     }
 
@@ -1331,7 +1431,9 @@ function focusGuidedStep() {
         document.getElementById("guided-question").focus({ preventScroll: true });
         return;
     }
-    guidedStep.element.querySelector("input, select, textarea, button")?.focus({ preventScroll: true });
+    const focusable = [...guidedStep.element.querySelectorAll("input, select, textarea, button")]
+        .find((element) => !element.disabled && !element.closest("[hidden], .guided-off"));
+    focusable?.focus({ preventScroll: true });
 }
 
 function applyRoleTemplate() {
@@ -1749,6 +1851,16 @@ function validateShift(shift) {
     if (entryMode === "guided" && !getGuidedBreakAnswer()) {
         issues.push({ field: "hadBreak", message: "Choose whether you had a break." });
     }
+    if (entryMode === "guided"
+        && guidedStep.element?.matches('[data-role-capability="tracksSales"]')
+        && !getGuidedReportAnswer("sales")) {
+        issues.push({ field: "salesReport", message: "Choose whether you have a sales report." });
+    }
+    if (entryMode === "guided"
+        && guidedStep.element?.id === "guided-tips-report-step"
+        && !getGuidedReportAnswer("tips")) {
+        issues.push({ field: "tipsReport", message: "Choose whether you have a tips report." });
+    }
     if (getGuidedBreakAnswer() === "yes") {
         if (!shift.breakStart) {
             issues.push({ field: "breakStart", message: "Break start is required when you had a break." });
@@ -1806,7 +1918,7 @@ function showValidationErrors(issues, shouldFocus = true) {
 
     issues.forEach(({ field, message }) => {
         const input = fields[field];
-        const errorId = field === "hadBreak" ? "shift-had-break-error" : `${input.id}-error`;
+        const errorId = getValidationErrorId(field, input);
         const error = document.getElementById(errorId);
         input.setAttribute("aria-invalid", "true");
         error.textContent = message;
@@ -1837,6 +1949,19 @@ function revealGuidedField(input) {
         guidedStep = { element: step, index: 0 };
         renderEntryMode();
     }
+}
+
+function getValidationErrorId(field, input) {
+    if (field === "hadBreak") {
+        return "shift-had-break-error";
+    }
+    if (field === "salesReport") {
+        return "shift-sales-report-error";
+    }
+    if (field === "tipsReport") {
+        return "shift-tips-report-error";
+    }
+    return `${input.id}-error`;
 }
 
 function selectNumberOnFocus(event) {
@@ -1872,7 +1997,12 @@ function clearValidationErrors() {
         }
 
         field.removeAttribute("aria-invalid");
-        const errorId = field === fields.hadBreak ? "shift-had-break-error" : `${field.id}-error`;
+        const errorId = getValidationErrorId(
+            field === fields.hadBreak ? "hadBreak"
+                : field === fields.salesReport ? "salesReport"
+                    : field === fields.tipsReport ? "tipsReport" : "",
+            field
+        );
         const error = document.getElementById(errorId);
         error.textContent = "";
         error.hidden = true;
@@ -3495,10 +3625,11 @@ function updateMealPeriodFields() {
         ["shift-no-tips-report", "tips"],
     ].forEach(([toggleId, kind]) => {
         const missing = document.getElementById(toggleId).checked;
-        document.querySelectorAll(`[data-report-inputs="${kind}"] input`).forEach((input) => {
+        document.querySelectorAll(`[data-report-inputs="${kind}"] input[type="number"]`).forEach((input) => {
             input.disabled = missing;
         });
     });
+    updateGuidedSalesReport();
     document.getElementById("double-report-fields").hidden = !isDouble || !hasReports;
     reportPeriods.forEach(([period]) => {
         const reportNode = getReportNode(period);

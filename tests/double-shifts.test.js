@@ -42,7 +42,7 @@ describe("Single-shift report coverage", () => {
         openView("new-shift");
         fillForm({ date: "2026-10-23", mealPeriod: "Dinner", job: "Server", clockIn: "16:00", clockOut: "22:00", foodSales: 150 });
         markNoReport(harness);
-        expect([...harness.elements("[data-report-inputs] input")].every((input) => input.disabled)).toBe(true);
+        expect([...harness.elements("[data-report-inputs] input[type='number']")].every((input) => input.disabled)).toBe(true);
         submitForm();
 
         const [saved] = savedShifts();

@@ -1106,6 +1106,14 @@ form {
 #guided-next[hidden],
 #guided-break-question[hidden],
 #break-time-fields[hidden],
+#guided-sales-report-choice[hidden],
+#guided-sales-report-hint[hidden],
+#shift-no-sales-report-control[hidden],
+#guided-tips-report-choice[hidden],
+#guided-tips-report-hint[hidden],
+#shift-no-tips-report-control[hidden],
+#guided-tips-inputs[hidden],
+[data-report-inputs="sales"][hidden],
 .guided-off {
     display: none !important;
 }
@@ -1155,6 +1163,37 @@ form {
 
 .guided-break-question {
     flex-basis: 100%;
+}
+
+.guided-report-choice {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.shift-form.is-guided .guided-active-context {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.shift-form.is-guided .guided-active-context > legend {
+    display: none;
+}
+
+.shift-form.is-guided .guided-step-question {
+    margin-bottom: 16px;
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.shift-form.is-guided #double-report-fields.guided-current {
+    padding: 20px 18px 18px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--panel);
+    box-shadow: var(--shadow);
 }
 
 .guided-choice-buttons {
