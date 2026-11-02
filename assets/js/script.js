@@ -1193,15 +1193,16 @@ function getGuidedStepReportKind(step) {
 }
 
 function updateGuidedSalesReport(guided = entryMode === "guided") {
+    const review = guided && guidedStep.review;
     const answer = getGuidedReportAnswer("sales");
-    document.getElementById("guided-sales-report-choice").hidden = !guided || answer === "yes";
+    document.getElementById("guided-sales-report-choice").hidden = !guided || (!review && answer === "yes");
     document.getElementById("shift-no-sales-report-control").hidden = guided;
     document.getElementById("shift-no-sales-report-hint").hidden = guided;
     document.getElementById("guided-sales-report-hint").hidden = !guided || answer !== "no";
     document.querySelector('[data-report-inputs="sales"]').hidden = guided && answer !== "yes";
 
     const tipsAnswer = getGuidedReportAnswer("tips");
-    document.getElementById("guided-tips-report-choice").hidden = !guided || tipsAnswer === "yes";
+    document.getElementById("guided-tips-report-choice").hidden = !guided || (!review && tipsAnswer === "yes");
     document.getElementById("shift-no-tips-report-control").hidden = guided;
     document.getElementById("shift-no-tips-report-hint").hidden = guided;
     document.getElementById("guided-tips-report-hint").hidden = !guided || tipsAnswer !== "no";
@@ -1280,6 +1281,7 @@ function renderEntryMode() {
     const review = shiftFormProgress.details && (guidedStep.review || index === steps.length);
     const current = review ? null : steps[index];
     guidedStep = { element: current, index: review ? steps.length : index, review };
+    updateGuidedSalesReport(guided);
     question.hidden = !review;
     form.classList.toggle("is-guided-review", review);
     formActions.hidden = !chosen || (guided && !review);

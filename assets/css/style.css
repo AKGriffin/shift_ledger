@@ -1196,6 +1196,13 @@ form {
     box-shadow: var(--shadow);
 }
 
+.shift-form.is-guided #guided-tips-report-step.guided-current {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
 .guided-choice-buttons {
     display: flex;
     flex-wrap: wrap;

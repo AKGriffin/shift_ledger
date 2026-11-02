@@ -420,6 +420,56 @@ describe("Guided and manual entry", () => {
         expect(element("#break-time-fields").hidden).toBe(true);
     }));
 
+    test("sales and tips report choices remain editable in guided review", () => withApp((harness) => {
+        const { element, fire } = harness;
+        chooseMode(harness, "guided");
+        advanceGuidedToReview(harness);
+        expect(element("#guided-question").textContent).toContain("Review your shift");
+
+        element("#shift-has-sales-report-yes").checked = true;
+        fire(element("#shift-has-sales-report-yes"), "change");
+        expect(element("#guided-sales-report-choice").hidden).toBe(false);
+        expect(element('[data-report-inputs="sales"]').hidden).toBe(false);
+        expect(element("#guided-question").textContent).toContain("Review your shift");
+
+        element("#shift-has-sales-report-no").checked = true;
+        fire(element("#shift-has-sales-report-no"), "change");
+        expect(element("#guided-sales-report-choice").hidden).toBe(false);
+        expect(element('[data-report-inputs="sales"]').hidden).toBe(true);
+
+        element("#shift-has-tips-report-yes").checked = true;
+        fire(element("#shift-has-tips-report-yes"), "change");
+        expect(element("#guided-tips-report-choice").hidden).toBe(false);
+        expect(element("#guided-tips-inputs").hidden).toBe(false);
+        expect(element("#guided-question").textContent).toContain("Review your shift");
+
+        element("#shift-has-tips-report-no").checked = true;
+        fire(element("#shift-has-tips-report-no"), "change");
+        expect(element("#guided-tips-report-choice").hidden).toBe(false);
+        expect(element("#guided-tips-inputs").hidden).toBe(true);
+        expect(element("#save-shift").hidden).toBe(false);
+    }));
+
+    test("affirmative report choices stay visible when guided entry first reaches review", () => withApp((harness) => {
+        const { element, fire } = harness;
+        chooseMode(harness, "guided");
+        advanceGuidedUntil(harness, "sales report");
+
+        element("#shift-has-sales-report-yes").checked = true;
+        fire(element("#shift-has-sales-report-yes"), "change");
+        element("#guided-next").click();
+        element("#shift-has-tips-report-yes").checked = true;
+        fire(element("#shift-has-tips-report-yes"), "change");
+        element("#guided-next").click();
+        advanceGuidedToReview(harness);
+
+        expect(element("#guided-question").textContent).toContain("Review your shift");
+        expect(element("#guided-sales-report-choice").hidden).toBe(false);
+        expect(element("#guided-tips-report-choice").hidden).toBe(false);
+        expect(element('[data-report-inputs="sales"]').hidden).toBe(false);
+        expect(element("#guided-tips-inputs").hidden).toBe(false);
+    }));
+
     test("editing a shift uses the manual layout without a mode prompt", () => withApp({ shifts: [makeShift()] }, ({ element, doc }) => {
         element(".main-nav [data-view=\"previous-shifts\"]").click();
         element(".edit-shift").click();
