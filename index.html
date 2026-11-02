@@ -152,6 +152,24 @@
                 </header>
 
                 <form id="shift-form" class="shift-form" novalidate>
+                    <section id="entry-mode-chooser" class="entry-mode-chooser" aria-labelledby="entry-mode-title">
+                        <h2 id="entry-mode-title">How do you want to enter this shift?</h2>
+                        <div class="entry-mode-options">
+                            <button type="button" id="choose-guided" class="entry-mode-option">
+                                <strong>Guided</strong>
+                                <span>One question at a time, with Back and Next.</span>
+                            </button>
+                            <button type="button" id="choose-manual" class="entry-mode-option">
+                                <strong>Manual</strong>
+                                <span>Every field for your workplace and role on one page.</span>
+                            </button>
+                        </div>
+                    </section>
+                    <div id="entry-mode-bar" class="entry-mode-bar" hidden>
+                        <p id="entry-mode-label"></p>
+                        <button type="button" id="switch-entry-mode" class="ghost-button"></button>
+                    </div>
+                    <div id="shift-entry-fields" hidden>
                     <div class="form-context-grid">
                         <fieldset id="shift-date-card">
                             <legend>Shift date</legend>
@@ -326,13 +344,22 @@
                             <button type="button" id="add-note" class="secondary-button">+ Add note</button>
                         </fieldset>
                     </div>
+                    </div>
+
+                    <div id="guided-controls" class="guided-controls" hidden>
+                        <p id="guided-progress" aria-live="polite"></p>
+                        <div class="guided-buttons">
+                            <button type="button" id="guided-back" class="secondary-button">Back</button>
+                            <button type="button" id="guided-next" class="primary-button">Next</button>
+                        </div>
+                    </div>
 
                     <div id="form-errors" class="form-errors" role="alert" hidden>
                         <p>Please fix the following before saving:</p>
                         <ul></ul>
                     </div>
                     <div class="form-actions">
-                        <button type="submit" class="primary-button">Save shift</button>
+                        <button type="submit" id="save-shift" class="primary-button">Save shift</button>
                         <button type="button" id="clear-form" class="secondary-button">Clear</button>
                         <button type="button" id="cancel-form" class="ghost-button">Cancel</button>
                     </div>

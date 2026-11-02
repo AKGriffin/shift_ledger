@@ -204,7 +204,13 @@ function createHarness(frame, consoleErrors) {
     const style = (target) => win.getComputedStyle(target);
     const rootStyleValue = (name) => style(doc.documentElement).getPropertyValue(name).trim();
 
-    const openView = (name) => element(`.main-nav [data-view="${name}"]`).click();
+    const openView = (name, { entryMode = "manual" } = {}) => {
+        element(`.main-nav [data-view="${name}"]`).click();
+        const chooser = entryMode && name === "new-shift" && doc.getElementById(`choose-${entryMode}`);
+        if (chooser && !doc.getElementById("entry-mode-chooser").hidden) {
+            chooser.click();
+        }
+    };
     const fillForm = (values) => {
         Object.entries(values).forEach(([key, value]) => {
             const id = FIELD_IDS[key];

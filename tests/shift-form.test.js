@@ -65,6 +65,97 @@ describe("Shift form validation", () => {
     }));
 });
 
+describe("Guided and manual entry", () => {
+    const visibleFields = (elements) => elements("#shift-entry-fields .field:not(.guided-off)")
+        .filter((field) => !field.closest("[hidden]"));
+
+    function chooseMode(harness, mode) {
+        harness.openView("new-shift", { entryMode: null });
+        harness.element(`#choose-${mode}`).click();
+    }
+
+    test("asks for an entry mode each time a shift is started", () => withApp(({ element, openView }) => {
+        openView("new-shift", { entryMode: null });
+        expect(element("#entry-mode-chooser").hidden).toBe(false);
+        expect(element("#shift-entry-fields").hidden).toBe(true);
+
+        element("#choose-manual").click();
+        expect(element("#entry-mode-chooser").hidden).toBe(true);
+        expect(element("#shift-entry-fields").hidden).toBe(false);
+
+        element("#clear-form").click();
+        expect(element("#entry-mode-chooser").hidden).toBe(false);
+    }));
+
+    test("manual entry shows every applicable field together once the role is chosen", () => withApp((harness) => {
+        chooseMode(harness, "manual");
+        harness.fillForm({ date: "2026-10-22" });
+        harness.fire(harness.element("#shift-date"), "input");
+        expect(harness.element("#shift-workplace-card").hidden).toBe(false);
+        expect(harness.element("#guided-controls").hidden).toBe(true);
+        expect(harness.element("#switch-entry-mode").textContent).toBe("Switch to guided entry");
+    }));
+
+    test("guided entry shows one field at a time and moves with Next and Back", () => withApp((harness) => {
+        const { element, elements } = harness;
+        chooseMode(harness, "guided");
+        expect(element("#guided-controls").hidden).toBe(false);
+        expect(element("#guided-progress").textContent).toContain("Step 1 of");
+        expect(element("#guided-back").disabled).toBe(true);
+        expect(visibleFields(elements)).toHaveLength(1);
+
+        harness.fillForm({ date: "2026-10-22" });
+        harness.fire(element("#shift-date"), "input");
+        element("#guided-next").click();
+
+        expect(element("#guided-progress").textContent).toContain("Step 2 of");
+        expect(element("#shift-date-card").classList.contains("guided-off")).toBe(true);
+        expect(visibleFields(elements)).toHaveLength(1);
+
+        element("#guided-back").click();
+        expect(element("#guided-progress").textContent).toContain("Step 1 of");
+    }));
+
+    test("switching modes keeps entered values", () => withApp((harness) => {
+        const { element } = harness;
+        chooseMode(harness, "guided");
+        harness.fillForm({ date: "2026-10-22" });
+        harness.fire(element("#shift-date"), "input");
+
+        element("#switch-entry-mode").click();
+        expect(element("#guided-controls").hidden).toBe(true);
+        expect(element("#shift-date").value).toBe("2026-10-22");
+        expect(element("#switch-entry-mode").textContent).toBe("Switch to guided entry");
+
+        element("#switch-entry-mode").click();
+        expect(element("#guided-controls").hidden).toBe(false);
+        expect(element("#shift-date").value).toBe("2026-10-22");
+    }));
+
+    test("guided entry offers Save only on the last step", () => withApp((harness) => {
+        const { element } = harness;
+        chooseMode(harness, "guided");
+        expect(element("#save-shift").hidden).toBe(true);
+
+        harness.fillForm({ date: "2026-10-22" });
+        harness.fire(element("#shift-date"), "input");
+        harness.change("#shift-workplace", "test-workplace");
+        for (let guard = 0; guard < 40 && !element("#guided-next").hidden; guard += 1) {
+            element("#guided-next").click();
+        }
+        expect(element("#save-shift").hidden).toBe(false);
+    }));
+
+    test("editing a shift uses the manual layout without a mode prompt", () => withApp({ shifts: [makeShift()] }, ({ element }) => {
+        element(".main-nav [data-view=\"previous-shifts\"]").click();
+        element(".edit-shift").click();
+
+        expect(element("#entry-mode-chooser").hidden).toBe(true);
+        expect(element("#entry-mode-bar").hidden).toBe(true);
+        expect(element("#shift-entry-fields").hidden).toBe(false);
+    }));
+});
+
 describe("Saving shifts", () => {
     test("saves a valid shift and totals it on the dashboard", () => withApp(({ element, saveShift, savedShifts }) => {
         saveShift({ foodSales: 100, ccTips: 20, cashTips: 5, autoGratuity: 7, tipOutPaid: 3, tipOutReceived: 2 });

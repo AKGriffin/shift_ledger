@@ -1092,6 +1092,70 @@ form {
     display: none;
 }
 
+#shift-entry-fields {
+    display: grid;
+    gap: 16px;
+}
+
+#shift-entry-fields[hidden],
+#entry-mode-bar[hidden],
+#guided-controls[hidden],
+#entry-mode-chooser[hidden],
+#save-shift[hidden],
+#guided-next[hidden],
+.guided-off {
+    display: none !important;
+}
+
+.entry-mode-chooser h2 {
+    margin: 0 0 12px;
+    font-size: 1.1rem;
+}
+
+.entry-mode-options {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.entry-mode-option {
+    display: grid;
+    gap: 4px;
+    padding: 16px;
+    border: 1px solid var(--border, currentColor);
+    border-radius: 12px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    min-height: 44px;
+}
+
+.entry-mode-bar,
+.guided-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.entry-mode-bar p,
+.guided-controls p {
+    margin: 0;
+}
+
+.guided-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.shift-form.is-guided .form-context-grid,
+.shift-form.is-guided .form-report-grid {
+    grid-template-columns: 1fr;
+}
+
 @keyframes shift-form-reveal {
     from {
         opacity: 0;

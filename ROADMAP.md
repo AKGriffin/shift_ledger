@@ -36,8 +36,6 @@ _Nothing is ready. Move the next Backlog item here once it is designed enough to
 
 ### Shift form
 
-- **Offer a guided shift-entry flow** · `shift-form` `design`
-  An optional step-by-step mode that keeps the current form for those who prefer it. Overlaps with the unfolding form; decide after that ships.
 - **Add undo and redo while editing forms** · `shift-form` `a11y`
   Accessible controls and keyboard shortcuts that do not interfere with native input undo.
 
@@ -125,6 +123,7 @@ Plan these together; they share dashboard code. Start with the stat layout.
 
 Newest first.
 
+- Guided or manual shift entry: each new shift asks for a mode. Guided shows one field per step with Back and Next; manual shows the applicable fields together. Switching keeps entered values, and editing uses manual. Workplace and role still decide which fields apply.
 - Role settings keep meal-period templates and optional clock-time and break defaults separate from four capability switches: sales reports, tips received, tips paid out, and tip-outs received. Legacy roles with `tracksReports: false` migrate with all four capabilities off.
 - Shift entry responds to role capabilities for single and double reports. Unsupported new-shift fields save as empty; editing existing shifts preserves their stored amounts and report coverage.
 - The new shift form unfolds from date to required workplace, then to the remaining fields once a role is selected when active roles exist. It preselects the last-used workplace, auto-selects a single role, keeps revealed sections open, and shows all fields when editing. The role control appears only when the selected workplace has roles to choose.

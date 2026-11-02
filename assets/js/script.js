@@ -55,6 +55,8 @@ let formStatusTimeout = null;
 let formStatusExpiresAt = null;
 let shiftFormDirty = false;
 let shiftFormProgress = { workplace: false, details: false };
+let entryMode = null;
+let guidedStep = { element: null, index: 0 };
 let allowUpdateReload = false;
 let updateRequested = false;
 let serviceWorkerRegistration = null;
@@ -335,6 +337,13 @@ function bindEvents() {
     form.addEventListener("change", markShiftFormDirty);
     form.addEventListener("input", updateShiftFormProgression);
     form.addEventListener("change", updateShiftFormProgression);
+    document.getElementById("choose-guided").addEventListener("click", () => setEntryMode("guided"));
+    document.getElementById("choose-manual").addEventListener("click", () => setEntryMode("manual"));
+    document.getElementById("switch-entry-mode").addEventListener("click", () => {
+        setEntryMode(entryMode === "guided" ? "manual" : "guided");
+    });
+    document.getElementById("guided-back").addEventListener("click", () => moveGuidedStep(-1));
+    document.getElementById("guided-next").addEventListener("click", () => moveGuidedStep(1));
     form.addEventListener("change", (event) => {
         if (![fields.workplace, fields.role, fields.job].includes(event.target)) {
             updateValidationErrors();
@@ -1117,6 +1126,93 @@ function updateShiftFormProgression() {
         delete fields.role.dataset.autoSelected;
         applyRoleTemplate();
     }
+    renderEntryMode();
+}
+
+function setEntryMode(mode) {
+    entryMode = mode;
+    guidedStep = { element: null, index: 0 };
+    updateShiftFormProgression();
+    focusGuidedStep();
+}
+
+const GUIDED_STEP_SELECTOR = ".field, .report-toggle, .notes-section";
+const GUIDED_CONTAINER_SELECTOR = "fieldset, .sub-card, #double-report-fields, #double-report-list > *, #role-no-reports-note";
+
+function getGuidedSteps() {
+    return [...document.getElementById("shift-entry-fields").querySelectorAll(GUIDED_STEP_SELECTOR)]
+        .filter((element) => !element.closest("[hidden]") && !element.parentElement.closest(GUIDED_STEP_SELECTOR));
+}
+
+function renderEntryMode() {
+    const editing = Boolean(getEditingShift());
+    const chosen = editing ? "manual" : entryMode;
+    const guided = chosen === "guided";
+    const container = document.getElementById("shift-entry-fields");
+    document.getElementById("entry-mode-chooser").hidden = Boolean(chosen);
+    container.hidden = !chosen && !editing;
+    form.classList.toggle("is-guided", guided);
+    const bar = document.getElementById("entry-mode-bar");
+    bar.hidden = !chosen || editing;
+    document.getElementById("entry-mode-label").textContent = guided ? "Guided entry" : "Manual entry";
+    document.getElementById("switch-entry-mode").textContent = guided ? "Switch to manual entry" : "Switch to guided entry";
+
+    const controls = document.getElementById("guided-controls");
+    const save = document.getElementById("save-shift");
+    controls.hidden = !guided;
+    save.hidden = false;
+    container.querySelectorAll(".guided-off").forEach((element) => element.classList.remove("guided-off"));
+    if (!guided) {
+        return;
+    }
+
+    const steps = getGuidedSteps();
+    if (steps.length === 0) {
+        return;
+    }
+    let index = steps.indexOf(guidedStep.element);
+    if (index < 0) {
+        index = Math.min(guidedStep.index, steps.length - 1);
+    }
+    guidedStep = { element: steps[index], index };
+    const current = steps[index];
+    steps.forEach((step) => {
+        step.classList.toggle("guided-off", step !== current);
+    });
+    container.querySelectorAll(GUIDED_CONTAINER_SELECTOR).forEach((element) => {
+        element.classList.toggle("guided-off", !element.contains(current));
+    });
+    const last = index === steps.length - 1 && shiftFormProgress.details;
+    document.getElementById("guided-progress").textContent = `Step ${index + 1} of ${steps.length}`;
+    document.getElementById("guided-back").disabled = index === 0;
+    document.getElementById("guided-next").hidden = last;
+    save.hidden = !last;
+}
+
+function moveGuidedStep(direction) {
+    const steps = getGuidedSteps();
+    const current = steps.indexOf(guidedStep.element);
+    if (direction > 0 && current === steps.length - 1 && !shiftFormProgress.details) {
+        shiftFormProgress.workplace = true;
+        updateShiftFormProgression();
+        const next = getGuidedSteps();
+        if (next.length === steps.length) {
+            document.getElementById("guided-progress").textContent = "Choose a workplace and role to continue.";
+            return;
+        }
+        steps.splice(0, steps.length, ...next);
+    }
+    const index = Math.max(0, Math.min(steps.length - 1, current + direction));
+    guidedStep = { element: steps[index], index };
+    updateShiftFormProgression();
+    focusGuidedStep();
+}
+
+function focusGuidedStep() {
+    if (entryMode !== "guided" || !guidedStep.element) {
+        return;
+    }
+    guidedStep.element.querySelector("input, select, textarea, button")?.focus({ preventScroll: true });
 }
 
 function applyRoleTemplate() {
@@ -1243,6 +1339,8 @@ function resetForm(shouldClearStatus = true) {
     form.reset();
     shiftFormDirty = false;
     shiftFormProgress = { workplace: false, details: false };
+    entryMode = null;
+    guidedStep = { element: null, index: 0 };
     delete fields.workplace.dataset.initialized;
     updateMealPeriodFields();
     setNoteRows([]);
@@ -1580,13 +1678,26 @@ function showValidationErrors(issues, shouldFocus = true) {
         const link = document.createElement("a");
         link.href = `#${input.id}`;
         link.textContent = message;
+        link.addEventListener("click", () => revealGuidedField(input));
         item.appendChild(link);
         list.appendChild(item);
     });
 
     summary.hidden = false;
     if (shouldFocus) {
+        revealGuidedField(firstField);
         firstField.focus();
+    }
+}
+
+function revealGuidedField(input) {
+    if (entryMode !== "guided" || getEditingShift()) {
+        return;
+    }
+    const step = getGuidedSteps().find((element) => element.contains(input));
+    if (step) {
+        guidedStep = { element: step, index: 0 };
+        renderEntryMode();
     }
 }
 
