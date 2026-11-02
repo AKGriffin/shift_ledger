@@ -665,6 +665,10 @@ main {
     display: none;
 }
 
+[data-role-capability][hidden] {
+    display: none !important;
+}
+
 .item-summary {
     flex-basis: 100%;
     color: var(--muted);

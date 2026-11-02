@@ -1,5 +1,5 @@
 import { describe, expect, test } from "./assert.js";
-import { contrastRatio, makeShift, RECOVERY_STORAGE_KEY, withApp } from "./app-harness.js";
+import { contrastRatio, makeShift, RECOVERY_STORAGE_KEY, WORKPLACES_STORAGE_KEY, withApp } from "./app-harness.js";
 
 const styleOptions = [
     "minimalist",
@@ -281,6 +281,34 @@ describe("Data reliability", () => {
         await restore(app, JSON.stringify([makeShift({ mealPeriod: "Brunch" })]));
         expect(element("#form-status").textContent).toContain("missing valid required fields");
         expect(savedShifts()).toHaveLength(2);
+    }));
+
+    test("restores empty capability fields and legacy-independent role settings", () => withApp({
+        expectConsoleErrors: true,
+    }, async (app) => {
+        app.openView("settings");
+        await restore(app, JSON.stringify({
+            shifts: [makeShift({ foodSales: "", noSales: true })],
+            workplaces: [{
+                id: "backup-workplace",
+                name: "Bistro",
+                archived: false,
+                roles: [{
+                    id: "backup-role",
+                    name: "Server",
+                    tracksSales: false,
+                    receivesTips: true,
+                    tipsOut: false,
+                    receivesTipOut: true,
+                }],
+            }],
+        }));
+
+        expect(app.savedShifts()[0].foodSales).toBe("");
+        const restoredWorkplaces = JSON.parse(localStorage.getItem(WORKPLACES_STORAGE_KEY));
+        expect(restoredWorkplaces.workplaces[0].roles[0].tracksSales).toBe(false);
+        expect(restoredWorkplaces.workplaces[0].roles[0].receivesTips).toBeUndefined();
+        expect(restoredWorkplaces.workplaces[0].roles[0].receivesTipOut).toBeUndefined();
     }));
 
     test("gives duplicate ids in a backup unique ids", () => withApp(async (app) => {
