@@ -355,6 +355,7 @@ function bindEvents() {
             updateValidationErrors();
         }
     });
+    form.addEventListener("change", maybeAutoAdvanceGuidedStep);
     window.addEventListener("beforeunload", guardUnsavedShiftChanges);
     reloadAppButton.addEventListener("click", reloadForAppUpdate);
     checkForUpdatesButton.addEventListener("click", runManualUpdateCheck);
@@ -1251,6 +1252,27 @@ function moveGuidedStep(direction) {
     guidedStep = { element: refreshedSteps[index] || null, index };
     updateShiftFormProgression();
     focusGuidedStep();
+}
+
+function maybeAutoAdvanceGuidedStep(event) {
+    if (entryMode !== "guided" || !guidedStep.element || !guidedStep.element.contains(event.target)) {
+        return;
+    }
+
+    const step = guidedStep.element;
+    const isBreakChoice = event.target.matches('input[name="guided-had-break"]');
+    const isNoReportChoice = event.target.matches("#shift-no-sales-report, #shift-no-tips-report")
+        && event.target.checked;
+    const requiresBreakTimes = step.id === "break-time-fields" && getGuidedBreakAnswer() === "yes";
+    if (!step.querySelector("[required]") && !isBreakChoice && !isNoReportChoice && !requiresBreakTimes) {
+        return;
+    }
+
+    const issues = validateShift(readFormValues())
+        .filter(({ field }) => step.contains(fields[field]));
+    if (issues.length === 0) {
+        moveGuidedStep(1);
+    }
 }
 
 function focusGuidedStep() {

@@ -173,6 +173,47 @@ describe("Guided and manual entry", () => {
         expect(element("#shift-date").getAttribute("aria-invalid")).toBe("true");
     }));
 
+    test("guided entry auto-advances after a required answer is valid", () => withApp((harness) => {
+        const { element, fire } = harness;
+        chooseMode(harness, "guided");
+        element("#shift-date").value = "2026-10-22";
+        fire(element("#shift-date"), "change");
+
+        expect(element("#guided-question").textContent).toContain("Where did you work");
+        expect(element("#guided-progress").textContent).toContain("Step 2 of");
+    }));
+
+    test("guided entry auto-advances break choices and completed break times", () => withApp((harness) => {
+        const { element, fire } = harness;
+        chooseMode(harness, "guided");
+        advanceGuidedUntil(harness, "Did you have a break");
+
+        chooseBreakAnswer(harness, "yes");
+        expect(element("#guided-question").textContent).toContain("break start and end");
+
+        element("#shift-break-start").value = "18:00";
+        fire(element("#shift-break-start"), "change");
+        expect(element("#guided-question").textContent).toContain("break start and end");
+
+        element("#shift-break-end").value = "18:15";
+        fire(element("#shift-break-end"), "change");
+        expect(element("#guided-question").textContent).toContain("shift end");
+    }));
+
+    test("guided entry advances on a no-report choice but keeps optional amount groups together", () => withApp((harness) => {
+        const { element, fire } = harness;
+        chooseMode(harness, "guided");
+        advanceGuidedUntil(harness, "sales report");
+
+        element("#shift-food-sales").value = "75";
+        fire(element("#shift-food-sales"), "change");
+        expect(element("#guided-question").textContent).toContain("sales report");
+
+        element("#shift-no-sales-report").checked = true;
+        fire(element("#shift-no-sales-report"), "change");
+        expect(element("#guided-question").textContent).toContain("tips report");
+    }));
+
     test("guided break question conditionally reveals and validates break times", () => withApp((harness) => {
         const { element } = harness;
         chooseMode(harness, "guided");
