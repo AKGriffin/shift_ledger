@@ -101,16 +101,18 @@ describe("Single-shift report coverage", () => {
         expect(reported.querySelector(".card-report-status").hidden).toBe(true);
     }));
 
-    test("restores the no-report choices when editing and clears them for a new shift", () => withApp({
+    test("restores the no-report choices when editing and resets after cancelling", () => withApp({
         shifts: [makeShift({ noTips: true })],
-    }, ({ element, openView }) => {
+    }, ({ element, openView, win }) => {
         openView("previous-shifts");
         element(".card-menu-toggle").click();
         element(".edit-shift").click();
         expect(element("#shift-no-tips-report").checked).toBe(true);
         expect(element("#shift-no-sales-report").checked).toBe(false);
 
-        element("#clear-form").click();
+        win.confirm = () => true;
+        element("#cancel-form").click();
+        openView("new-shift");
         expect(element("#shift-no-tips-report").checked).toBe(false);
         expect([...element("#single-report-fields").querySelectorAll("input")].every((input) => !input.disabled)).toBe(true);
     }));
@@ -159,7 +161,7 @@ describe("Double-shift report entry", () => {
             .every((toggle) => !toggle.checked)).toBe(true);
     }));
 
-    test("clearing a double resets report toggles and disables their fields", () => withApp(({ element, fire, openView }) => {
+    test("double report toggles control whether their fields are enabled", () => withApp(({ element, fire, openView }) => {
         openView("new-shift");
         const mealPeriod = element("#shift-meal-period");
         mealPeriod.value = "Double";
@@ -168,8 +170,10 @@ describe("Double-shift report entry", () => {
         const toggle = lunch.querySelector("[data-report-toggle]");
         toggle.checked = true;
         fire(toggle, "change");
+        expect(lunch.querySelector("[data-report-fields]").disabled).toBe(false);
 
-        element("#clear-form").click();
+        toggle.checked = false;
+        fire(toggle, "change");
 
         expect(toggle.checked).toBe(false);
         expect(lunch.querySelector("[data-report-fields]").disabled).toBe(true);

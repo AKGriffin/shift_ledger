@@ -58,7 +58,7 @@ describe("Mobile navigation", () => {
     test("keeps the main mobile views within thumb reach and marks the active view", () => withApp({
         width: 390,
         height: 844,
-    }, ({ element, win }) => {
+    }, ({ element, win, style }) => {
         const nav = element(".mobile-bottom-nav");
         const bounds = nav.getBoundingClientRect();
 
@@ -66,9 +66,12 @@ describe("Mobile navigation", () => {
         expect(bounds.bottom).toBeLessThanOrEqual(win.innerHeight);
         expect(bounds.top).toBeGreaterThan(win.innerHeight / 2);
 
-        element('.mobile-bottom-nav [data-view="new-shift"]').click();
+        element('.mobile-bottom-nav [data-view="previous-shifts"]').click();
+        element("#open-new-shift").click();
         expect(element("#new-shift").classList.contains("is-visible")).toBe(true);
-        expect(element('.mobile-bottom-nav [data-view="new-shift"]').getAttribute("aria-current")).toBe("page");
+        expect(element('.mobile-bottom-nav [data-view="previous-shifts"]').getAttribute("aria-current")).toBe("page");
+        expect(style(element(".mobile-bottom-nav")).display).toBe("none");
+        expect(style(element(".sidebar")).display).toBe("none");
     }));
 
     test("keeps the dashboard overview copy visible and hides its actions on phones", () => withApp({
@@ -175,8 +178,7 @@ describe("Mobile navigation", () => {
         width: 390,
         height: 667,
     }, ({ element, fire, win }) => {
-        element('.mobile-bottom-nav [data-view="new-shift"]').click();
-        expect(win.history.state.shiftLedgerView).toBe("new-shift");
+        element("#open-new-shift").click();
         const foodSales = element("#shift-food-sales");
         foodSales.value = "25";
         fire(foodSales, "input");

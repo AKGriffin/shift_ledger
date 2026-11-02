@@ -118,19 +118,39 @@ describe("Guided and manual entry", () => {
         harness.fire(radio, "change");
     }
 
-    test("asks for an entry mode each time a shift is started", () => withApp(({ element, openView }) => {
+    test("asks for an entry mode each time and offers Close before entry starts", () => withApp({
+        width: 390,
+        height: 800,
+    }, ({ element, openView, win, doc }) => {
         openView("new-shift", { entryMode: null });
+        expect(doc.querySelector("#clear-form")).toBe(null);
+        expect(doc.querySelector("#switch-entry-mode")).toBe(null);
         expect(element("#entry-mode-chooser").hidden).toBe(false);
         expect(element("#shift-entry-fields").hidden).toBe(true);
         expect(element("#save-shift").hidden).toBe(true);
+        expect(element("#cancel-form").hidden).toBe(true);
+        expect(element("#close-entry-mode").hidden).toBe(false);
+        const chooserBounds = element("#entry-mode-chooser").getBoundingClientRect();
+        expect(chooserBounds.bottom <= win.innerHeight).toBe(true);
+        expect(win.innerHeight - chooserBounds.bottom < 40).toBe(true);
+        expect(element("#new-shift .view-header").getBoundingClientRect().top < 100).toBe(true);
+        expect(element(".mobile-bottom-nav").getBoundingClientRect().height).toBe(0);
 
         element("#choose-manual").click();
         expect(element("#entry-mode-chooser").hidden).toBe(true);
         expect(element("#shift-entry-fields").hidden).toBe(false);
         expect(element("#save-shift").hidden).toBe(false);
+        expect(element("#cancel-form").hidden).toBe(false);
+        expect(element("#guided-cancel").hidden).toBe(true);
 
-        element("#clear-form").click();
+        win.confirm = () => true;
+        element("#cancel-form").click();
         expect(element("#entry-mode-chooser").hidden).toBe(false);
+        expect(element("#shift-entry-fields").hidden).toBe(true);
+
+        element("#close-entry-mode").click();
+        expect(element("#new-shift").classList.contains("is-visible")).toBe(false);
+        expect(element("#dashboard").classList.contains("is-visible")).toBe(true);
     }));
 
     test("manual entry shows every applicable field together once the role is chosen", () => withApp((harness) => {
@@ -139,7 +159,7 @@ describe("Guided and manual entry", () => {
         harness.fire(harness.element("#shift-date"), "input");
         expect(harness.element("#shift-workplace-card").hidden).toBe(false);
         expect(harness.element("#guided-controls").hidden).toBe(true);
-        expect(harness.element("#switch-entry-mode").textContent).toBe("Switch to guided entry");
+        expect(harness.doc.querySelector("#switch-entry-mode")).toBe(null);
     }));
 
     test("guided entry groups related fields into steps and moves with Next and Back", () => withApp((harness) => {
@@ -163,7 +183,7 @@ describe("Guided and manual entry", () => {
         expect(element("#guided-progress").textContent).toContain("Step 1 of");
     }));
 
-    test("guided entry validates a step before continuing", () => withApp((harness) => {
+    test("guided entry only reports errors for the open step", () => withApp((harness) => {
         const { element } = harness;
         chooseMode(harness, "guided");
         element("#guided-next").click();
@@ -171,6 +191,38 @@ describe("Guided and manual entry", () => {
         expect(element("#guided-progress").textContent).toBe("Step 1");
         expect(element("#shift-date-error").textContent).toBe("Date is required.");
         expect(element("#shift-date").getAttribute("aria-invalid")).toBe("true");
+        expect(harness.elements("#form-errors li")).toHaveLength(1);
+        expect(element("#shift-workplace-error").hidden).toBe(true);
+    }));
+
+    test("pressing Enter in a guided step acts like Next", () => withApp((harness) => {
+        const { element } = harness;
+        chooseMode(harness, "guided");
+        harness.submitForm();
+
+        expect(element("#shift-date-error").textContent).toBe("Date is required.");
+        expect(harness.elements("#form-errors li")).toHaveLength(1);
+    }));
+
+    test("mobile guided entry stacks step, question, input and buttons at the bottom of the page", () => withApp({
+        width: 390,
+        height: 800,
+    }, (harness) => {
+        const { element, win } = harness;
+        chooseMode(harness, "guided");
+
+        const top = (selector) => element(selector).getBoundingClientRect().top;
+        expect(top("#guided-progress") < top("#guided-question")).toBe(true);
+        expect(top("#guided-question") < top("#shift-date")).toBe(true);
+        expect(top("#shift-date") < top("#guided-buttons")).toBe(true);
+        expect(element("#guided-cancel").hidden).toBe(false);
+        expect(win.innerHeight - element("#guided-buttons").getBoundingClientRect().bottom < 40).toBe(true);
+        expect(top("#guided-progress") > top("#new-shift .view-header")).toBe(true);
+        expect(element("#shift-date-card").closest("#shift-entry-fields") !== null).toBe(true);
+
+        element("#shift-date").value = "2026-10-22";
+        harness.fire(element("#shift-date"), "change");
+        expect(element("#guided-question").textContent).toContain("Where did you work");
     }));
 
     test("guided entry auto-advances after a required answer is valid", () => withApp((harness) => {
@@ -230,20 +282,23 @@ describe("Guided and manual entry", () => {
         expect(element("#guided-question").textContent).toContain("shift end");
     }));
 
-    test("switching modes keeps entered values", () => withApp((harness) => {
+    test("cancel confirms before discarding entry and returns to the mode chooser", () => withApp((harness) => {
         const { element } = harness;
         chooseMode(harness, "guided");
         harness.fillForm({ date: "2026-10-22" });
         harness.fire(element("#shift-date"), "input");
 
-        element("#switch-entry-mode").click();
-        expect(element("#guided-controls").hidden).toBe(true);
-        expect(element("#shift-date").value).toBe("2026-10-22");
-        expect(element("#switch-entry-mode").textContent).toBe("Switch to guided entry");
-
-        element("#switch-entry-mode").click();
+        harness.win.confirm = () => false;
+        element("#guided-cancel").click();
         expect(element("#guided-controls").hidden).toBe(false);
         expect(element("#shift-date").value).toBe("2026-10-22");
+
+        harness.win.confirm = () => true;
+        element("#guided-cancel").click();
+        expect(element("#entry-mode-chooser").hidden).toBe(false);
+        expect(element("#shift-entry-fields").hidden).toBe(true);
+        expect(element("#shift-date").value).toBe("");
+        expect(element("#guided-controls").hidden).toBe(true);
     }));
 
     test("guided entry groups reports and ends with an editable full-form review", () => withApp((harness) => {
@@ -284,12 +339,12 @@ describe("Guided and manual entry", () => {
         expect(element("#break-time-fields").hidden).toBe(true);
     }));
 
-    test("editing a shift uses the manual layout without a mode prompt", () => withApp({ shifts: [makeShift()] }, ({ element }) => {
+    test("editing a shift uses the manual layout without a mode prompt", () => withApp({ shifts: [makeShift()] }, ({ element, doc }) => {
         element(".main-nav [data-view=\"previous-shifts\"]").click();
         element(".edit-shift").click();
 
         expect(element("#entry-mode-chooser").hidden).toBe(true);
-        expect(element("#entry-mode-bar").hidden).toBe(true);
+        expect(doc.querySelector("#entry-mode-bar")).toBe(null);
         expect(element("#shift-entry-fields").hidden).toBe(false);
     }));
 });
@@ -533,7 +588,8 @@ describe("Shift notes", () => {
         cards.find((card) => card.textContent.includes("Second")).querySelector(".edit-shift").click();
         expect(harness.elements(".note-input").map((input) => input.value)).toEqual(["First", "Second"]);
 
-        harness.element("#clear-form").click();
+        harness.win.confirm = () => true;
+        harness.element("#cancel-form").click();
         expect(harness.elements(".note-input").map((input) => input.value)).toEqual([""]);
     }));
 });

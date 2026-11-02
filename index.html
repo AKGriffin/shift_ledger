@@ -39,8 +39,8 @@
             </a>
             <nav class="main-nav" aria-label="Main navigation">
                 <button type="button" class="nav-button" data-view="dashboard">Dashboard</button>
-                <button type="button" class="nav-button" data-view="new-shift">New Shift</button>
-                <button type="button" class="nav-button" data-view="previous-shifts">Previous Shifts</button>
+                <button type="button" class="nav-button" data-view="previous-shifts">Shifts</button>
+                <button type="button" class="nav-button" data-view="paystubs">Paystubs</button>
                 <button type="button" class="nav-button" data-view="settings">Settings</button>
             </nav>
             <p class="sidebar-footer">Your shifts stay on this device.</p>
@@ -164,10 +164,11 @@
                                 <span>Every field for your workplace and role on one page.</span>
                             </button>
                         </div>
+                        <button type="button" id="close-entry-mode" class="ghost-button">Close</button>
                     </section>
-                    <div id="entry-mode-bar" class="entry-mode-bar" hidden>
-                        <p id="entry-mode-label"></p>
-                        <button type="button" id="switch-entry-mode" class="ghost-button"></button>
+                    <div id="guided-controls" class="guided-controls" hidden>
+                        <p id="guided-progress" aria-live="polite"></p>
+                        <p id="guided-question" class="guided-question" tabindex="-1"></p>
                     </div>
                     <div id="shift-entry-fields" hidden>
                     <div class="form-context-grid">
@@ -362,22 +363,17 @@
                     </div>
                     </div>
 
-                    <div id="guided-controls" class="guided-controls" hidden>
-                        <p id="guided-question" class="guided-question" tabindex="-1"></p>
-                        <p id="guided-progress" aria-live="polite"></p>
-                        <div class="guided-buttons">
-                            <button type="button" id="guided-back" class="secondary-button">Back</button>
-                            <button type="button" id="guided-next" class="primary-button">Next</button>
-                        </div>
-                    </div>
-
                     <div id="form-errors" class="form-errors" role="alert" hidden>
                         <p>Please fix the following before saving:</p>
                         <ul></ul>
                     </div>
-                    <div class="form-actions">
+                    <div id="guided-buttons" class="guided-buttons" hidden>
+                        <button type="button" id="guided-back" class="secondary-button">Back</button>
+                        <button type="button" id="guided-cancel" class="ghost-button">Cancel</button>
+                        <button type="button" id="guided-next" class="primary-button">Next</button>
+                    </div>
+                    <div id="form-actions" class="form-actions">
                         <button type="submit" id="save-shift" class="primary-button">Save shift</button>
-                        <button type="button" id="clear-form" class="secondary-button">Clear</button>
                         <button type="button" id="cancel-form" class="ghost-button">Cancel</button>
                     </div>
                 </form>
@@ -387,8 +383,11 @@
                 <header class="history-page-heading view-header">
                     <div class="view-heading">
                         <p class="eyebrow">Your work</p>
-                        <h1>Previous shifts</h1>
-                        <p>Review and filter your saved shift history.</p>
+                        <h1>Shifts</h1>
+                        <p>Add a new shift or review and filter your saved shifts.</p>
+                    </div>
+                    <div class="view-header-actions">
+                        <button type="button" id="open-new-shift" class="primary-button" data-view="new-shift">＋ New shift</button>
                     </div>
                 </header>
                 <div class="panel history-header-card">
@@ -449,6 +448,18 @@
                 </dialog>
 
                 <div id="shift-list" class="shift-list"></div>
+            </section>
+            <section id="paystubs" class="view is-hidden">
+                <header class="paystubs-page-heading view-header">
+                    <div class="view-heading">
+                        <p class="eyebrow">Your pay</p>
+                        <h1>Paystubs</h1>
+                        <p>Your saved paystubs will appear here.</p>
+                    </div>
+                </header>
+                <div class="panel">
+                    <p class="empty-state">No paystubs yet. Adding paystubs is coming soon.</p>
+                </div>
             </section>
             <section id="settings" class="view is-hidden">
                 <div class="settings-page">
@@ -879,13 +890,13 @@
                 <span aria-hidden="true">⌂</span>
                 <small>Dashboard</small>
             </button>
-            <button type="button" class="mobile-bottom-nav-button" data-view="new-shift">
-                <span aria-hidden="true">+</span>
-                <small>New shift</small>
-            </button>
             <button type="button" class="mobile-bottom-nav-button" data-view="previous-shifts">
                 <span aria-hidden="true">≡</span>
-                <small>History</small>
+                <small>Shifts</small>
+            </button>
+            <button type="button" class="mobile-bottom-nav-button" data-view="paystubs">
+                <span aria-hidden="true">$</span>
+                <small>Paystubs</small>
             </button>
             <button type="button" class="mobile-bottom-nav-button" data-view="settings">
                 <span aria-hidden="true">⚙</span>

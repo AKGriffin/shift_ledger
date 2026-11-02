@@ -5,7 +5,8 @@ const DASHBOARD_STATS = ["shifts", "hours", "sales", "tips"];
 const VIEW_TITLES = {
     "dashboard": "Dashboard",
     "new-shift": "New Shift",
-    "previous-shifts": "Previous Shifts",
+    "previous-shifts": "Shifts",
+    "paystubs": "Paystubs",
     "settings": "Settings",
 };
 const { getAutoGratuity, getDurationMinutes, getFinancialBreakdown, getNetTips, getSalesTotal, hasSalesReport, hasTipReport, toMinutes } = window.ShiftMath;
@@ -63,6 +64,8 @@ let serviceWorkerRegistration = null;
 let hadServiceWorkerController = "serviceWorker" in navigator
     && Boolean(navigator.serviceWorker.controller);
 
+let entryReturnView = "previous-shifts";
+
 const navButtons = document.querySelectorAll("[data-view]");
 const formStatus = document.getElementById("form-status");
 const appUpdateDialog = document.getElementById("app-update-dialog");
@@ -72,8 +75,9 @@ const reloadAppButton = document.getElementById("reload-app");
 const dismissAppUpdateButton = document.getElementById("dismiss-app-update");
 const form = document.getElementById("shift-form");
 const formTitle = document.getElementById("form-title");
-const clearFormButton = document.getElementById("clear-form");
 const cancelFormButton = document.getElementById("cancel-form");
+const guidedCancelButton = document.getElementById("guided-cancel");
+const closeEntryModeButton = document.getElementById("close-entry-mode");
 const shiftList = document.getElementById("shift-list");
 const sortBySelect = document.getElementById("sort-by");
 const filterJobSelect = document.getElementById("filter-job");
@@ -340,11 +344,11 @@ function bindEvents() {
     form.addEventListener("change", updateShiftFormProgression);
     document.getElementById("choose-guided").addEventListener("click", () => setEntryMode("guided"));
     document.getElementById("choose-manual").addEventListener("click", () => setEntryMode("manual"));
-    document.getElementById("switch-entry-mode").addEventListener("click", () => {
-        setEntryMode(entryMode === "guided" ? "manual" : "guided");
-    });
+    closeEntryModeButton.addEventListener("click", closeNewShiftEntry);
     document.getElementById("guided-back").addEventListener("click", () => moveGuidedStep(-1));
     document.getElementById("guided-next").addEventListener("click", () => moveGuidedStep(1));
+    cancelFormButton.addEventListener("click", cancelShiftEntry);
+    guidedCancelButton.addEventListener("click", cancelShiftEntry);
     form.addEventListener("change", (event) => {
         if (![fields.workplace, fields.role, fields.job].includes(event.target)) {
             updateValidationErrors();
@@ -379,11 +383,6 @@ function bindEvents() {
     notesList.addEventListener("click", handleNoteRemove);
     notesList.addEventListener("input", (event) => autosizeNote(event.target));
     notesList.addEventListener("keydown", handleNoteKeydown);
-    clearFormButton.addEventListener("click", resetForm);
-    cancelFormButton.addEventListener("click", () => {
-        resetForm();
-        showView("dashboard");
-    });
     sortBySelect.addEventListener("change", renderPreviousShifts);
     filterJobSelect.addEventListener("change", renderPreviousShifts);
     filterWorkplaceSelect.addEventListener("change", renderPreviousShifts);
@@ -532,7 +531,11 @@ function showView(viewName, { historyAction = "push" } = {}) {
 
     const previousView = state.currentView;
     const viewChanged = previousView !== viewName;
+    if (viewName === "new-shift" && viewChanged && previousView !== null) {
+        entryReturnView = previousView;
+    }
     state.currentView = viewName;
+    document.body.classList.toggle("is-entering-shift", viewName === "new-shift");
     if (historyFilterDialog.open && viewName !== "previous-shifts") {
         closeHistoryFilterDialog(false);
     }
@@ -560,9 +563,10 @@ function showView(viewName, { historyAction = "push" } = {}) {
         notesList.querySelectorAll(".note-input").forEach(autosizeNote);
     }
 
+    const activeNav = viewName === "new-shift" ? "previous-shifts" : viewName;
     document.querySelectorAll(".main-nav [data-view], .mobile-bottom-nav [data-view]").forEach((button) => {
         if (button.tagName === "BUTTON") {
-            if (button.dataset.view === viewName) {
+            if (button.dataset.view === activeNav) {
                 button.setAttribute("aria-current", "page");
             } else {
                 button.removeAttribute("aria-current");
@@ -1184,15 +1188,18 @@ function renderEntryMode() {
     document.getElementById("entry-mode-chooser").hidden = Boolean(chosen);
     container.hidden = !chosen && !editing;
     form.classList.toggle("is-guided", guided);
-    const bar = document.getElementById("entry-mode-bar");
-    bar.hidden = !chosen || editing;
-    document.getElementById("entry-mode-label").textContent = guided ? "Guided entry" : "Manual entry";
-    document.getElementById("switch-entry-mode").textContent = guided ? "Switch to manual entry" : "Switch to guided entry";
+    form.classList.remove("is-guided-review");
 
     const controls = document.getElementById("guided-controls");
+    const guidedButtons = document.getElementById("guided-buttons");
+    const formActions = document.getElementById("form-actions");
     const save = document.getElementById("save-shift");
     controls.hidden = !guided;
+    guidedButtons.hidden = !guided;
+    formActions.hidden = !chosen || (guided && !guidedStep.review);
     save.hidden = !chosen;
+    cancelFormButton.hidden = !chosen || (guided && !guidedStep.review);
+    guidedCancelButton.hidden = !guided || guidedStep.review;
     updateGuidedBreakQuestion(guided);
     container.querySelectorAll(".guided-off").forEach((element) => element.classList.remove("guided-off"));
     if (!guided) {
@@ -1212,6 +1219,10 @@ function renderEntryMode() {
     const review = shiftFormProgress.details && (guidedStep.review || index === steps.length);
     const current = review ? null : steps[index];
     guidedStep = { element: current, index: review ? steps.length : index, review };
+    form.classList.toggle("is-guided-review", review);
+    formActions.hidden = !chosen || (guided && !review);
+    cancelFormButton.hidden = !chosen || (guided && !review);
+    guidedCancelButton.hidden = !guided || review;
     if (review) {
         document.getElementById("guided-question").textContent = "Review your shift and make any changes below.";
         document.getElementById("guided-progress").textContent = `Review · Step ${steps.length + 1} of ${steps.length + 1}`;
@@ -1234,11 +1245,36 @@ function renderEntryMode() {
     save.hidden = !review;
 }
 
+function closeNewShiftEntry() {
+    resetForm();
+    showView(entryReturnView);
+}
+
+function cancelShiftEntry() {
+    if (!window.confirm("Cancel this shift? Your entries will be discarded.")) {
+        return;
+    }
+
+    const editing = Boolean(getEditingShift());
+    resetForm();
+    if (editing) {
+        showView(entryReturnView);
+        return;
+    }
+
+    const chooserTitle = document.getElementById("entry-mode-title");
+    chooserTitle.tabIndex = -1;
+    chooserTitle.focus({ preventScroll: true });
+}
+
 function moveGuidedStep(direction) {
     const steps = getGuidedSteps();
-    const current = guidedStep.review
+    let current = guidedStep.review
         ? steps.length
         : guidedStep.element ? steps.indexOf(guidedStep.element) : guidedStep.index;
+    if (current < 0 || current > steps.length) {
+        current = Math.min(guidedStep.index, steps.length);
+    }
     if (direction > 0 && current < steps.length) {
         const step = steps[current];
         const issues = validateShift(readFormValues()).filter(({ field }) => step.contains(fields[field]));
@@ -1493,6 +1529,11 @@ function markShiftFormDirty() {
 
 function handleFormSubmit(event) {
     event.preventDefault();
+
+    if (entryMode === "guided" && !getEditingShift() && !guidedStep.review && guidedStep.element) {
+        moveGuidedStep(1);
+        return;
+    }
 
     try {
         updateShiftFormProgression();
@@ -1801,8 +1842,15 @@ function selectNumberOnFocus(event) {
 function updateValidationErrors() {
     const summary = document.getElementById("form-errors");
     if (!summary.hidden) {
-        showValidationErrors(validateShift(readFormValues()), false);
+        showValidationErrors(filterIssuesToGuidedStep(validateShift(readFormValues())), false);
     }
+}
+
+function filterIssuesToGuidedStep(issues) {
+    if (entryMode !== "guided" || getEditingShift() || guidedStep.review || !guidedStep.element) {
+        return issues;
+    }
+    return issues.filter(({ field }) => guidedStep.element.contains(fields[field]));
 }
 
 function clearValidationErrors() {
