@@ -669,6 +669,10 @@ main {
     display: none !important;
 }
 
+.role-template-fields[hidden] {
+    display: none;
+}
+
 .item-summary {
     flex-basis: 100%;
     color: var(--muted);

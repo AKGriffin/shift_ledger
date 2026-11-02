@@ -349,6 +349,8 @@ function bindEvents() {
     fields.mealPeriod.addEventListener("change", updateMealPeriodFields);
     document.getElementById("shift-no-sales-report").addEventListener("change", updateMealPeriodFields);
     document.getElementById("shift-no-tips-report").addEventListener("change", updateMealPeriodFields);
+    document.getElementById("template-use-times").addEventListener("change", updateTemplateDefaultFields);
+    document.getElementById("template-use-break").addEventListener("change", updateTemplateDefaultFields);
     doubleReportList.addEventListener("change", handleDoubleReportToggle);
     form.addEventListener("focusin", selectNumberOnFocus);
     form.addEventListener("mouseup", (event) => {
@@ -1130,10 +1132,10 @@ function applyRoleTemplate() {
     let filled = 0;
     [
         [fields.mealPeriod, template.mealPeriod],
-        [fields.clockIn, template.clockIn],
-        [fields.clockOut, template.clockOut],
-        [fields.breakStart, template.breakStart],
-        [fields.breakEnd, template.breakEnd],
+        [fields.clockIn, template.useTimes === false ? "" : template.clockIn],
+        [fields.clockOut, template.useTimes === false ? "" : template.clockOut],
+        [fields.breakStart, template.useBreak === false ? "" : template.breakStart],
+        [fields.breakEnd, template.useBreak === false ? "" : template.breakEnd],
     ].forEach(([field, value]) => {
         if (value && !field.value) {
             field.value = value;
@@ -2315,11 +2317,17 @@ function formatWorkplaceDates(workplace) {
 
 function formatTemplate(template, role, hourlyWage) {
     const parts = [template?.mealPeriod];
-    if (template?.clockIn || template?.clockOut) {
+    if (template?.useTimes && (template.clockIn || template.clockOut)) {
         parts.push(`${template.clockIn || "?"}–${template.clockOut || "?"}`);
     }
-    if (template?.breakStart) {
+    if (template?.useBreak && template.breakStart) {
         parts.push(`break ${template.breakStart}–${template.breakEnd}`);
+    }
+    if (template?.useTimes && !template.clockIn && !template.clockOut) {
+        parts.push("default times enabled");
+    }
+    if (template?.useBreak && !template.breakStart) {
+        parts.push("default break enabled");
     }
     const text = template ? `Template: ${parts.filter(Boolean).join(", ")}` : "No template";
     const details = [text];
@@ -2489,6 +2497,23 @@ function showDialogError(element, message) {
     element.hidden = !message;
 }
 
+function updateTemplateDefaultFields(event) {
+    const useTimes = document.getElementById("template-use-times").checked;
+    const useBreak = document.getElementById("template-use-break").checked;
+    document.getElementById("template-time-fields").hidden = !useTimes;
+    document.getElementById("template-break-fields").hidden = !useBreak;
+    if (event?.target?.id === "template-use-times" && !useTimes) {
+        ["template-clock-in", "template-clock-out"].forEach((id) => {
+            document.getElementById(id).value = "";
+        });
+    }
+    if (event?.target?.id === "template-use-break" && !useBreak) {
+        ["template-break-start", "template-break-end"].forEach((id) => {
+            document.getElementById(id).value = "";
+        });
+    }
+}
+
 function askForTemplate(role) {
     const inputs = {
         mealPeriod: document.getElementById("template-meal-period"),
@@ -2498,6 +2523,8 @@ function askForTemplate(role) {
         breakEnd: document.getElementById("template-break-end"),
     };
     const errorElement = document.getElementById("template-error");
+    const useTimesInput = document.getElementById("template-use-times");
+    const useBreakInput = document.getElementById("template-use-break");
     const capabilityInputs = {
         tracksSales: document.getElementById("template-tracks-sales"),
         receivesTips: document.getElementById("template-receives-tips"),
@@ -2515,6 +2542,9 @@ function askForTemplate(role) {
             Object.entries(inputs).forEach(([key, input]) => {
                 input.value = role.template?.[key] || "";
             });
+            useTimesInput.checked = role.template?.useTimes ?? Boolean(role.template?.clockIn || role.template?.clockOut);
+            useBreakInput.checked = role.template?.useBreak ?? Boolean(role.template?.breakStart || role.template?.breakEnd);
+            updateTemplateDefaultFields();
             hourlyWageInput.value = role.hourlyWage === undefined ? "" : String(role.hourlyWage);
             hourlyWageInput.removeAttribute("aria-invalid");
             showDialogError(errorElement, "");
@@ -2524,7 +2554,11 @@ function askForTemplate(role) {
             inputs.mealPeriod.focus();
         },
         onSubmit: () => {
-            const value = Object.fromEntries(Object.entries(inputs).map(([key, input]) => [key, input.value]));
+            const value = Object.fromEntries([
+                ...Object.entries(inputs).map(([key, input]) => [key, input.value]),
+                ["useTimes", useTimesInput.checked],
+                ["useBreak", useBreakInput.checked],
+            ]);
             const check = window.Workplaces.setTemplate(structuredClone(state.workplaces), role.id, value);
             if (check.error) {
                 showDialogError(errorElement, check.error);

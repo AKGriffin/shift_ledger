@@ -179,7 +179,24 @@ describe("Workplaces data module", () => {
             clockIn: "10:00",
             clockOut: "15:00",
         }).item.template.mealPeriod).toBe("Lunch");
+        expect(data.workplaces[0].roles[0].template.useTimes).toBe(true);
+        expect(data.workplaces[0].roles[0].template.useBreak).toBeUndefined();
+        expect(Workplaces.setTemplate(data, "r-1", {
+            useTimes: true,
+            useBreak: true,
+            clockIn: "",
+            clockOut: "",
+        }).item.template).toEqual({ useTimes: true, useBreak: true });
+        expect(Workplaces.setTemplate(data, "r-1", {
+            useTimes: false,
+            useBreak: false,
+            clockIn: "10:00",
+            clockOut: "15:00",
+            breakStart: "12:00",
+            breakEnd: "12:30",
+        }).item.template).toBeUndefined();
         expect(Workplaces.setTemplate(data, "r-1", { breakStart: "12:00" }).error).toContain("both break times");
+        expect(Workplaces.setTemplate(data, "r-1", { useTimes: "true" }).error).toContain("default time");
         expect(Workplaces.setPayPeriod(data, "wp-1", { type: "weekly", startDay: "monday" }).item.payPeriod)
             .toEqual({ type: "weekly", startDay: "monday" });
         expect(Workplaces.setPayPeriod(data, "wp-1", {
@@ -455,6 +472,8 @@ describe("Workplace manager in Settings", () => {
         expect(element("#template-dialog-title").textContent).toBe("Role settings for Server");
         element("#template-hourly-wage").value = "24.50";
         element("#template-meal-period").value = "Lunch";
+        element("#template-use-times").checked = true;
+        fire(element("#template-use-times"), "change");
         element("#template-clock-in").value = "11:00";
         element("#template-clock-out").value = "15:00";
         fire(element("#template-form"), "submit");
@@ -790,7 +809,7 @@ describe("Shift form workplace mode", () => {
             });
             return data;
         })(),
-    }, ({ element, change, fillForm, submitForm, openView, savedShifts }) => {
+    }, ({ element, change, fillForm, submitForm, openView, savedShifts, style }) => {
         openView("new-shift");
         change("#shift-role", "r-2");
         expect(element("#single-report-fields fieldset").hidden).toBe(true);
@@ -891,6 +910,8 @@ describe("Shift form workplace mode", () => {
         openView("settings");
         element('button[data-action="template"][data-id="r-1"]').click();
         expect(element("#template-clock-in").value).toBe("16:00");
+        expect(element("#template-time-fields").hidden).toBe(false);
+        expect(element("#template-break-fields").hidden).toBe(false);
         element("#template-tracks-sales").checked = false;
         element("#template-receives-tips").checked = false;
         element("#template-tips-out").checked = true;
@@ -904,6 +925,38 @@ describe("Shift form workplace mode", () => {
         expect(role.receivesTipOut).toBe(false);
         expect(role.template.clockIn).toBe("16:00");
         expect(element(".role-item").textContent).toContain("No sales report");
+    }));
+
+    test("role template switches reveal fields and remove disabled defaults", () => withApp({
+        workplaces: sampleDataWithTemplate(),
+    }, async ({ win, element, openView, fire, savedWorkplaces }) => {
+        openView("settings");
+        element('button[data-action="template"][data-id="r-1"]').click();
+        const useTimes = element("#template-use-times");
+        const useBreak = element("#template-use-break");
+        expect(useTimes.checked).toBe(true);
+        expect(useBreak.checked).toBe(true);
+
+        useTimes.checked = false;
+        fire(useTimes, "change");
+        useBreak.checked = false;
+        fire(useBreak, "change");
+        expect(element("#template-time-fields").hidden).toBe(true);
+        expect(element("#template-break-fields").hidden).toBe(true);
+        expect(element("#template-clock-in").value).toBe("");
+        expect(element("#template-break-start").value).toBe("");
+
+        fire(element("#template-form"), "submit");
+        await tick(win);
+        expect(savedWorkplaces().workplaces[0].roles[0].template).toEqual({ mealPeriod: "Dinner" });
+
+        element('button[data-action="template"][data-id="r-1"]').click();
+        useTimes.checked = true;
+        fire(useTimes, "change");
+        useBreak.checked = true;
+        fire(useBreak, "change");
+        expect(element("#template-time-fields").hidden).toBe(false);
+        expect(element("#template-break-fields").hidden).toBe(false);
     }));
 
     test("rejects a negative hourly wage and keeps role settings open for correction", () => withApp({

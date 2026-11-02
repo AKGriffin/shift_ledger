@@ -21,7 +21,26 @@
             }
             template.mealPeriod = raw.mealPeriod;
         }
-        for (const field of ["clockIn", "clockOut", "breakStart", "breakEnd"]) {
+        const useTimes = raw.useTimes === undefined
+            ? Boolean(raw.clockIn || raw.clockOut)
+            : raw.useTimes;
+        const useBreak = raw.useBreak === undefined
+            ? Boolean(raw.breakStart || raw.breakEnd)
+            : raw.useBreak;
+        if (typeof useTimes !== "boolean" || typeof useBreak !== "boolean") {
+            throw new Error("Role default time settings are not valid.");
+        }
+        if (useTimes) {
+            template.useTimes = true;
+        }
+        if (useBreak) {
+            template.useBreak = true;
+        }
+        const fields = [
+            ...(useTimes ? ["clockIn", "clockOut"] : []),
+            ...(useBreak ? ["breakStart", "breakEnd"] : []),
+        ];
+        for (const field of fields) {
             if (raw[field]) {
                 if (typeof raw[field] !== "string" || !TIME_PATTERN.test(raw[field])) {
                     throw new Error("Use valid times for the template.");

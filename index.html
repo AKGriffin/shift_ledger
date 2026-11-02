@@ -708,21 +708,33 @@
                         <option value="Double">Double</option>
                     </select>
                 </div>
-                <div class="field">
-                    <label for="template-clock-in">Clock in</label>
-                    <input type="time" id="template-clock-in">
+                <label class="report-toggle">
+                    <input type="checkbox" id="template-use-times">
+                    <span>Has default clock-in and clock-out times</span>
+                </label>
+                <div id="template-time-fields" class="settings-grid role-template-fields" hidden>
+                    <div class="field">
+                        <label for="template-clock-in">Clock in</label>
+                        <input type="time" id="template-clock-in">
+                    </div>
+                    <div class="field">
+                        <label for="template-clock-out">Clock out</label>
+                        <input type="time" id="template-clock-out">
+                    </div>
                 </div>
-                <div class="field">
-                    <label for="template-clock-out">Clock out</label>
-                    <input type="time" id="template-clock-out">
-                </div>
-                <div class="field">
-                    <label for="template-break-start">Break start</label>
-                    <input type="time" id="template-break-start">
-                </div>
-                <div class="field">
-                    <label for="template-break-end">Break end</label>
-                    <input type="time" id="template-break-end" aria-describedby="template-error">
+                <label class="report-toggle">
+                    <input type="checkbox" id="template-use-break">
+                    <span>Has a default break</span>
+                </label>
+                <div id="template-break-fields" class="settings-grid role-template-fields" hidden>
+                    <div class="field">
+                        <label for="template-break-start">Break start</label>
+                        <input type="time" id="template-break-start">
+                    </div>
+                    <div class="field">
+                        <label for="template-break-end">Break end</label>
+                        <input type="time" id="template-break-end" aria-describedby="template-error">
+                    </div>
                 </div>
                 <fieldset class="settings-grid role-capabilities">
                 <legend>Shift reports and tips</legend>

@@ -57,10 +57,10 @@ Stored in a new key, `shift-ledger-workplaces-v1`, so the shift key stays backwa
           "receivesTipOut": true,
           "template": {
             "mealPeriod": "Dinner",
+            "useTimes": true,
             "clockIn": "16:00",
             "clockOut": "22:00",
-            "breakStart": "",
-            "breakEnd": ""
+            "useBreak": false
           }
         }
       ]
@@ -75,10 +75,10 @@ Rules:
 - Names are trimmed, 1-60 characters, and unique among non-archived siblings, compared case-insensitively.
 - Workplace `startDate` and `endDate` are optional ISO dates. If both are set, the end date cannot precede the start date. They are descriptive only and never restrict shift logging or history.
 - `payPeriod.type` is one of `weekly`, `biweekly`, `semimonthly`, `monthly`. Weekly and biweekly periods store a `startDay` weekday, defaulting to the app's week-start setting. Biweekly periods also require an `anchorDate` reference start to preserve alternating-week alignment; it must fall on `startDay`. Legacy weekly/biweekly anchor dates are normalized to their weekday, and legacy biweekly dates remain as the reference.
-- `template` fields are all optional. Time fields use the same `HH:MM` validation as shifts. `mealPeriod` is Lunch, Dinner, or Double.
+- `template` fields are all optional. `useTimes` reveals the optional default clock-in/out fields, and `useBreak` reveals the optional default break fields. When absent, each switch is derived from its saved time values for compatibility with older data. Turning either switch off removes its associated defaults. Time fields use the same `HH:MM` validation as shifts. `mealPeriod` is Lunch, Dinner, or Double.
 - `tracksSales`, `receivesTips`, `tipsOut`, and `receivesTipOut` default to `true`; only `false` values need to be stored. They control sales fields, earned-tip fields, tips-paid-out fields, and tip-out-received fields independently.
 - Legacy `tracksReports: false` data normalizes to all four capabilities being `false`. Saving role settings writes the independent capabilities and removes the legacy property.
-- Templates remain separate and continue to hold only meal period and time defaults.
+- Templates remain separate from capabilities and hold meal-period defaults, plus opt-in clock-time and break defaults. Their switches reveal the associated inputs; disabling a switch clears those defaults.
 
 ## Changes to shifts
 

@@ -125,7 +125,7 @@ Plan these together; they share dashboard code. Start with the stat layout.
 
 Newest first.
 
-- Role settings now keep time and meal-period templates separate from four capability switches: sales reports, tips received, tips paid out, and tip-outs received. Legacy roles with `tracksReports: false` migrate with all four capabilities off.
+- Role settings keep meal-period templates and optional clock-time and break defaults separate from four capability switches: sales reports, tips received, tips paid out, and tip-outs received. Legacy roles with `tracksReports: false` migrate with all four capabilities off.
 - Shift entry responds to role capabilities for single and double reports. Unsupported new-shift fields save as empty; editing existing shifts preserves their stored amounts and report coverage.
 - The new shift form unfolds from date to required workplace, then to the remaining fields once a role is selected when active roles exist. It preselects the last-used workplace, auto-selects a single role, keeps revealed sections open, and shows all fields when editing. The role control appears only when the selected workplace has roles to choose.
 - Separate role selection from workplace selection in the new-shift flow; folded into the progressive form.
