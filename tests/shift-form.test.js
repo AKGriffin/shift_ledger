@@ -332,7 +332,35 @@ describe("Guided and manual entry", () => {
         element("#shift-has-tips-report-no").checked = true;
         fire(element("#shift-has-tips-report-no"), "change");
         expect(element("#shift-no-tips-report").checked).toBe(true);
-        expect(element("#guided-question").textContent).toContain("tip anyone out");
+        expect(element("#guided-tips-inputs").hidden).toBe(true);
+        expect(element("#guided-question").textContent).toContain("remember about this shift");
+    }));
+
+    test("guided tips report focuses the first available field for tip-out-only roles", () => withApp({
+        workplaces: {
+            workplaces: [{
+                id: "test-workplace",
+                name: "Test Workplace",
+                archived: false,
+                roles: [{
+                    id: "test-server",
+                    name: "Server",
+                    archived: false,
+                    tracksSales: true,
+                    receivesTips: false,
+                    tipsOut: true,
+                    receivesTipOut: false,
+                }],
+            }],
+        },
+    }, (harness) => {
+        const { element, fire, doc } = harness;
+        chooseMode(harness, "guided");
+        advanceGuidedUntil(harness, "tips report");
+        element("#shift-has-tips-report-yes").checked = true;
+        fire(element("#shift-has-tips-report-yes"), "change");
+
+        expect(doc.activeElement.id).toBe("shift-tip-out-paid");
     }));
 
     test("guided break question conditionally reveals and validates break times", () => withApp((harness) => {
@@ -421,10 +449,14 @@ describe("Guided and manual entry", () => {
     }));
 
     test("sales and tips report choices remain editable in guided review", () => withApp((harness) => {
-        const { element, fire } = harness;
+        const { element, fire, style } = harness;
         chooseMode(harness, "guided");
         advanceGuidedToReview(harness);
         expect(element("#guided-question").textContent).toContain("Review your shift");
+        expect(element("#guided-sales-report-title").textContent).toBe("Do you have your sales report?");
+        expect(element("#guided-tips-report-title").textContent).toBe("Do you have your tips report?");
+        expect(element("#guided-sales-report-choice").getAttribute("aria-labelledby")).toBe("guided-sales-report-title");
+        expect(element("#guided-tips-report-choice").getAttribute("aria-labelledby")).toBe("guided-tips-report-title");
 
         element("#shift-has-sales-report-yes").checked = true;
         fire(element("#shift-has-sales-report-yes"), "change");
@@ -442,11 +474,20 @@ describe("Guided and manual entry", () => {
         expect(element("#guided-tips-report-choice").hidden).toBe(false);
         expect(element("#guided-tips-inputs").hidden).toBe(false);
         expect(element("#guided-question").textContent).toContain("Review your shift");
+        const tipsFieldset = element("#guided-tips-report-step");
+        const tipsCard = element("#shift-cc-tips").closest(".sub-card");
+        const tipOutCard = element("#shift-tip-out-paid").closest(".sub-card");
+        expect(style(tipsCard).backgroundColor).toBe(style(tipsFieldset).backgroundColor);
+        expect(style(tipsCard).opacity).toBe("1");
+        expect(style(tipOutCard).backgroundColor).toBe(style(tipsFieldset).backgroundColor);
+        expect(style(tipOutCard).opacity).toBe("1");
 
         element("#shift-has-tips-report-no").checked = true;
         fire(element("#shift-has-tips-report-no"), "change");
         expect(element("#guided-tips-report-choice").hidden).toBe(false);
         expect(element("#guided-tips-inputs").hidden).toBe(true);
+        expect(element("#shift-cc-tips").closest(".sub-card").closest("#guided-tips-inputs").hidden).toBe(true);
+        expect(element("#shift-tip-out-paid").closest(".sub-card").closest("#guided-tips-inputs").hidden).toBe(true);
         expect(element("#save-shift").hidden).toBe(false);
     }));
 

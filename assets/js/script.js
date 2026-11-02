@@ -1206,7 +1206,9 @@ function updateGuidedSalesReport(guided = entryMode === "guided") {
     document.getElementById("shift-no-tips-report-control").hidden = guided;
     document.getElementById("shift-no-tips-report-hint").hidden = guided;
     document.getElementById("guided-tips-report-hint").hidden = !guided || tipsAnswer !== "no";
-    document.getElementById("guided-tips-inputs").hidden = guided && tipsAnswer !== "yes";
+    document.getElementById("guided-tips-inputs").hidden = guided
+        ? tipsAnswer !== "yes"
+        : document.getElementById("shift-no-tips-report").checked;
 }
 
 function getGuidedBreakAnswer() {
@@ -1227,7 +1229,14 @@ function handleGuidedSalesReportChange(input) {
     updateShiftFormProgression();
     updateValidationErrors();
     if (input.value === "yes") {
-        form.querySelector(kind === "sales" ? "#shift-baw-sales" : "#shift-cc-tips").focus({ preventScroll: true });
+        const target = kind === "sales"
+            ? document.getElementById("shift-baw-sales")
+            : [...document.querySelectorAll('#guided-tips-inputs input[type="number"]')]
+                .find((field) => !field.closest("[hidden]"));
+        if (!target) {
+            throw new Error(`No available fields found for the ${kind} report.`);
+        }
+        target.focus({ preventScroll: true });
     }
 }
 
@@ -1290,12 +1299,19 @@ function renderEntryMode() {
     if (review) {
         document.getElementById("guided-question").textContent = "Review your shift and make any changes below.";
         document.getElementById("guided-progress").textContent = `Review · Step ${steps.length + 1} of ${steps.length + 1}`;
+        container.querySelectorAll("[data-guided-review-prompt]").forEach((heading) => {
+            heading.dataset.guidedOriginal = heading.textContent;
+            heading.textContent = heading.dataset.guidedReviewPrompt;
+        });
     } else {
+        const showingTipInputs = current.id === "guided-tips-report-step"
+            && getGuidedReportAnswer("tips") === "yes";
         steps.forEach((step) => {
             step.classList.toggle("guided-off", step !== current);
         });
         container.querySelectorAll(GUIDED_CONTAINER_SELECTOR).forEach((element) => {
-            element.classList.toggle("guided-off", !element.contains(current));
+            const partOfCurrentTipsStep = showingTipInputs && element.closest("#guided-tips-inputs");
+            element.classList.toggle("guided-off", !element.contains(current) && !partOfCurrentTipsStep);
         });
         const prompt = current.dataset.guidedPrompt || "";
         question.textContent = prompt;
