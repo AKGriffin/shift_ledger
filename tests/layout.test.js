@@ -176,6 +176,7 @@ describe("Mobile navigation", () => {
         width: 390,
         height: 667,
     }, ({ element, win }) => {
+        expect(win.history.scrollRestoration).toBe("manual");
         element('.mobile-bottom-nav [data-view="previous-shifts"]').click();
         expect(win.history.state.shiftLedgerView).toBe("previous-shifts");
         expect(element("#previous-shifts").classList.contains("is-visible")).toBe(true);
