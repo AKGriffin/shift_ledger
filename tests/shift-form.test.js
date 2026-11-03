@@ -106,21 +106,28 @@ describe("Guided and manual entry", () => {
         }
     }
 
+    function answerAndAdvance(harness) {
+        const before = harness.element("#guided-question").textContent;
+        answerGuidedStep(harness);
+        // Radio answers auto-advance, so only press Next when the step did not move.
+        if (harness.element("#guided-question").textContent === before) {
+            harness.element("#guided-next").click();
+        }
+    }
+
     function advanceGuidedUntil(harness, targetPrompt) {
         for (let guard = 0; guard < 30; guard += 1) {
             if (harness.element("#guided-question").textContent.includes(targetPrompt)) {
                 return;
             }
-            answerGuidedStep(harness);
-            harness.element("#guided-next").click();
+            answerAndAdvance(harness);
         }
         throw new Error(`Guided entry did not reach "${targetPrompt}".`);
     }
 
     function advanceGuidedToReview(harness) {
         for (let guard = 0; guard < 30 && !harness.element("#guided-next").hidden; guard += 1) {
-            answerGuidedStep(harness);
-            harness.element("#guided-next").click();
+            answerAndAdvance(harness);
         }
     }
 
@@ -130,7 +137,7 @@ describe("Guided and manual entry", () => {
         harness.fire(radio, "change");
     }
 
-    test("asks for an entry mode each time and offers Close before entry starts", () => withApp({
+    test("asks for an entry mode each time and offers Cancel before entry starts", () => withApp({
         width: 390,
         height: 800,
     }, ({ element, openView, win, doc }) => {
@@ -157,9 +164,11 @@ describe("Guided and manual entry", () => {
 
         win.confirm = () => true;
         element("#cancel-form").click();
-        expect(element("#entry-mode-chooser").hidden).toBe(false);
-        expect(element("#shift-entry-fields").hidden).toBe(true);
+        expect(element("#new-shift").classList.contains("is-visible")).toBe(false);
+        expect(element("#previous-shifts").classList.contains("is-visible")
+            || element("#dashboard").classList.contains("is-visible")).toBe(true);
 
+        openView("new-shift", { entryMode: null });
         element("#close-entry-mode").click();
         expect(element("#new-shift").classList.contains("is-visible")).toBe(false);
         expect(element("#dashboard").classList.contains("is-visible")).toBe(true);
@@ -179,8 +188,10 @@ describe("Guided and manual entry", () => {
         chooseMode(harness, "guided");
         expect(element("#guided-controls").hidden).toBe(false);
         expect(element("#guided-progress").textContent).toBe("Step 1");
-        expect(element("#guided-back").disabled).toBe(true);
-        expect(element("#guided-next").disabled).toBe(true);
+        expect(element("#guided-back").disabled).toBe(false);
+        expect(element("#guided-next").disabled).toBe(false);
+        expect(element("#guided-next-hint").hidden).toBe(true);
+        element("#guided-next").click();
         expect(element("#guided-next-hint").hidden).toBe(false);
         expect(element("#guided-next-hint").textContent).toContain("Date is required");
         expect(activeGuidedSteps(elements).map((step) => step.id)).toEqual(["shift-date-card"]);
@@ -245,9 +256,8 @@ describe("Guided and manual entry", () => {
 
         frame.style.height = "480px";
         await new Promise((resolve) => win.requestAnimationFrame(() => win.requestAnimationFrame(resolve)));
-        expect(doc.documentElement.scrollHeight).toBeLessThanOrEqual(win.innerHeight);
-        expect(element(".app-content").getBoundingClientRect().height).toBeLessThanOrEqual(win.innerHeight);
-        expect(style(element(".app-content")).overflowY).toBe("auto");
+        expect(style(doc.body).overflowY).not.toBe("hidden");
+        expect(style(element(".app-content")).overflowY).not.toBe("auto");
 
         element("#shift-date").value = "2026-10-22";
         harness.fire(element("#shift-date"), "change");
@@ -286,19 +296,22 @@ describe("Guided and manual entry", () => {
         chooseMode(harness, "guided");
         advanceGuidedUntil(harness, "sales report");
 
-        expect(element("#guided-next").disabled).toBe(true);
-        expect(element("#guided-sales-report-choice").hidden).toBe(false);
+        expect(element("#guided-next-hint").hidden).toBe(true);
+        expect(element("#guided-sales-report-step").hidden).toBe(false);
         expect(harness.style(element("#shift-no-sales-report-control")).display).toBe("none");
         expect(element('[data-report-inputs="sales"]').hidden).toBe(true);
         expect(activeGuidedQuestion(harness).textContent).toBe("Do you have your sales report?");
-        expect(element("#guided-sales-report-choice").closest("fieldset").contains(activeGuidedQuestion(harness))).toBe(true);
+        expect(element("#guided-sales-card").contains(element("#guided-sales-report-step"))).toBe(true);
+
+        element("#guided-next").click();
+        expect(element("#guided-next-hint").textContent).toContain("Choose whether you have a sales report");
 
         element("#shift-has-sales-report-no").checked = true;
         fire(element("#shift-has-sales-report-no"), "change");
         expect(element("#guided-question").textContent).toContain("tips report");
     }));
 
-    test("guided sales report Yes reveals the inputs and focuses the first amount", () => withApp((harness) => {
+    test("guided sales report Yes advances to the inputs and focuses the first amount", () => withApp((harness) => {
         const { element, fire, doc } = harness;
         chooseMode(harness, "guided");
         advanceGuidedUntil(harness, "sales report");
@@ -309,19 +322,15 @@ describe("Guided and manual entry", () => {
         expect(element('[data-report-inputs="sales"]').hidden).toBe(false);
         expect(element("#shift-no-sales-report").checked).toBe(false);
         expect(doc.activeElement.id).toBe("shift-baw-sales");
-        expect(element("#guided-sales-report-choice").hidden).toBe(true);
-        expect(element("#shift-no-sales-report-control").hidden).toBe(true);
-        expect(element("#shift-baw-sales").closest("fieldset").querySelector(":scope > legend").textContent)
-            .toBe("Fill out the sales from your report");
+        expect(element("#guided-sales-report-step").classList.contains("guided-off")).toBe(true);
+        expect(activeGuidedQuestion(harness).textContent).toBe("Fill out the sales from your report");
 
         element("#guided-back").click();
-        expect(element("#guided-sales-report-choice").hidden).toBe(false);
-        expect(element('[data-report-inputs="sales"]').hidden).toBe(true);
-        expect(element("#shift-has-sales-report-yes").checked).toBe(false);
-        expect(element("#guided-next").disabled).toBe(true);
+        expect(element("#guided-question").textContent).toContain("sales report");
+        expect(element("#guided-sales-report-step").classList.contains("guided-off")).toBe(false);
     }));
 
-    test("guided tips report Yes swaps the question for the tip inputs and focuses the first", () => withApp((harness) => {
+    test("guided tips report Yes advances to the tip inputs and focuses the first", () => withApp((harness) => {
         const { element, fire, doc } = harness;
         chooseMode(harness, "guided");
         advanceGuidedUntil(harness, "tips report");
@@ -330,23 +339,20 @@ describe("Guided and manual entry", () => {
 
         element("#shift-has-tips-report-yes").checked = true;
         fire(element("#shift-has-tips-report-yes"), "change");
-        expect(element("#guided-tips-report-choice").hidden).toBe(true);
         expect(element("#guided-tips-inputs").hidden).toBe(false);
         expect(element("#shift-no-tips-report").checked).toBe(false);
         expect(element("#shift-cc-tips").disabled).toBe(false);
         expect(doc.activeElement.id).toBe("shift-cc-tips");
-        expect(element("#guided-tips-report-title").textContent).toBe("Fill out the tips from your report");
+        expect(activeGuidedQuestion(harness).textContent).toBe("Fill out the tips from your report");
 
         element("#guided-back").click();
-        expect(element("#guided-tips-report-choice").hidden).toBe(false);
-        expect(element("#guided-tips-inputs").hidden).toBe(true);
-        expect(element("#guided-next").disabled).toBe(true);
+        expect(element("#guided-question").textContent).toContain("tips report");
 
         element("#shift-has-tips-report-no").checked = true;
         fire(element("#shift-has-tips-report-no"), "change");
         expect(element("#shift-no-tips-report").checked).toBe(true);
         expect(element("#guided-tips-inputs").hidden).toBe(true);
-        expect(element("#guided-question").textContent).toContain("remember about this shift");
+        expect(element("#guided-question").textContent).toContain("Do you have notes");
     }));
 
     test("guided tips report focuses the first available field for tip-out-only roles", () => withApp({
@@ -380,24 +386,26 @@ describe("Guided and manual entry", () => {
         const { element } = harness;
         chooseMode(harness, "guided");
         advanceGuidedUntil(harness, "Did you have a break");
-        expect(element("#guided-next").disabled).toBe(true);
+        expect(element("#guided-next-hint").hidden).toBe(true);
         expect(activeGuidedQuestion(harness).textContent).toBe("Did you have a break?");
         element("#guided-next").click();
-        expect(element("#shift-had-break-error").textContent).toBe("");
+        expect(element("#guided-next-hint").hidden).toBe(false);
+        expect(element("#shift-had-break-error").textContent).toBe("Choose whether you had a break.");
 
         chooseBreakAnswer(harness, "yes");
         expect(element("#break-time-fields").hidden).toBe(false);
-        expect(element("#guided-next").disabled).toBe(true);
+        expect(element("#guided-next-hint").hidden).toBe(true);
         element("#guided-next").click();
-        expect(element("#shift-break-start-error").textContent).toBe("");
+        expect(element("#guided-next-hint").hidden).toBe(false);
+        expect(element("#shift-break-start-error").textContent).toBe("Break start is required when you had a break.");
         harness.fillForm({ breakStart: "18:00", breakEnd: "18:15" });
         harness.fire(element("#shift-break-end"), "input");
-        expect(element("#guided-next").disabled).toBe(false);
+        expect(element("#guided-next-hint").hidden).toBe(true);
         element("#guided-next").click();
         expect(element("#guided-question").textContent).toContain("shift end");
     }));
 
-    test("cancel confirms before discarding entry and returns to the mode chooser", () => withApp((harness) => {
+    test("cancel confirms before discarding entry and returns to the shifts section", () => withApp((harness) => {
         const { element } = harness;
         chooseMode(harness, "guided");
         harness.fillForm({ date: "2026-10-22" });
@@ -410,10 +418,52 @@ describe("Guided and manual entry", () => {
 
         harness.win.confirm = () => true;
         element("#guided-cancel").click();
+        expect(element("#new-shift").classList.contains("is-visible")).toBe(false);
         expect(element("#entry-mode-chooser").hidden).toBe(false);
         expect(element("#shift-entry-fields").hidden).toBe(true);
         expect(element("#shift-date").value).toBe("");
         expect(element("#guided-controls").hidden).toBe(true);
+    }));
+
+    test("Back on the first guided step returns to the entry mode choice", () => withApp((harness) => {
+        const { element } = harness;
+        chooseMode(harness, "guided");
+        element("#guided-back").click();
+        expect(element("#new-shift").classList.contains("is-visible")).toBe(true);
+        expect(element("#entry-mode-chooser").hidden).toBe(false);
+        expect(element("#guided-controls").hidden).toBe(true);
+    }));
+
+    test("guided notes ask yes or no first and review as no when blank", () => withApp((harness) => {
+        const { element, fire, savedShifts } = harness;
+        chooseMode(harness, "guided");
+        advanceGuidedUntil(harness, "Do you have notes");
+        expect(element("#notes-entry").hidden).toBe(true);
+
+        element("#shift-has-notes-yes").checked = true;
+        fire(element("#shift-has-notes-yes"), "change");
+        expect(element("#notes-entry").hidden).toBe(false);
+        expect(element("#guided-question").textContent).toContain("remember about this shift");
+        element("#guided-next").click();
+        expect(element("#guided-question").textContent).toContain("Review your shift");
+        expect(element("#shift-has-notes-no").checked).toBe(true);
+        expect(element("#notes-entry").hidden).toBe(true);
+        expect(savedShifts()).toHaveLength(0);
+    }));
+
+    test("guided notes keep valid notes and skip the entry when answered no", () => withApp((harness) => {
+        const { element, fire, savedShifts } = harness;
+        chooseMode(harness, "guided");
+        advanceGuidedUntil(harness, "Do you have notes");
+        element("#shift-has-notes-yes").checked = true;
+        fire(element("#shift-has-notes-yes"), "change");
+        element("#notes-list .note-input").value = "Slow night";
+        fire(element("#notes-list .note-input"), "input");
+        element("#guided-next").click();
+        expect(element("#shift-has-notes-yes").checked).toBe(true);
+        expect(element("#notes-entry").hidden).toBe(false);
+        element("#save-shift").click();
+        expect(savedShifts()[0].notes).toEqual(["Slow night"]);
     }));
 
     test("guided entry groups reports and ends with an editable full-form review", () => withApp((harness) => {
@@ -427,11 +477,10 @@ describe("Guided and manual entry", () => {
         fire(element("#shift-food-sales"), "input");
         element("#guided-next").click();
         expect(element("#guided-question").textContent).toContain("tips report");
-        expect(element("#guided-next").disabled).toBe(true);
         element("#shift-has-tips-report-yes").checked = true;
         fire(element("#shift-has-tips-report-yes"), "change");
         element("#guided-next").click();
-        expect(element("#guided-question").textContent).toContain("remember about this shift");
+        expect(element("#guided-question").textContent).toContain("Do you have notes");
         expect(elements("#shift-entry-fields [data-guided-prompt*='tip anyone out']")).toHaveLength(0);
         advanceGuidedToReview(harness);
         expect(element("#guided-question").textContent).toContain("Review your shift");
@@ -488,7 +537,7 @@ describe("Guided and manual entry", () => {
         expect(element("#guided-tips-report-choice").hidden).toBe(false);
         expect(element("#guided-tips-inputs").hidden).toBe(false);
         expect(element("#guided-question").textContent).toContain("Review your shift");
-        const tipsFieldset = element("#guided-tips-report-step");
+        const tipsFieldset = element("#guided-tips-card");
         const tipsCard = element("#shift-cc-tips").closest(".sub-card");
         const tipOutCard = element("#shift-tip-out-paid").closest(".sub-card");
         expect(style(tipsCard).backgroundColor).toBe(style(tipsFieldset).backgroundColor);

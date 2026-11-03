@@ -58,6 +58,7 @@ let shiftFormDirty = false;
 let shiftFormProgress = { workplace: false, details: false };
 let entryMode = null;
 let guidedStep = { element: null, index: 0 };
+let guidedNextAttempted = false;
 let allowUpdateReload = false;
 let updateRequested = false;
 let serviceWorkerRegistration = null;
@@ -1010,6 +1011,9 @@ function handleNoteKeydown(event) {
 }
 
 function readNotes() {
+    if (entryMode === "guided" && getGuidedNotesAnswer() === "no") {
+        return [];
+    }
     return [...notesList.querySelectorAll(".note-input")]
         .map((input) => input.value.trim())
         .filter(Boolean);
@@ -1154,6 +1158,7 @@ function updateShiftFormProgression() {
 function setEntryMode(mode) {
     entryMode = mode;
     guidedStep = { element: null, index: 0 };
+    guidedNextAttempted = false;
     updateShiftFormProgression();
     focusGuidedStep();
 }
@@ -1189,27 +1194,36 @@ function getGuidedReportKind(element) {
         .find((kind) => element?.matches?.(`input[name="${GUIDED_REPORT_KINDS[kind].radioName}"]`)) || "";
 }
 
-function getGuidedStepReportKind(step) {
-    return step?.dataset.guidedInputPrompt ? (step.id === "guided-tips-report-step" ? "tips" : "sales") : "";
-}
-
 function updateGuidedSalesReport(guided = entryMode === "guided") {
-    const review = guided && guidedStep.review;
-    const answer = getGuidedReportAnswer("sales");
-    document.getElementById("guided-sales-report-choice").hidden = !guided || (!review && answer === "yes");
+    const salesAnswer = getGuidedReportAnswer("sales");
+    document.getElementById("guided-sales-report-step").hidden = !guided;
     document.getElementById("shift-no-sales-report-control").hidden = guided;
     document.getElementById("shift-no-sales-report-hint").hidden = guided;
-    document.getElementById("guided-sales-report-hint").hidden = !guided || answer !== "no";
-    document.querySelector('[data-report-inputs="sales"]').hidden = guided && answer !== "yes";
+    document.getElementById("guided-sales-report-hint").hidden = !guided || salesAnswer !== "no";
+    document.getElementById("guided-sales-inputs").hidden = guided && salesAnswer !== "yes";
 
     const tipsAnswer = getGuidedReportAnswer("tips");
-    document.getElementById("guided-tips-report-choice").hidden = !guided || (!review && tipsAnswer === "yes");
+    document.getElementById("guided-tips-report-step").hidden = !guided;
     document.getElementById("shift-no-tips-report-control").hidden = guided;
     document.getElementById("shift-no-tips-report-hint").hidden = guided;
     document.getElementById("guided-tips-report-hint").hidden = !guided || tipsAnswer !== "no";
     document.getElementById("guided-tips-inputs").hidden = guided
         ? tipsAnswer !== "yes"
         : document.getElementById("shift-no-tips-report").checked;
+
+    document.getElementById("guided-notes-question").hidden = !guided;
+    document.getElementById("notes-entry").hidden = guided && getGuidedNotesAnswer() !== "yes";
+}
+
+function getGuidedNotesAnswer() {
+    return form.querySelector('input[name="guided-has-notes"]:checked')?.value || "";
+}
+
+// A "yes" with no usable note, or no answer at all, reviews as "no".
+function normalizeGuidedNotesAnswer() {
+    if (getGuidedNotesAnswer() !== "yes" || readNotes().length === 0) {
+        document.getElementById("shift-has-notes-no").checked = true;
+    }
 }
 
 function getGuidedBreakAnswer() {
@@ -1229,16 +1243,6 @@ function handleGuidedSalesReportChange(input) {
     updateMealPeriodFields();
     updateShiftFormProgression();
     updateValidationErrors();
-    if (input.value === "yes") {
-        const target = kind === "sales"
-            ? document.getElementById("shift-baw-sales")
-            : [...document.querySelectorAll('#guided-tips-inputs input[type="number"]')]
-                .find((field) => !field.closest("[hidden]"));
-        if (!target) {
-            throw new Error(`No available fields found for the ${kind} report.`);
-        }
-        target.focus({ preventScroll: true });
-    }
 }
 
 function renderEntryMode() {
@@ -1305,24 +1309,21 @@ function renderEntryMode() {
             heading.textContent = heading.dataset.guidedReviewPrompt;
         });
     } else {
-        const showingTipInputs = current.id === "guided-tips-report-step"
-            && getGuidedReportAnswer("tips") === "yes";
         steps.forEach((step) => {
             step.classList.toggle("guided-off", step !== current);
         });
         container.querySelectorAll(GUIDED_CONTAINER_SELECTOR).forEach((element) => {
-            const partOfCurrentTipsStep = showingTipInputs && element.closest("#guided-tips-inputs");
-            element.classList.toggle("guided-off", !element.contains(current) && !partOfCurrentTipsStep);
+            const partOfCurrentInputs = current.matches("[data-report-inputs]")
+                && element.closest("[data-report-inputs]") === current;
+            element.classList.toggle("guided-off", !element.contains(current) && !partOfCurrentInputs);
         });
         const prompt = current.dataset.guidedPrompt || "";
         question.textContent = prompt;
         current.classList.add("guided-current");
         const heading = getGuidedQuestionHeading(current);
         if (heading) {
-            const reportKind = getGuidedStepReportKind(current);
-            const showingInputs = reportKind && getGuidedReportAnswer(reportKind) === "yes";
             heading.dataset.guidedOriginal = heading.textContent;
-            heading.textContent = showingInputs ? current.dataset.guidedInputPrompt : prompt;
+            heading.textContent = prompt;
             heading.classList.add("guided-step-question");
             const context = current.parentElement.closest("fieldset");
             if (heading.parentElement === current && context) {
@@ -1333,15 +1334,16 @@ function renderEntryMode() {
             ? `Step ${index + 1} of ${steps.length + 1}`
             : `Step ${index + 1}`;
     }
-    document.getElementById("guided-back").disabled = index === 0;
+    document.getElementById("guided-back").disabled = false;
     const next = document.getElementById("guided-next");
     next.hidden = review;
     next.textContent = shiftFormProgress.details && index === steps.length - 1 ? "Review shift" : "Next";
     const nextIssues = review ? [] : getGuidedStepIssues(current);
-    next.disabled = nextIssues.length > 0;
+    next.disabled = false;
     const nextHint = document.getElementById("guided-next-hint");
-    nextHint.hidden = nextIssues.length === 0;
-    nextHint.textContent = nextIssues.length > 0 ? `To continue: ${nextIssues[0].message}` : "";
+    const showHint = guidedNextAttempted && nextIssues.length > 0;
+    nextHint.hidden = !showHint;
+    nextHint.textContent = showHint ? `To continue: ${nextIssues[0].message}` : "";
     save.hidden = !review;
 }
 
@@ -1367,16 +1369,8 @@ function cancelShiftEntry() {
         return;
     }
 
-    const editing = Boolean(getEditingShift());
     resetForm();
-    if (editing) {
-        showView(entryReturnView);
-        return;
-    }
-
-    const chooserTitle = document.getElementById("entry-mode-title");
-    chooserTitle.tabIndex = -1;
-    chooserTitle.focus({ preventScroll: true });
+    showView(entryReturnView);
 }
 
 function moveGuidedStep(direction) {
@@ -1387,30 +1381,33 @@ function moveGuidedStep(direction) {
     if (current < 0 || current > steps.length) {
         current = Math.min(guidedStep.index, steps.length);
     }
-    const backKind = direction < 0 ? getGuidedStepReportKind(steps[current]) : "";
-    if (backKind && getGuidedReportAnswer(backKind) === "yes") {
-        const config = GUIDED_REPORT_KINDS[backKind];
-        form.querySelector(`input[name="${config.radioName}"]:checked`).checked = false;
-        document.getElementById(config.checkboxId).checked = false;
-        updateMealPeriodFields();
-        updateShiftFormProgression();
-        form.querySelector(`input[name="${config.radioName}"]`).focus({ preventScroll: true });
+    if (direction < 0 && current === 0) {
+        resetForm();
+        const chooserTitle = document.getElementById("entry-mode-title");
+        chooserTitle.tabIndex = -1;
+        chooserTitle.focus({ preventScroll: true });
         return;
     }
     if (direction > 0 && current < steps.length) {
         const step = steps[current];
         const issues = getGuidedStepIssues(step);
         if (issues.length > 0) {
+            guidedNextAttempted = true;
             showValidationErrors(issues);
+            updateShiftFormProgression();
             return;
         }
     }
     if (direction > 0 && current >= steps.length) {
         return;
     }
+    guidedNextAttempted = false;
     updateShiftFormProgression();
     const refreshedSteps = getGuidedSteps();
     const index = Math.max(0, Math.min(refreshedSteps.length, current + direction));
+    if (index === refreshedSteps.length) {
+        normalizeGuidedNotesAnswer();
+    }
     guidedStep = { element: refreshedSteps[index] || null, index };
     updateShiftFormProgression();
     focusGuidedStep();
@@ -1432,7 +1429,8 @@ function maybeAutoAdvanceGuidedStep(event) {
     const isBreakChoice = event.target.matches('input[name="guided-had-break"]');
     const isNoReportChoice = event.target.matches("#shift-no-sales-report, #shift-no-tips-report")
         && event.target.checked;
-    const isNoSalesChoice = Boolean(getGuidedReportKind(event.target)) && event.target.value === "no";
+    const isNoSalesChoice = Boolean(getGuidedReportKind(event.target))
+        || event.target.matches('input[name="guided-has-notes"]');
     const requiresBreakTimes = step.id === "break-time-fields" && getGuidedBreakAnswer() === "yes";
     if (!step.querySelector("[required]") && !isBreakChoice && !isNoReportChoice
         && !isNoSalesChoice && !requiresBreakTimes) {
@@ -1586,6 +1584,7 @@ function resetForm(shouldClearStatus = true) {
     entryMode = null;
     guidedStep = { element: null, index: 0 };
     delete fields.workplace.dataset.initialized;
+    guidedNextAttempted = false;
     updateMealPeriodFields();
     setNoteRows([]);
     state.editingShiftId = null;
@@ -1875,7 +1874,7 @@ function validateShift(shift) {
         issues.push({ field: "hadBreak", message: "Choose whether you had a break." });
     }
     if (entryMode === "guided"
-        && guidedStep.element?.matches('[data-role-capability="tracksSales"]')
+        && guidedStep.element?.id === "guided-sales-report-step"
         && !getGuidedReportAnswer("sales")) {
         issues.push({ field: "salesReport", message: "Choose whether you have a sales report." });
     }

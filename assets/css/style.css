@@ -1199,8 +1199,16 @@ form {
     font-weight: 650;
 }
 
-.guided-break-question {
+.guided-break-question,
+.guided-report-question {
     flex-basis: 100%;
+}
+
+#guided-sales-report-step[hidden],
+#guided-tips-report-step[hidden],
+#guided-notes-question[hidden],
+#notes-entry[hidden] {
+    display: none;
 }
 
 .guided-report-choice {
@@ -2311,23 +2319,10 @@ main:focus,
         padding: 0 16px calc(104px + env(safe-area-inset-bottom));
     }
 
-    .is-entering-shift .app-shell {
-        height: 100dvh;
-        min-height: 0;
-        padding: 0;
-    }
-
     .is-entering-shift .app-content {
-        height: 100%;
-        min-height: 0;
-        overflow-y: auto;
+        box-sizing: border-box;
+        min-height: 100dvh;
         padding-bottom: calc(16px + env(safe-area-inset-bottom));
-    }
-
-    body.is-entering-shift {
-        height: 100dvh;
-        min-height: 0;
-        overflow-y: hidden;
     }
 
     .view {
