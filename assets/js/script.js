@@ -1337,7 +1337,11 @@ function renderEntryMode() {
     const next = document.getElementById("guided-next");
     next.hidden = review;
     next.textContent = shiftFormProgress.details && index === steps.length - 1 ? "Review shift" : "Next";
-    next.disabled = !review && getGuidedStepIssues(current).length > 0;
+    const nextIssues = review ? [] : getGuidedStepIssues(current);
+    next.disabled = nextIssues.length > 0;
+    const nextHint = document.getElementById("guided-next-hint");
+    nextHint.hidden = nextIssues.length === 0;
+    nextHint.textContent = nextIssues.length > 0 ? `To continue: ${nextIssues[0].message}` : "";
     save.hidden = !review;
 }
 

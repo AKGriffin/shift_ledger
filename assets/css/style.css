@@ -30,6 +30,29 @@
     --shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
 }
 
+:root[data-style="minimalist"] {
+    --field-background: #f0f1f3;
+    --field-border: #b6bbc3;
+    --entry-option-background: #e6e8eb;
+    --entry-option-border: #b6bbc3;
+}
+
+:root[data-style="minimalist"][data-theme="dark"] {
+    --field-background: #303236;
+    --field-border: #55575c;
+    --entry-option-background: #303236;
+    --entry-option-border: #55575c;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root[data-style="minimalist"]:not([data-theme]) {
+        --field-background: #303236;
+        --field-border: #55575c;
+        --entry-option-background: #303236;
+        --entry-option-border: #55575c;
+    }
+}
+
 :root[data-style="material"] {
     color-scheme: light;
     --bg: #e9e2d6;
@@ -1143,6 +1166,21 @@ form {
     min-height: 44px;
 }
 
+:root[data-style="minimalist"] .entry-mode-option {
+    border: 2px solid var(--entry-option-border);
+    background: var(--entry-option-background);
+}
+
+:root[data-style="minimalist"] .entry-mode-option:hover,
+:root[data-style="minimalist"] .entry-mode-option:focus-visible {
+    border-color: var(--primary);
+}
+
+:root[data-style="minimalist"] #close-entry-mode {
+    border-color: var(--entry-option-border);
+    background: var(--entry-option-background);
+}
+
 .guided-controls {
     display: flex;
     flex-wrap: wrap;
@@ -1251,6 +1289,10 @@ form {
 
 .guided-buttons button {
     min-height: 48px;
+}
+
+.guided-next-hint {
+    margin: -8px 0 0;
 }
 
 /* The inline field error is shown instead; keep the summary available to screen readers. */
@@ -1523,9 +1565,9 @@ legend {
 .field textarea {
     width: 100%;
     padding: 0.72rem 0.8rem;
-    border: 1px solid var(--border);
+    border: 1px solid var(--field-border, var(--border));
     border-radius: 10px;
-    background: var(--panel);
+    background: var(--field-background, var(--panel));
     color: var(--text);
 }
 
@@ -2249,12 +2291,13 @@ main:focus,
 @media (max-width: 720px) {
     body {
         overflow-x: hidden;
+        min-height: 100dvh;
     }
 
     .app-shell {
         display: block;
         width: 100%;
-        min-height: 100vh;
+        min-height: 100dvh;
         padding: 0;
     }
 
@@ -2602,7 +2645,7 @@ main:focus,
 :root[data-style="material"] .field textarea {
     border-radius: 3px;
     border-color: var(--border);
-    background: var(--panel);
+    background: var(--field-background, var(--panel));
 }
 
 :root[data-style="material"] fieldset {

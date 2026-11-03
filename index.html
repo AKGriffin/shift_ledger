@@ -357,7 +357,7 @@
                                         </label>
                                     </div>
                                 </div>
-                                <div class="sub-card" role="group" aria-labelledby="tipout-card-title" data-role-capability="tipOut" data-guided-step data-guided-prompt="Did you tip anyone out, or receive a tip-out?">
+                                <div class="sub-card" role="group" aria-labelledby="tipout-card-title" data-role-capability="tipOut">
                                     <h4 class="sub-card-title" id="tipout-card-title">Tip out</h4>
                                     <label class="field" data-role-capability="tipsOut">
                                         <span>Tips paid out</span>
@@ -391,10 +391,11 @@
                         <p>Please fix the following before saving:</p>
                         <ul></ul>
                     </div>
+                    <p id="guided-next-hint" class="field-hint guided-next-hint" role="status" aria-live="polite" hidden></p>
                     <div id="guided-buttons" class="guided-buttons" hidden>
                         <button type="button" id="guided-back" class="secondary-button">Back</button>
                         <button type="button" id="guided-cancel" class="ghost-button">Cancel</button>
-                        <button type="button" id="guided-next" class="primary-button">Next</button>
+                        <button type="button" id="guided-next" class="primary-button" aria-describedby="guided-next-hint">Next</button>
                     </div>
                     <div id="form-actions" class="form-actions">
                         <button type="submit" id="save-shift" class="primary-button">Save shift</button>

@@ -181,6 +181,8 @@ describe("Guided and manual entry", () => {
         expect(element("#guided-progress").textContent).toBe("Step 1");
         expect(element("#guided-back").disabled).toBe(true);
         expect(element("#guided-next").disabled).toBe(true);
+        expect(element("#guided-next-hint").hidden).toBe(false);
+        expect(element("#guided-next-hint").textContent).toContain("Date is required");
         expect(activeGuidedSteps(elements).map((step) => step.id)).toEqual(["shift-date-card"]);
         expect(element("#guided-question").textContent).toContain("What date");
         expect(element("#guided-question").hidden).toBe(true);
@@ -223,8 +225,8 @@ describe("Guided and manual entry", () => {
     test("mobile guided entry stacks step, question, input and buttons at the bottom of the page", () => withApp({
         width: 390,
         height: 800,
-    }, (harness) => {
-        const { element, win } = harness;
+    }, async (harness) => {
+        const { element, win, doc, frame } = harness;
         chooseMode(harness, "guided");
 
         const top = (selector) => element(selector).getBoundingClientRect().top;
@@ -235,6 +237,11 @@ describe("Guided and manual entry", () => {
         expect(win.innerHeight - element("#guided-buttons").getBoundingClientRect().bottom < 40).toBe(true);
         expect(top("#guided-progress") > top("#new-shift .view-header")).toBe(true);
         expect(element("#shift-date-card").closest("#shift-entry-fields") !== null).toBe(true);
+        expect(doc.documentElement.scrollHeight).toBeLessThanOrEqual(win.innerHeight);
+
+        frame.style.height = "680px";
+        await new Promise((resolve) => win.requestAnimationFrame(() => win.requestAnimationFrame(resolve)));
+        expect(doc.documentElement.scrollHeight).toBeLessThanOrEqual(win.innerHeight);
 
         element("#shift-date").value = "2026-10-22";
         harness.fire(element("#shift-date"), "change");
@@ -404,7 +411,7 @@ describe("Guided and manual entry", () => {
     }));
 
     test("guided entry groups reports and ends with an editable full-form review", () => withApp((harness) => {
-        const { element, fire, savedShifts } = harness;
+        const { element, elements, fire, savedShifts } = harness;
         chooseMode(harness, "guided");
         expect(element("#save-shift").hidden).toBe(true);
         advanceGuidedUntil(harness, "sales report");
@@ -418,7 +425,8 @@ describe("Guided and manual entry", () => {
         element("#shift-has-tips-report-yes").checked = true;
         fire(element("#shift-has-tips-report-yes"), "change");
         element("#guided-next").click();
-        expect(element("#guided-question").textContent).toContain("tip anyone out");
+        expect(element("#guided-question").textContent).toContain("remember about this shift");
+        expect(elements("#shift-entry-fields [data-guided-prompt*='tip anyone out']")).toHaveLength(0);
         advanceGuidedToReview(harness);
         expect(element("#guided-question").textContent).toContain("Review your shift");
         expect(element("#shift-entry-fields").querySelectorAll(".guided-off")).toHaveLength(0);

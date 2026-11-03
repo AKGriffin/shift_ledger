@@ -32,6 +32,31 @@ describe("Settings page", () => {
         expect(element("#current-app-version").textContent).toBe("v95");
     }));
 
+    test("makes controls and entry choices distinct in both minimalist themes", () => withApp(({
+        element,
+        openView,
+        style,
+        doc,
+    }) => {
+        openView("new-shift", { entryMode: null });
+        const root = doc.documentElement;
+        const input = element("#shift-date");
+        const fieldset = element("#shift-date-card");
+        const guided = element("#choose-guided");
+        const close = element("#close-entry-mode");
+
+        root.dataset.style = "minimalist";
+        root.dataset.theme = "light";
+        expect(style(input).backgroundColor).not.toBe(style(fieldset).backgroundColor);
+        expect(style(guided).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+        expect(style(close).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+
+        root.dataset.theme = "dark";
+        expect(style(input).backgroundColor).not.toBe(style(fieldset).backgroundColor);
+        expect(style(guided).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+        expect(style(close).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+    }));
+
     test("labels every setting and links it to a hint", () => withApp(({ doc, elements, openView }) => {
         openView("settings");
 
