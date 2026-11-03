@@ -226,7 +226,7 @@ describe("Guided and manual entry", () => {
         width: 390,
         height: 800,
     }, async (harness) => {
-        const { element, win, doc, frame } = harness;
+        const { element, win, doc, frame, style } = harness;
         chooseMode(harness, "guided");
 
         const top = (selector) => element(selector).getBoundingClientRect().top;
@@ -242,6 +242,12 @@ describe("Guided and manual entry", () => {
         frame.style.height = "680px";
         await new Promise((resolve) => win.requestAnimationFrame(() => win.requestAnimationFrame(resolve)));
         expect(doc.documentElement.scrollHeight).toBeLessThanOrEqual(win.innerHeight);
+
+        frame.style.height = "480px";
+        await new Promise((resolve) => win.requestAnimationFrame(() => win.requestAnimationFrame(resolve)));
+        expect(doc.documentElement.scrollHeight).toBeLessThanOrEqual(win.innerHeight);
+        expect(element(".app-content").getBoundingClientRect().height).toBeLessThanOrEqual(win.innerHeight);
+        expect(style(element(".app-content")).overflowY).toBe("auto");
 
         element("#shift-date").value = "2026-10-22";
         harness.fire(element("#shift-date"), "change");
