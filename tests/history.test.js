@@ -132,6 +132,16 @@ describe("Previous shifts", () => {
         expect(element(".shift-detail-dialog[open] .shift-nav-count").textContent).toBe("1 of 2");
     }));
 
+    test("keeps the detail dialog fixed and the page still while stepping", () => withApp({ shifts: seededShifts() }, ({ element, openView, style, win }) => {
+        openView("previous-shifts");
+        element(".shift-summary").click();
+        const scrollBefore = win.scrollY;
+        element(".shift-detail-dialog[open] .shift-nav-next").click();
+
+        expect(style(element(".shift-detail-dialog[open]")).position).toBe("fixed");
+        expect(win.scrollY).toBe(scrollBefore);
+    }));
+
     test("shows the next shift after deleting from the dialog", () => withApp({ shifts: seededShifts() }, ({ element, elements, openView }) => {
         openView("previous-shifts");
         element(".shift-summary").click();

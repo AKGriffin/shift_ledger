@@ -453,11 +453,12 @@ function bindEvents() {
         if (shiftNavSwitching || !event.target.classList?.contains("shift-detail-dialog")) {
             return;
         }
+        if (shiftList.querySelector(".shift-detail-dialog[open]")) {
+            return;
+        }
         const summary = event.target.parentElement.querySelector(".shift-summary");
         summary.scrollIntoView({ block: "nearest" });
-        if (!shiftList.querySelector(".shift-detail-dialog[open]")) {
-            summary.focus({ preventScroll: true });
-        }
+        summary.focus({ preventScroll: true });
     }, true);
     shiftList.addEventListener("keydown", (event) => {
         if ((event.key !== "ArrowLeft" && event.key !== "ArrowRight")
