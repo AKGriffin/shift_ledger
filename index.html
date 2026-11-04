@@ -971,7 +971,6 @@
             <span class="summary-chevron" aria-hidden="true">&#8250;</span>
         </button>
         <dialog class="history-filter-dialog shift-detail-dialog" aria-label="Shift details">
-        <button type="button" class="ghost-button close-shift-detail" aria-label="Close shift details">&times;</button>
         <article class="shift-card">
             <div class="card-header">
                 <div>
@@ -983,17 +982,25 @@
                     <p class="card-report-status" hidden></p>
                 </div>
                 <div class="card-header-side">
-                    <div class="card-menu">
-                        <button type="button" class="card-menu-toggle ghost-button" aria-expanded="false" aria-label="Shift actions">&#8942;</button>
-                        <div class="card-menu-list" role="group" aria-label="Shift actions" hidden>
-                            <button type="button" class="edit-shift">Edit</button>
-                            <button type="button" class="delete-shift">Delete</button>
-                        </div>
-                    </div>
+                    <button type="button" class="ghost-button close-shift-detail" aria-label="Close shift details">&times;</button>
                 </div>
             </div>
 
+            <div class="card-body">
             <div class="card-primary-metrics shift-card-summary">
+                <div class="card-stat card-stat-tips">
+                    <div class="card-stat-head">
+                        <span class="card-stat-label">Net tips</span>
+                        <strong class="card-tips"></strong>
+                    </div>
+                    <div class="card-substats" role="group" aria-label="Tips breakdown">
+                        <p><span>Card</span> <strong class="card-cc-tips"></strong></p>
+                        <p><span>Cash</span> <strong class="card-cash-tips"></strong></p>
+                        <p><span>Auto-grat.</span> <strong class="card-auto-gratuity"></strong></p>
+                        <p class="card-substat-divider"><span>Tipped out</span> <strong class="card-tips-paid-out"></strong></p>
+                        <p><span>Received</span> <strong class="card-tip-out-received"></strong></p>
+                    </div>
+                </div>
                 <div class="card-stat card-stat-hours">
                     <div class="card-stat-head">
                         <span class="card-stat-label">Hours</span>
@@ -1018,22 +1025,15 @@
                         <p class="card-substat-divider"><span>Additional</span> <strong class="card-additional-sales"></strong></p>
                     </div>
                 </div>
-                <div class="card-stat card-stat-tips">
-                    <div class="card-stat-head">
-                        <span class="card-stat-label">Net tips</span>
-                        <strong class="card-tips"></strong>
-                    </div>
-                    <div class="card-substats" role="group" aria-label="Tips breakdown">
-                        <p><span>Card</span> <strong class="card-cc-tips"></strong></p>
-                        <p><span>Cash</span> <strong class="card-cash-tips"></strong></p>
-                        <p><span>Auto-grat.</span> <strong class="card-auto-gratuity"></strong></p>
-                        <p class="card-substat-divider"><span>Tipped out</span> <strong class="card-tips-paid-out"></strong></p>
-                        <p><span>Received</span> <strong class="card-tip-out-received"></strong></p>
-                    </div>
-                </div>
             </div>
 
             <div class="card-notes"></div>
+            </div>
+
+            <div class="card-actions">
+                <button type="button" class="danger-button delete-shift">Delete</button>
+                <button type="button" class="primary-button edit-shift">Edit shift</button>
+            </div>
         </article>
         <nav class="shift-detail-nav" aria-label="Browse shifts">
             <button type="button" class="secondary-button shift-nav-prev">&#8249; Previous</button>

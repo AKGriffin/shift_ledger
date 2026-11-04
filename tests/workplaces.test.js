@@ -897,7 +897,6 @@ describe("Shift form workplace mode", () => {
         })],
     }, ({ element, fire, openView, savedShifts }) => {
         openView("previous-shifts");
-        fire(element('.shift-card[data-shift-id="44"] .card-menu-toggle'), "click");
         fire(element('.shift-card[data-shift-id="44"] .edit-shift'), "click");
         fire(element("#shift-form"), "submit");
         expect(savedShifts()[0].foodSales).toBe(40);
@@ -981,7 +980,6 @@ describe("Editing shifts without a role", () => {
         shifts: [makeShift({ id: 33, job: "Expo" })],
     }, ({ element, openView, fire, change, savedShifts }) => {
         openView("previous-shifts");
-        fire(element('.shift-card[data-shift-id="33"] .card-menu-toggle'), "click");
         fire(element('.shift-card[data-shift-id="33"] .edit-shift'), "click");
         expect(element("#form-title").textContent).toBe("Edit Shift");
         expect(element("#shift-workplace-card").hidden).toBe(false);
@@ -999,7 +997,6 @@ describe("Editing shifts without a role", () => {
         shifts: [makeShift({ id: 34, job: "Expo" })],
     }, ({ element, openView, fire, change, savedShifts }) => {
         openView("previous-shifts");
-        fire(element('.shift-card[data-shift-id="34"] .card-menu-toggle'), "click");
         fire(element('.shift-card[data-shift-id="34"] .edit-shift'), "click");
         change("#shift-workplace", "wp-1");
         change("#shift-role", "r-1");

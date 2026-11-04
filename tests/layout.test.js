@@ -34,13 +34,11 @@ describe("Accessibility", () => {
         });
     }));
 
-    test("uses a plain disclosure for shift actions instead of an unsupported menu role", () => withApp({
+    test("does not use an unsupported menu role for shift actions", () => withApp({
         shifts: [makeShift()],
-    }, ({ element, elements, openView }) => {
+    }, ({ elements, openView }) => {
         openView("previous-shifts");
         expect(elements("[role='menu'], [role='menuitem']")).toHaveLength(0);
-        expect(element(".card-menu-toggle").hasAttribute("aria-haspopup")).toBe(false);
-        expect(element(".card-menu-toggle").getAttribute("aria-expanded")).toBe("false");
     }));
 });
 

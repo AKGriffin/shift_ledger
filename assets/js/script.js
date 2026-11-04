@@ -444,22 +444,6 @@ function bindEvents() {
     clearFiltersButton.addEventListener("click", clearHistoryFilters);
     document.getElementById("export-csv").addEventListener("click", exportShiftsCsv);
     shiftList.addEventListener("click", handleListAction);
-    document.addEventListener("click", (event) => {
-        if (!event.target.closest(".card-menu")) {
-            closeCardMenus();
-        }
-    });
-    shiftList.addEventListener("keydown", (event) => {
-        if (event.key !== "Escape") {
-            return;
-        }
-        const openToggle = shiftList.querySelector(".card-menu-toggle[aria-expanded='true']");
-        if (openToggle) {
-            event.preventDefault();
-            closeCardMenus();
-            openToggle.focus();
-        }
-    });
     shiftList.addEventListener("click", (event) => {
         if (event.target.classList.contains("shift-detail-dialog")) {
             event.target.close();
@@ -477,7 +461,7 @@ function bindEvents() {
     }, true);
     shiftList.addEventListener("keydown", (event) => {
         if ((event.key !== "ArrowLeft" && event.key !== "ArrowRight")
-            || event.target.closest(".card-menu, input, select, textarea")) {
+            || event.target.closest("input, select, textarea")) {
             return;
         }
         const dialog = shiftList.querySelector(".shift-detail-dialog[open]");
@@ -828,17 +812,7 @@ function loadSettings() {
     }
 }
 
-function closeCardMenus(except = null) {
-    shiftList.querySelectorAll(".card-menu-toggle[aria-expanded='true']").forEach((toggle) => {
-        if (toggle === except) {
-            return;
-        }
-        toggle.setAttribute("aria-expanded", "false");
-        toggle.nextElementSibling.hidden = true;
-    });
-}
-
-function openShiftDetail(entry, { fromNav = false } = {}) {
+function openShiftDetail(entry, { fromNav = false, step = 0 } = {}) {
     const dialog = entry.querySelector(".shift-detail-dialog");
     const entries = [...shiftList.querySelectorAll(".shift-entry")];
     const index = entries.indexOf(entry);
@@ -847,10 +821,15 @@ function openShiftDetail(entry, { fromNav = false } = {}) {
     dialog.querySelector(".shift-nav-next").disabled = index >= entries.length - 1;
     if (!dialog.open) {
         shiftNavSwitching = fromNav;
+        if (step) {
+            dialog.dataset.step = step > 0 ? "next" : "prev";
+        } else {
+            delete dialog.dataset.step;
+        }
         dialog.showModal();
         shiftNavSwitching = false;
     }
-    dialog.scrollTop = 0;
+    dialog.querySelector(".card-body").scrollTop = 0;
 }
 
 function stepShiftDetail(dialog, step) {
@@ -862,7 +841,7 @@ function stepShiftDetail(dialog, step) {
     shiftNavSwitching = true;
     dialog.close();
     shiftNavSwitching = false;
-    openShiftDetail(target, { fromNav: true });
+    openShiftDetail(target, { fromNav: true, step });
     const nextDialog = target.querySelector(".shift-detail-dialog");
     nextDialog.querySelector(step < 0 ? ".shift-nav-prev" : ".shift-nav-next").focus();
     if (nextDialog.querySelector(step < 0 ? ".shift-nav-prev" : ".shift-nav-next").disabled) {
@@ -878,7 +857,6 @@ function handleListAction(event) {
 
     const summaryButton = button.classList.contains("shift-summary") ? button : null;
     if (summaryButton) {
-        closeCardMenus();
         openShiftDetail(summaryButton.parentElement);
         return;
     }
@@ -897,19 +875,6 @@ function handleListAction(event) {
     if (!card) {
         return;
     }
-
-    if (button.classList.contains("card-menu-toggle")) {
-        const open = button.getAttribute("aria-expanded") !== "true";
-        closeCardMenus(button);
-        button.setAttribute("aria-expanded", String(open));
-        button.nextElementSibling.hidden = !open;
-        if (open) {
-            button.nextElementSibling.querySelector("button").focus();
-        }
-        return;
-    }
-
-    closeCardMenus();
 
     const shiftId = Number(card.dataset.shiftId);
     const shift = state.shifts.find((entry) => entry.id === shiftId);
@@ -2263,8 +2228,10 @@ function renderPreviousShifts() {
                 list.appendChild(item);
             });
             notesEl.replaceChildren(list);
+            notesEl.hidden = false;
         } else {
-            notesEl.textContent = "No notes recorded.";
+            notesEl.replaceChildren();
+            notesEl.hidden = true;
         }
         fragment.appendChild(cardNode);
     });

@@ -1154,14 +1154,84 @@ main {
 
 .shift-detail-dialog .shift-card {
     flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
     min-height: 0;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    padding: 0 6px 0 0;
-    scrollbar-gutter: stable;
+    padding: 0;
     border: 0;
     box-shadow: none;
     background: transparent;
+}
+
+.shift-detail-dialog .card-header {
+    flex: none;
+    align-items: center;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+}
+
+.shift-detail-dialog .card-body {
+    display: grid;
+    flex: 1 1 auto;
+    align-content: start;
+    gap: 16px;
+    min-height: 0;
+    padding: 16px 6px 16px 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+
+.shift-detail-dialog .shift-card-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.shift-detail-dialog .card-stat {
+    padding: 12px 14px;
+}
+
+.shift-detail-dialog .card-stat-tips {
+    grid-column: 1 / -1;
+}
+
+.shift-detail-dialog .card-stat-tips .card-tips {
+    font-size: 1.8rem;
+}
+
+.shift-detail-dialog .card-notes {
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: var(--panel-alt);
+}
+
+.shift-detail-dialog .card-notes[hidden] {
+    display: none;
+}
+
+.shift-detail-dialog .card-notes::before {
+    content: "Notes";
+    display: block;
+    margin-bottom: 6px;
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.shift-detail-dialog .card-note-list {
+    color: var(--text);
+}
+
+.card-actions {
+    display: flex;
+    flex: none;
+    justify-content: space-between;
+    gap: 12px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
 }
 
 @media (max-width: 640px) {
@@ -1170,9 +1240,14 @@ main {
         max-width: none;
         height: var(--app-height, 100dvh);
         margin: 0;
+        padding: calc(18px + env(safe-area-inset-top)) 18px calc(14px + env(safe-area-inset-bottom));
         border: 0;
         border-radius: 0;
         box-shadow: none;
+    }
+
+    .shift-detail-dialog .shift-card-summary {
+        grid-template-columns: minmax(0, 1fr);
     }
 }
 
@@ -1194,14 +1269,13 @@ html:has(dialog[open]) body {
     gap: 12px;
     flex: none;
     margin-top: 12px;
-    padding-top: 14px;
-    border-top: 1px solid var(--border);
 }
 
 .shift-nav-count {
     color: var(--muted);
     font-size: 0.9rem;
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
 }
 
 .shift-detail-nav button:disabled {
@@ -1210,18 +1284,49 @@ html:has(dialog[open]) body {
 }
 
 .close-shift-detail {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    z-index: 1;
-}
-
-.shift-detail-dialog .card-header {
-    padding-right: 52px;
+    min-width: 36px;
+    min-height: 36px;
+    padding: 0;
+    font-size: 1.3rem;
+    line-height: 1;
 }
 
 .shift-detail-nav button {
     white-space: nowrap;
+}
+
+@keyframes shift-detail-in {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+}
+
+@keyframes shift-detail-slide {
+    from {
+        opacity: 0;
+        transform: translateX(var(--slide-from));
+    }
+}
+
+.shift-detail-dialog[open] .shift-card {
+    animation: shift-detail-in 0.18s ease-out;
+}
+
+.shift-detail-dialog[data-step="next"][open] .shift-card {
+    --slide-from: 24px;
+    animation-name: shift-detail-slide;
+}
+
+.shift-detail-dialog[data-step="prev"][open] .shift-card {
+    --slide-from: -24px;
+    animation-name: shift-detail-slide;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .shift-detail-dialog[open] .shift-card {
+        animation: none;
+    }
 }
 
 @media (max-width: 640px) {
@@ -2295,56 +2400,6 @@ main:focus,
     display: flex;
     align-items: center;
     gap: 6px;
-}
-
-.card-menu {
-    position: relative;
-}
-
-.card-menu-toggle {
-    min-width: 36px;
-    min-height: 36px;
-    padding: 0;
-    font-size: 1.3rem;
-    line-height: 1;
-}
-
-.card-menu-list {
-    position: absolute;
-    top: calc(100% + 4px);
-    right: 0;
-    z-index: 5;
-    display: grid;
-    min-width: 120px;
-    padding: 6px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--panel);
-    box-shadow: var(--shadow);
-}
-
-.card-menu-list[hidden] {
-    display: none;
-}
-
-.card-menu-list button {
-    padding: 10px 12px;
-    border: 0;
-    border-radius: 8px;
-    background: transparent;
-    color: var(--text);
-    font: inherit;
-    text-align: left;
-    cursor: pointer;
-}
-
-.card-menu-list button:hover,
-.card-menu-list button:focus-visible {
-    background: var(--panel-alt);
-}
-
-.card-menu-list .delete-shift {
-    color: var(--danger);
 }
 
 .empty-state {

@@ -40,7 +40,7 @@ describe("Previous shifts", () => {
         expect(serverCard.querySelector(".card-title .card-job").textContent).toBe("Server");
         expect(serverCard.querySelectorAll(".card-primary-metrics .card-stat")).toHaveLength(3);
         expect(Array.from(serverCard.querySelectorAll(".card-stat-label"), (label) => label.textContent))
-            .toEqual(["Hours", "Sales", "Net tips"]);
+            .toEqual(["Net tips", "Hours", "Sales"]);
         expect(serverCard.querySelector(".card-sales").textContent).toBe("$100.00");
         expect(serverCard.querySelector(".card-tips").textContent).toBe("$31.00");
         expect(serverCard.querySelector(".card-auto-gratuity").textContent).toBe("$7.00");
@@ -87,7 +87,7 @@ describe("Previous shifts", () => {
         expect(elements(".card-expand-all")).toHaveLength(0);
     }));
 
-    test("keeps totals side by side with details visible at tablet width", () => withApp({
+    test("leads with net tips above side-by-side hours and sales at tablet width", () => withApp({
         width: 700,
         height: 900,
         shifts: seededShifts(),
@@ -95,7 +95,9 @@ describe("Previous shifts", () => {
         openView("previous-shifts");
         element(".shift-summary").click();
 
-        expect(style(element(".shift-card-summary")).gridTemplateColumns.split(" ")).toHaveLength(3);
+        expect(style(element(".shift-card-summary")).gridTemplateColumns.split(" ")).toHaveLength(2);
+        expect(style(element(".card-stat-tips")).gridColumnStart).toBe("1");
+        expect(style(element(".card-stat-tips")).gridColumnEnd).toBe("-1");
         expect(elements(".card-stat-toggle")).toHaveLength(0);
         expect(style(element(".card-stat-sales .card-substats")).display).not.toBe("none");
     }));
@@ -133,29 +135,26 @@ describe("Previous shifts", () => {
     test("shows the next shift after deleting from the dialog", () => withApp({ shifts: seededShifts() }, ({ element, elements, openView }) => {
         openView("previous-shifts");
         element(".shift-summary").click();
-        element(".shift-detail-dialog[open] .card-menu-toggle").click();
         element(".shift-detail-dialog[open] .delete-shift").click();
 
         expect(elements(".shift-summary")).toHaveLength(1);
         expect(element(".shift-detail-dialog[open] .shift-nav-count").textContent).toBe("1 of 1");
     }));
 
-    test("hides edit and delete behind a card menu", () => withApp({ shifts: seededShifts() }, ({ doc, element, openView }) => {
+    test("shows visible edit and delete actions in the detail dialog", () => withApp({ shifts: seededShifts() }, ({ element, elements, openView }) => {
         openView("previous-shifts");
         element(".shift-summary").click();
-        const toggle = element(".card-menu-toggle");
-        const menu = element(".card-menu-list");
 
-        expect(menu.hidden).toBe(true);
-        expect(toggle.getAttribute("aria-expanded")).toBe("false");
-        toggle.click();
-        expect(menu.hidden).toBe(false);
-        expect(toggle.getAttribute("aria-expanded")).toBe("true");
-        expect(doc.activeElement.classList.contains("edit-shift")).toBe(true);
-        element("#history-status").click();
-        doc.body.click();
-        expect(menu.hidden).toBe(true);
-        expect(toggle.getAttribute("aria-expanded")).toBe("false");
+        expect(elements(".card-menu-toggle, .card-menu-list")).toHaveLength(0);
+        expect(element(".shift-detail-dialog[open] .edit-shift").textContent.trim()).toBe("Edit shift");
+        expect(element(".shift-detail-dialog[open] .delete-shift").textContent.trim()).toBe("Delete");
+    }));
+
+    test("hides the notes section when a shift has no notes", () => withApp({
+        shifts: [makeShift({ notes: "" })],
+    }, ({ element, openView }) => {
+        openView("previous-shifts");
+        expect(element(".card-notes").hidden).toBe(true);
     }));
 
     test("shows shifts as separate cards in multiple columns on wide screens", () => withApp({

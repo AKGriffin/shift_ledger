@@ -105,7 +105,6 @@ describe("Single-shift report coverage", () => {
         shifts: [makeShift({ noTips: true })],
     }, ({ element, openView, win }) => {
         openView("previous-shifts");
-        element(".card-menu-toggle").click();
         element(".edit-shift").click();
         expect(element("#shift-no-tips-report").checked).toBe(true);
         expect(element("#shift-no-sales-report").checked).toBe(false);
