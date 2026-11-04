@@ -418,7 +418,7 @@ button {
 .app-shell {
     width: 100%;
     max-width: 1440px;
-    min-height: 100vh;
+    min-height: 100dvh;
     margin: 0 auto;
     padding: 24px 32px 48px 296px;
 }
@@ -1324,9 +1324,9 @@ form {
     display: none;
 }
 
-.is-entering-shift .app-shell {
-    /* padding-left: 32px; */
-}
+/* .is-entering-shift .app-shell {
+    padding-left: 32px;
+} */
 
 .is-entering-shift .app-content {
     display: flex;
