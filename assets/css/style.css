@@ -397,7 +397,7 @@
 
 body {
     margin: 0;
-    min-height: 100vh;
+    min-height: 100dvh;
     overflow-x: clip;
     font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(180deg, var(--panel-alt) 0%, var(--bg) 100%);
@@ -1324,14 +1324,16 @@ form {
     display: none;
 }
 
-/* .is-entering-shift .app-shell {
-    padding-left: 32px;
-} */
+.is-entering-shift .app-shell {
+    max-width: none;
+    padding: 0;
+}
 
 .is-entering-shift .app-content {
     display: flex;
-    height: 100dvh;
-    /* padding-bottom: calc(16px + env(safe-area-inset-bottom)); */
+    box-sizing: border-box;
+    min-height: 100dvh;
+    padding: 24px 32px calc(16px + env(safe-area-inset-bottom));
 }
 
 .is-entering-shift #main-content {
@@ -2323,7 +2325,7 @@ main:focus,
     .is-entering-shift .app-content {
         box-sizing: border-box;
         min-height: 100dvh;
-        padding-bottom: calc(16px + env(safe-area-inset-bottom));
+        padding: 0 16px calc(16px + env(safe-area-inset-bottom));
     }
 
     .view {
