@@ -34,8 +34,9 @@ describe("Previous shifts", () => {
             .find((card) => card.querySelector(".card-job").textContent === "Server");
 
         expect(elements(".shift-card")).toHaveLength(2);
+        expect(elements(".shift-summary")).toHaveLength(2);
         expect(serverCard).toBeDefined();
-        expect(style(serverCard).borderTopWidth).toBe("1px");
+        expect(serverCard.closest("dialog").open).toBe(false);
         expect(element(".history-header-card").contains(element("#shift-list"))).toBe(false);
         expect(serverCard.querySelector(".card-title .card-job").textContent).toBe("Server");
         expect(serverCard.querySelectorAll(".card-primary-metrics .card-stat")).toHaveLength(3);
@@ -76,24 +77,27 @@ describe("Previous shifts", () => {
         width: 390,
         height: 800,
         shifts: seededShifts(),
-    }, ({ element, openView, style }) => {
+    }, ({ element, elements, openView, style }) => {
         openView("previous-shifts");
+        element(".shift-summary").click();
 
         expect(style(element(".shift-card-summary")).gridTemplateColumns.split(" ")).toHaveLength(1);
         expect(style(element(".card-stat-sales .card-substats")).display).not.toBe("none");
         expect(style(element(".card-stat-tips .card-substats")).display).not.toBe("none");
-        expect(element(".card-stat-toggle")).toBeNull();
-        expect(element(".card-expand-all")).toBeNull();
+        expect(elements(".card-stat-toggle")).toHaveLength(0);
+        expect(elements(".card-expand-all")).toHaveLength(0);
     }));
+
     test("keeps totals side by side with details visible at tablet width", () => withApp({
         width: 700,
         height: 900,
         shifts: seededShifts(),
-    }, ({ element, openView, style }) => {
+    }, ({ element, elements, openView, style }) => {
         openView("previous-shifts");
+        element(".shift-summary").click();
 
         expect(style(element(".shift-card-summary")).gridTemplateColumns.split(" ")).toHaveLength(3);
-        expect(element(".card-stat-toggle")).toBeNull();
+        expect(elements(".card-stat-toggle")).toHaveLength(0);
         expect(style(element(".card-stat-sales .card-substats")).display).not.toBe("none");
     }));
 
@@ -101,16 +105,45 @@ describe("Previous shifts", () => {
         width: 1400,
         height: 900,
         shifts: seededShifts(),
-    }, ({ element, openView, style }) => {
+    }, ({ element, elements, openView, style }) => {
         openView("previous-shifts");
+        element(".shift-summary").click();
 
-        expect(element(".card-stat-toggle")).toBeNull();
+        expect(elements(".card-stat-toggle")).toHaveLength(0);
         expect(style(element(".card-stat-tips .card-substats")).display).not.toBe("none");
         expect(element(".card-stat-hours .card-clock-in")).not.toBeNull();
     }));
 
+    test("steps through shifts in the dialog with buttons and arrow keys", () => withApp({ shifts: seededShifts() }, ({ doc, element, elements, openView }) => {
+        openView("previous-shifts");
+        const openDialogs = () => elements(".shift-detail-dialog").filter((dialog) => dialog.open);
+        element(".shift-summary").click();
+
+        expect(openDialogs()).toHaveLength(1);
+        expect(element(".shift-detail-dialog[open] .shift-nav-count").textContent).toBe("1 of 2");
+        expect(element(".shift-detail-dialog[open] .shift-nav-prev").disabled).toBe(true);
+        element(".shift-detail-dialog[open] .shift-nav-next").click();
+        expect(openDialogs()).toHaveLength(1);
+        expect(element(".shift-detail-dialog[open] .shift-nav-count").textContent).toBe("2 of 2");
+        expect(element(".shift-detail-dialog[open] .shift-nav-next").disabled).toBe(true);
+        doc.dispatchEvent(new doc.defaultView.KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }));
+        element(".shift-detail-dialog[open] .shift-nav-prev").click();
+        expect(element(".shift-detail-dialog[open] .shift-nav-count").textContent).toBe("1 of 2");
+    }));
+
+    test("shows the next shift after deleting from the dialog", () => withApp({ shifts: seededShifts() }, ({ element, elements, openView }) => {
+        openView("previous-shifts");
+        element(".shift-summary").click();
+        element(".shift-detail-dialog[open] .card-menu-toggle").click();
+        element(".shift-detail-dialog[open] .delete-shift").click();
+
+        expect(elements(".shift-summary")).toHaveLength(1);
+        expect(element(".shift-detail-dialog[open] .shift-nav-count").textContent).toBe("1 of 1");
+    }));
+
     test("hides edit and delete behind a card menu", () => withApp({ shifts: seededShifts() }, ({ doc, element, openView }) => {
         openView("previous-shifts");
+        element(".shift-summary").click();
         const toggle = element(".card-menu-toggle");
         const menu = element(".card-menu-list");
 

@@ -66,6 +66,7 @@ let hadServiceWorkerController = "serviceWorker" in navigator
     && Boolean(navigator.serviceWorker.controller);
 
 let entryReturnView = "previous-shifts";
+let shiftNavSwitching = false;
 
 const navButtons = document.querySelectorAll("[data-view]");
 const formStatus = document.getElementById("form-status");
@@ -464,6 +465,27 @@ function bindEvents() {
             event.target.close();
         }
     });
+    shiftList.addEventListener("close", (event) => {
+        if (shiftNavSwitching || !event.target.classList?.contains("shift-detail-dialog")) {
+            return;
+        }
+        const summary = event.target.parentElement.querySelector(".shift-summary");
+        summary.scrollIntoView({ block: "nearest" });
+        if (!shiftList.querySelector(".shift-detail-dialog[open]")) {
+            summary.focus({ preventScroll: true });
+        }
+    }, true);
+    shiftList.addEventListener("keydown", (event) => {
+        if ((event.key !== "ArrowLeft" && event.key !== "ArrowRight")
+            || event.target.closest(".card-menu, input, select, textarea")) {
+            return;
+        }
+        const dialog = shiftList.querySelector(".shift-detail-dialog[open]");
+        if (dialog) {
+            event.preventDefault();
+            stepShiftDetail(dialog, event.key === "ArrowLeft" ? -1 : 1);
+        }
+    });
     styleSetting.addEventListener("change", () => updateSetting("visualStyle", styleSetting.value));
     modeSetting.addEventListener("change", () => updateSetting("colorMode", modeSetting.value));
     weekStartSetting.addEventListener("change", () => updateSetting("weekStartsOn", weekStartSetting.value));
@@ -816,6 +838,38 @@ function closeCardMenus(except = null) {
     });
 }
 
+function openShiftDetail(entry, { fromNav = false } = {}) {
+    const dialog = entry.querySelector(".shift-detail-dialog");
+    const entries = [...shiftList.querySelectorAll(".shift-entry")];
+    const index = entries.indexOf(entry);
+    dialog.querySelector(".shift-nav-count").textContent = `${index + 1} of ${entries.length}`;
+    dialog.querySelector(".shift-nav-prev").disabled = index <= 0;
+    dialog.querySelector(".shift-nav-next").disabled = index >= entries.length - 1;
+    if (!dialog.open) {
+        shiftNavSwitching = fromNav;
+        dialog.showModal();
+        shiftNavSwitching = false;
+    }
+    dialog.scrollTop = 0;
+}
+
+function stepShiftDetail(dialog, step) {
+    const entries = [...shiftList.querySelectorAll(".shift-entry")];
+    const target = entries[entries.indexOf(dialog.closest(".shift-entry")) + step];
+    if (!target) {
+        return;
+    }
+    shiftNavSwitching = true;
+    dialog.close();
+    shiftNavSwitching = false;
+    openShiftDetail(target, { fromNav: true });
+    const nextDialog = target.querySelector(".shift-detail-dialog");
+    nextDialog.querySelector(step < 0 ? ".shift-nav-prev" : ".shift-nav-next").focus();
+    if (nextDialog.querySelector(step < 0 ? ".shift-nav-prev" : ".shift-nav-next").disabled) {
+        nextDialog.querySelector(".close-shift-detail").focus();
+    }
+}
+
 function handleListAction(event) {
     const button = event.target.closest("button");
     if (!button) {
@@ -825,15 +879,17 @@ function handleListAction(event) {
     const summaryButton = button.classList.contains("shift-summary") ? button : null;
     if (summaryButton) {
         closeCardMenus();
-        const dialog = summaryButton.parentElement.querySelector(".shift-detail-dialog");
-        if (!dialog.open) {
-            dialog.showModal();
-        }
+        openShiftDetail(summaryButton.parentElement);
         return;
     }
 
     if (button.classList.contains("close-shift-detail")) {
         button.closest("dialog").close();
+        return;
+    }
+
+    if (button.classList.contains("shift-nav-prev") || button.classList.contains("shift-nav-next")) {
+        stepShiftDetail(button.closest("dialog"), button.classList.contains("shift-nav-prev") ? -1 : 1);
         return;
     }
 
@@ -863,10 +919,20 @@ function handleListAction(event) {
     }
 
     if (button.classList.contains("delete-shift")) {
+        const entries = [...shiftList.querySelectorAll(".shift-entry")];
+        const entryIndex = entries.indexOf(card.closest(".shift-entry"));
+        const wasInDialog = Boolean(card.closest("dialog"));
         state.shifts = state.shifts.filter((entry) => entry.id !== shiftId);
         const saved = persistShifts();
         renderDashboard();
         renderPreviousShifts();
+        if (wasInDialog) {
+            const remaining = [...shiftList.querySelectorAll(".shift-entry")];
+            const neighbor = remaining[Math.min(entryIndex, remaining.length - 1)];
+            if (neighbor) {
+                openShiftDetail(neighbor, { fromNav: true });
+            }
+        }
         if (saved) {
             setStatus("Shift deleted.");
         }
