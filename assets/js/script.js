@@ -182,6 +182,16 @@ syncAppHeight();
 window.visualViewport?.addEventListener("resize", syncAppHeight);
 [100, 400, 1000].forEach((delay) => window.setTimeout(syncAppHeight, delay));
 
+// Keep the focused field visible once the on-screen keyboard has finished opening.
+function keepFocusedFieldVisible() {
+    const field = document.activeElement;
+    if (field?.matches?.("input, select, textarea") && document.body.classList.contains("is-entering-shift")) {
+        field.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+}
+document.addEventListener("focusin", () => window.setTimeout(keepFocusedFieldVisible, 300));
+window.visualViewport?.addEventListener("resize", keepFocusedFieldVisible);
+
 bindEvents();
 setNoteRows([]);
 initializeDoubleReports();
