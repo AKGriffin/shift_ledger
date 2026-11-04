@@ -61,7 +61,7 @@
                     </div>
                     <div class="dashboard-heading-actions">
                         <button type="button" id="open-dashboard-customize" class="secondary-button" aria-haspopup="dialog" aria-controls="dashboard-customize-dialog">Customize</button>
-                        <button type="button" class="primary-button" data-view="new-shift">＋ Log a shift</button>
+                        <button type="button" class="primary-button" data-view="new-shift">ï¼‹ Log a shift</button>
                     </div>
                 </header>
                 <section class="dashboard-totals" data-dashboard-section="totals" aria-labelledby="summary-heading">
@@ -225,7 +225,7 @@
                                             <option value="">Select</option>
                                             <option value="Server">Server</option>
                                             <option value="Expo">Expo</option>
-                                            <option value="__add_workplace__">+ Add workplace…</option>
+                                            <option value="__add_workplace__">+ Add workplaceâ€¦</option>
                                         </select>
                                         <span class="field-error" id="shift-job-error" hidden></span>
                                     </label>
@@ -436,7 +436,7 @@
                         <p>Add a new shift or review and filter your saved shifts.</p>
                     </div>
                     <div class="view-header-actions">
-                        <button type="button" id="open-new-shift" class="primary-button" data-view="new-shift">＋ New shift</button>
+                        <button type="button" id="open-new-shift" class="primary-button" data-view="new-shift">ï¼‹ New shift</button>
                     </div>
                 </header>
                 <div class="panel history-header-card">
@@ -466,7 +466,7 @@
                             <h3 id="history-filter-title">Filter shifts</h3>
                             <p>Changes update the list as you make them.</p>
                         </div>
-                        <button type="button" id="close-history-filters" class="ghost-button" aria-label="Close filters">×</button>
+                        <button type="button" id="close-history-filters" class="ghost-button" aria-label="Close filters">Ã—</button>
                     </div>
                     <div class="history-filter-fields">
                         <label class="field">
@@ -937,11 +937,11 @@
 
         <nav class="mobile-bottom-nav" aria-label="Quick navigation">
             <button type="button" class="mobile-bottom-nav-button" data-view="dashboard">
-                <span aria-hidden="true">⌂</span>
+                <span aria-hidden="true">âŒ‚</span>
                 <small>Dashboard</small>
             </button>
             <button type="button" class="mobile-bottom-nav-button" data-view="previous-shifts">
-                <span aria-hidden="true">≡</span>
+                <span aria-hidden="true">â‰¡</span>
                 <small>Shifts</small>
             </button>
             <button type="button" class="mobile-bottom-nav-button" data-view="paystubs">
@@ -949,7 +949,7 @@
                 <small>Paystubs</small>
             </button>
             <button type="button" class="mobile-bottom-nav-button" data-view="settings">
-                <span aria-hidden="true">⚙</span>
+                <span aria-hidden="true">âš™</span>
                 <small>Settings</small>
             </button>
         </nav>
@@ -997,14 +997,11 @@
                 </div>
             </div>
 
-            <button type="button" class="card-expand-all ghost-button" aria-expanded="false">Show all details</button>
-
             <div class="card-primary-metrics shift-card-summary">
                 <div class="card-stat card-stat-hours">
                     <div class="card-stat-head">
                         <span class="card-stat-label">Hours</span>
                         <strong class="card-hours"></strong>
-                        <button type="button" class="card-stat-toggle" aria-expanded="false" aria-label="Show hours details"></button>
                     </div>
                     <div class="card-substats" role="group" aria-label="Time clock">
                         <p><span>In</span> <strong class="card-clock-in"></strong></p>
@@ -1016,7 +1013,6 @@
                     <div class="card-stat-head">
                         <span class="card-stat-label">Sales</span>
                         <strong class="card-sales"></strong>
-                        <button type="button" class="card-stat-toggle" aria-expanded="false" aria-label="Show sales details"></button>
                     </div>
                     <div class="card-substats" role="group" aria-label="Sales breakdown">
                         <p><span>Beer/wine</span> <strong class="card-baw-sales"></strong></p>
@@ -1030,7 +1026,6 @@
                     <div class="card-stat-head">
                         <span class="card-stat-label">Net tips</span>
                         <strong class="card-tips"></strong>
-                        <button type="button" class="card-stat-toggle" aria-expanded="false" aria-label="Show net tips details"></button>
                     </div>
                     <div class="card-substats" role="group" aria-label="Tips breakdown">
                         <p><span>Card</span> <strong class="card-cc-tips"></strong></p>

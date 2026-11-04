@@ -1,4 +1,4 @@
-﻿const STORAGE_KEY = "shift-ledger-shifts-v1";
+const STORAGE_KEY = "shift-ledger-shifts-v1";
 const SETTINGS_KEY = "shift-ledger-settings-v1";
 const VIEW_HISTORY_KEY = "shiftLedgerView";
 const DASHBOARD_STATS = ["shifts", "hours", "sales", "tips"];
@@ -816,21 +816,6 @@ function closeCardMenus(except = null) {
     });
 }
 
-function setCardStatExpanded(toggle, expanded) {
-    const stat = toggle.closest(".card-stat");
-    toggle.setAttribute("aria-expanded", String(expanded));
-    toggle.setAttribute("aria-label", toggle.getAttribute("aria-label").replace(/^(Show|Hide)/, expanded ? "Hide" : "Show"));
-    stat.classList.toggle("is-expanded", expanded);
-}
-
-function updateExpandAllButton(card) {
-    const toggles = [...card.querySelectorAll(".card-stat-toggle")];
-    const expanded = toggles.every((toggle) => toggle.getAttribute("aria-expanded") === "true");
-    const button = card.querySelector(".card-expand-all");
-    button.setAttribute("aria-expanded", String(expanded));
-    button.textContent = expanded ? "Hide all details" : "Show all details";
-}
-
 function handleListAction(event) {
     const button = event.target.closest("button");
     if (!button) {
@@ -869,20 +854,6 @@ function handleListAction(event) {
     }
 
     closeCardMenus();
-
-    if (button.classList.contains("card-stat-toggle")) {
-        const expanded = button.getAttribute("aria-expanded") !== "true";
-        setCardStatExpanded(button, expanded);
-        updateExpandAllButton(card);
-        return;
-    }
-
-    if (button.classList.contains("card-expand-all")) {
-        const expanded = button.getAttribute("aria-expanded") !== "true";
-        card.querySelectorAll(".card-stat-toggle").forEach((toggle) => setCardStatExpanded(toggle, expanded));
-        updateExpandAllButton(card);
-        return;
-    }
 
     const shiftId = Number(card.dataset.shiftId);
     const shift = state.shifts.find((entry) => entry.id === shiftId);

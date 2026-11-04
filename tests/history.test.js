@@ -72,52 +72,19 @@ describe("Previous shifts", () => {
         expect(serverCard().querySelector(".card-break").textContent).toBe("None");
     }));
 
-    test("shows the breakdown under each total on desktop and expands it on mobile", () => withApp({
+    test("stacks the totals on mobile with every breakdown visible", () => withApp({
         width: 390,
         height: 800,
         shifts: seededShifts(),
     }, ({ element, openView, style }) => {
         openView("previous-shifts");
-        const salesToggle = element(".card-stat-sales .card-stat-toggle");
-        const tipsToggle = element(".card-stat-tips .card-stat-toggle");
-        const salesDetails = element(".card-stat-sales .card-substats");
-        const tipsDetails = element(".card-stat-tips .card-substats");
 
         expect(style(element(".shift-card-summary")).gridTemplateColumns.split(" ")).toHaveLength(1);
-        expect(style(salesToggle).display).not.toBe("none");
-        expect(salesToggle.getAttribute("aria-expanded")).toBe("false");
-        expect(style(salesDetails).display).toBe("none");
-        salesToggle.click();
-        expect(salesToggle.getAttribute("aria-expanded")).toBe("true");
-        expect(style(salesDetails).display).not.toBe("none");
-        expect(style(tipsDetails).display).toBe("none");
-        expect(style(element(".shift-card-summary")).gridTemplateColumns.split(" ")).toHaveLength(1);
-        salesToggle.click();
-        expect(style(salesDetails).display).toBe("none");
-        expect(tipsToggle.getAttribute("aria-expanded")).toBe("false");
+        expect(style(element(".card-stat-sales .card-substats")).display).not.toBe("none");
+        expect(style(element(".card-stat-tips .card-substats")).display).not.toBe("none");
+        expect(element(".card-stat-toggle")).toBeNull();
+        expect(element(".card-expand-all")).toBeNull();
     }));
-
-    test("expands and collapses every mobile breakdown at once", () => withApp({
-        width: 390,
-        height: 800,
-        shifts: seededShifts(),
-    }, ({ element, openView, style }) => {
-        openView("previous-shifts");
-        const expandAll = element(".card-expand-all");
-        const toggles = [...element(".shift-card").querySelectorAll(".card-stat-toggle")];
-
-        expect(style(expandAll).display).not.toBe("none");
-        expect(expandAll.textContent).toBe("Show all details");
-        expandAll.click();
-        expect(expandAll.textContent).toBe("Hide all details");
-        expect(toggles.every((toggle) => toggle.getAttribute("aria-expanded") === "true")).toBe(true);
-        expect([...element(".shift-card").querySelectorAll(".card-substats")]
-            .every((substats) => style(substats).display !== "none")).toBe(true);
-        expandAll.click();
-        expect(expandAll.textContent).toBe("Show all details");
-        expect(toggles.every((toggle) => toggle.getAttribute("aria-expanded") === "false")).toBe(true);
-    }));
-
     test("keeps totals side by side with details visible at tablet width", () => withApp({
         width: 700,
         height: 900,
@@ -126,7 +93,7 @@ describe("Previous shifts", () => {
         openView("previous-shifts");
 
         expect(style(element(".shift-card-summary")).gridTemplateColumns.split(" ")).toHaveLength(3);
-        expect(style(element(".card-stat-toggle")).display).toBe("none");
+        expect(element(".card-stat-toggle")).toBeNull();
         expect(style(element(".card-stat-sales .card-substats")).display).not.toBe("none");
     }));
 
@@ -137,7 +104,7 @@ describe("Previous shifts", () => {
     }, ({ element, openView, style }) => {
         openView("previous-shifts");
 
-        expect(style(element(".card-stat-toggle")).display).toBe("none");
+        expect(element(".card-stat-toggle")).toBeNull();
         expect(style(element(".card-stat-tips .card-substats")).display).not.toBe("none");
         expect(element(".card-stat-hours .card-clock-in")).not.toBeNull();
     }));
