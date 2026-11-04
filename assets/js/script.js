@@ -171,6 +171,17 @@ const setupWorkplaceDatesError = document.getElementById("setup-workplace-dates-
 const setupRoles = document.getElementById("setup-roles");
 const systemTheme = window.matchMedia("(prefers-color-scheme: dark)");
 
+// 100dvh can be measured too tall right after a PWA refresh, so size from the real inner height.
+function syncAppHeight() {
+    document.documentElement.style.setProperty("--app-height", `${window.innerHeight}px`);
+}
+syncAppHeight();
+["resize", "orientationchange", "pageshow", "load"].forEach((eventName) => {
+    window.addEventListener(eventName, syncAppHeight);
+});
+window.visualViewport?.addEventListener("resize", syncAppHeight);
+[100, 400, 1000].forEach((delay) => window.setTimeout(syncAppHeight, delay));
+
 bindEvents();
 setNoteRows([]);
 initializeDoubleReports();
