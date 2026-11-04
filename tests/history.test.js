@@ -37,7 +37,6 @@ describe("Previous shifts", () => {
         expect(elements(".shift-summary")).toHaveLength(2);
         expect(serverCard).toBeDefined();
         expect(serverCard.closest("dialog").open).toBe(false);
-        expect(element(".history-header-card").contains(element("#shift-list"))).toBe(false);
         expect(serverCard.querySelector(".card-title .card-job").textContent).toBe("Server");
         expect(serverCard.querySelectorAll(".card-primary-metrics .card-stat")).toHaveLength(3);
         expect(Array.from(serverCard.querySelectorAll(".card-stat-label"), (label) => label.textContent))
@@ -153,7 +152,7 @@ describe("Previous shifts", () => {
         expect(menu.hidden).toBe(false);
         expect(toggle.getAttribute("aria-expanded")).toBe("true");
         expect(doc.activeElement.classList.contains("edit-shift")).toBe(true);
-        element("#sort-by").click();
+        element("#history-status").click();
         doc.body.click();
         expect(menu.hidden).toBe(true);
         expect(toggle.getAttribute("aria-expanded")).toBe("false");
@@ -178,7 +177,7 @@ describe("Previous shifts", () => {
         expect(doc.documentElement.scrollWidth).toBeLessThanOrEqual(doc.documentElement.clientWidth);
     }));
 
-    test("keeps sorting visible and opens an accessible filter dialog", () => withApp({
+    test("opens one accessible sort and filter dialog", () => withApp({
         shifts: seededShifts(),
     }, ({ doc, element, openView }) => {
         openView("previous-shifts");
@@ -186,7 +185,7 @@ describe("Previous shifts", () => {
         const dialog = element("#history-filter-dialog");
 
         expect(doc.querySelector("#previous-shifts #export-csv")).toBeNull();
-        expect(element("#sort-by").closest("dialog")).toBeNull();
+        expect(element("#sort-by").closest("dialog")).toBe(dialog);
         expect(dialog.open).toBe(false);
         expect(openButton.getAttribute("aria-haspopup")).toBe("dialog");
 
@@ -194,7 +193,7 @@ describe("Previous shifts", () => {
 
         expect(dialog.open).toBe(true);
         expect(openButton.getAttribute("aria-expanded")).toBe("true");
-        expect(doc.activeElement.id).toBe("filter-date-from");
+        expect(doc.activeElement.id).toBe("sort-by");
         element("#close-history-filters").click();
 
         expect(dialog.open).toBe(false);
@@ -244,8 +243,8 @@ describe("Previous shifts", () => {
         shifts: seededShifts(),
     }, ({ element, elements, openView, change }) => {
         openView("previous-shifts");
-        change("#sort-by", "sales-desc");
         element("#open-history-filters").click();
+        change("#sort-by", "sales-desc");
         change("#filter-date-from", "2026-10-21");
         change("#filter-job", "Expo");
 

@@ -220,7 +220,7 @@ describe("Mobile navigation", () => {
         openView("previous-shifts");
 
         expect(doc.documentElement.scrollWidth).toBeLessThanOrEqual(win.innerWidth);
-        expect(element("#sort-by").getBoundingClientRect().width).toBeGreaterThan(0);
+        expect(element("#open-history-filters").getBoundingClientRect().width).toBeGreaterThan(0);
 
         element("#open-history-filters").click();
         const bounds = element("#history-filter-dialog").getBoundingClientRect();

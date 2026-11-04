@@ -29,7 +29,7 @@ describe("Settings page", () => {
         openView("settings");
 
         expect(element("#current-app-version").textContent).toBe(win.SHIFT_LEDGER_VERSION);
-        expect(element("#current-app-version").textContent).toBe("v110");
+        expect(element("#current-app-version").textContent).toBe("v111");
     }));
 
     test("makes controls and entry choices distinct in both minimalist themes", () => withApp(({

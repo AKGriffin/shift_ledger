@@ -1884,75 +1884,19 @@ textarea {
     display: flex;
     min-width: 0;
     align-items: center;
-    flex-wrap: nowrap;
-    gap: 10px 14px;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
 }
 
-.history-sort {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--muted);
-    font-size: 0.9rem;
-    font-weight: 600;
-    white-space: nowrap;
+.history-toolbar .secondary-button {
+    flex: 0 0 auto;
 }
 
-.history-sort select {
-    width: auto;
-    min-width: 0;
-    padding: 0.6rem 0.8rem;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--panel-alt);
-    color: var(--text);
-    font: inherit;
+.history-sort-field,
+.history-filter-fields .field:last-child {
+    grid-column: 1 / -1;
 }
-
-.history-actions {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-@media (max-width: 560px) {
-    .history-toolbar {
-        width: 100%;
-    }
-
-    .history-sort {
-        flex: 1 1 auto;
-        min-width: 0;
-    }
-
-    .history-sort select {
-        flex: 1;
-    }
-
-    .history-actions {
-        flex: 0 0 auto;
-    }
-}
-
-@media (min-width: 561px) {
-    .history-toolbar {
-        width: auto;
-    }
-
-    .history-sort {
-        flex: 0 1 auto;
-        min-width: 0;
-    }
-
-    .history-sort select {
-        flex: 0 1 auto;
-        min-width: 0;
-        width: 100%;
-        max-width: 8.5rem;
-        text-overflow: ellipsis;
-    }
-}
-
 .filter-count {
     margin-left: 6px;
     padding: 0.18rem 0.45rem;
@@ -1965,7 +1909,7 @@ textarea {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    margin: 14px 0 0;
+    margin: 0 0 14px;
     padding: 0;
     list-style: none;
 }
@@ -2141,17 +2085,14 @@ main:focus,
 }
 
 .history-status {
-    margin: 12px 0 0;
+    margin: 0;
+    min-width: 0;
     color: var(--muted);
     font-size: 0.9rem;
 }
 
 .history-status:empty {
     display: none;
-}
-
-.history-header-card {
-    margin-bottom: 18px;
 }
 
 .shift-list {
@@ -2605,10 +2546,6 @@ main:focus,
 
     .toolbar {
         width: 100%;
-    }
-
-    .history-toolbar {
-        width: auto;
     }
 
     .history-filter-dialog {

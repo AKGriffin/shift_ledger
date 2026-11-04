@@ -439,39 +439,35 @@
                         <button type="button" id="open-new-shift" class="primary-button" data-view="new-shift">＋ New shift</button>
                     </div>
                 </header>
-                <div class="panel history-header-card">
-                    <div class="history-toolbar">
-                        <label class="inline-field history-sort">
+                <div class="history-toolbar">
+                    <p id="history-status" class="history-status" role="status" aria-live="polite"></p>
+                    <button type="button" id="open-history-filters" class="secondary-button"
+                        aria-haspopup="dialog" aria-controls="history-filter-dialog" aria-expanded="false">
+                        Sort &amp; filter <span id="active-filter-count" class="filter-count" hidden></span>
+                    </button>
+                </div>
+                <ul id="active-filters" class="active-filters" aria-label="Active filters" hidden></ul>
+                <dialog id="history-filter-dialog" class="history-filter-dialog" aria-labelledby="history-filter-title">
+                    <div class="filter-dialog-header">
+                        <div>
+                            <h3 id="history-filter-title">Sort &amp; filter shifts</h3>
+                            <p>Changes update the list as you make them.</p>
+                        </div>
+                        <button type="button" id="close-history-filters" class="ghost-button" aria-label="Close sort and filters">×</button>
+                    </div>
+                    <div class="history-filter-fields">
+                        <label class="field history-sort-field">
                             <span>Sort by</span>
-                            <select id="sort-by">
+                            <select id="sort-by" autofocus>
                                 <option value="date-desc">Newest first</option>
                                 <option value="date-asc">Oldest first</option>
                                 <option value="sales-desc">Sales: high to low</option>
                                 <option value="tips-desc">Tips: high to low</option>
                             </select>
                         </label>
-                        <div class="history-actions">
-                            <button type="button" id="open-history-filters" class="secondary-button"
-                                aria-haspopup="dialog" aria-controls="history-filter-dialog" aria-expanded="false">
-                                Filters <span id="active-filter-count" class="filter-count" hidden></span>
-                            </button>
-                        </div>
-                    </div>
-                    <ul id="active-filters" class="active-filters" aria-label="Active filters" hidden></ul>
-                    <p id="history-status" class="history-status" role="status" aria-live="polite"></p>
-                </div>
-                <dialog id="history-filter-dialog" class="history-filter-dialog" aria-labelledby="history-filter-title">
-                    <div class="filter-dialog-header">
-                        <div>
-                            <h3 id="history-filter-title">Filter shifts</h3>
-                            <p>Changes update the list as you make them.</p>
-                        </div>
-                        <button type="button" id="close-history-filters" class="ghost-button" aria-label="Close filters">×</button>
-                    </div>
-                    <div class="history-filter-fields">
                         <label class="field">
                             <span>From</span>
-                            <input type="date" id="filter-date-from" autofocus>
+                            <input type="date" id="filter-date-from">
                         </label>
                         <label class="field">
                             <span>To</span>
