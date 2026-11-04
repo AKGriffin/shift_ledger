@@ -1325,15 +1325,24 @@ form {
 }
 
 .is-entering-shift .app-shell {
+    position: fixed;
+    inset: 0;
+    width: auto;
     max-width: none;
+    min-height: 0;
+    margin: 0;
     padding: 0;
 }
 
 .is-entering-shift .app-content {
     display: flex;
     box-sizing: border-box;
-    min-height: var(--app-height, 100dvh);
+    width: 100%;
+    height: 100%;
+    min-height: 0;
     padding: 24px 32px calc(16px + env(safe-area-inset-bottom));
+    overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
 .is-entering-shift #main-content {
@@ -2324,7 +2333,7 @@ main:focus,
 
     .is-entering-shift .app-content {
         box-sizing: border-box;
-        min-height: var(--app-height, 100dvh);
+        min-height: 0;
         padding: 0 16px calc(16px + env(safe-area-inset-bottom));
     }
 

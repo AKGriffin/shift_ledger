@@ -256,8 +256,7 @@ describe("Guided and manual entry", () => {
 
         frame.style.height = "480px";
         await new Promise((resolve) => win.requestAnimationFrame(() => win.requestAnimationFrame(resolve)));
-        expect(style(doc.body).overflowY).not.toBe("hidden");
-        expect(style(element(".app-content")).overflowY).not.toBe("auto");
+        expect(style(element(".app-content")).overflowY).toBe("auto");
 
         element("#shift-date").value = "2026-10-22";
         harness.fire(element("#shift-date"), "change");
