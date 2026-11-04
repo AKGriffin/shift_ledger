@@ -1342,7 +1342,6 @@ form {
     min-height: 0;
     padding: 24px 32px calc(16px + env(safe-area-inset-bottom));
     overflow-y: auto;
-    overscroll-behavior: contain;
 }
 
 .is-entering-shift #main-content {
