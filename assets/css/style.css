@@ -1368,6 +1368,7 @@ form {
 }
 
 #entry-mode-chooser,
+.shift-form:not(.is-guided) #shift-entry-fields,
 .shift-form.is-guided:not(.is-guided-review) #guided-controls {
     margin-top: auto;
 }
