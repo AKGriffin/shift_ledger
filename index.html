@@ -957,6 +957,25 @@
     </div>
 
     <template id="shift-card-template">
+        <div class="shift-entry">
+        <button type="button" class="shift-summary" aria-haspopup="dialog">
+            <span class="shift-summary-main">
+                <strong class="summary-date"></strong>
+                <span class="summary-job"></span>
+                <span class="summary-tags">
+                    <span class="pill summary-meal"></span>
+                    <span class="summary-status" hidden></span>
+                </span>
+            </span>
+            <span class="shift-summary-metrics">
+                <span class="summary-metric"><small>Hours</small><strong class="summary-hours"></strong></span>
+                <span class="summary-metric"><small>Sales</small><strong class="summary-sales"></strong></span>
+                <span class="summary-metric"><small>Net tips</small><strong class="summary-tips"></strong></span>
+            </span>
+            <span class="summary-chevron" aria-hidden="true">&#8250;</span>
+        </button>
+        <dialog class="history-filter-dialog shift-detail-dialog" aria-label="Shift details">
+        <button type="button" class="ghost-button close-shift-detail" aria-label="Close shift details">&times;</button>
         <article class="shift-card">
             <div class="card-header">
                 <div>
@@ -1025,6 +1044,8 @@
 
             <div class="card-notes"></div>
         </article>
+        </dialog>
+        </div>
     </template>
 
     <template id="double-report-template">

@@ -1058,6 +1058,129 @@ main {
     font-variant-numeric: tabular-nums;
 }
 
+.shift-entry {
+    min-width: 0;
+}
+
+.shift-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    width: 100%;
+    padding: 16px 18px;
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--primary);
+    border-radius: 14px;
+    background: var(--panel);
+    box-shadow: var(--shadow);
+    color: var(--text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.shift-summary:hover {
+    background: var(--panel-alt);
+}
+
+.shift-summary-main {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.shift-summary-main strong,
+.summary-job {
+    overflow-wrap: anywhere;
+}
+
+.summary-job,
+.summary-status {
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+.summary-tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.shift-summary-metrics {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 18px;
+}
+
+.summary-metric {
+    display: grid;
+    gap: 2px;
+    text-align: right;
+}
+
+.summary-metric small {
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.summary-metric strong {
+    font-variant-numeric: tabular-nums;
+}
+
+.summary-chevron {
+    color: var(--muted);
+    font-size: 1.6rem;
+    line-height: 1;
+}
+
+.shift-detail-dialog {
+    width: min(680px, calc(100% - 2rem));
+    position: relative;
+}
+
+.shift-detail-dialog .shift-card {
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    background: transparent;
+}
+
+.close-shift-detail {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 1;
+}
+
+.shift-detail-dialog .card-header {
+    padding-right: 36px;
+}
+
+@media (max-width: 640px) {
+    .shift-summary {
+        flex-wrap: wrap;
+    }
+
+    .shift-summary-main {
+        flex: 1 1 60%;
+    }
+
+    .shift-summary-metrics {
+        order: 3;
+        flex: 1 0 100%;
+        justify-content: space-between;
+    }
+
+    .summary-metric {
+        text-align: left;
+    }
+}
+
 .form-status {
     margin: 18px 0 0;
     min-height: 24px;

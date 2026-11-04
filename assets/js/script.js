@@ -454,8 +454,14 @@ function bindEvents() {
         }
         const openToggle = shiftList.querySelector(".card-menu-toggle[aria-expanded='true']");
         if (openToggle) {
+            event.preventDefault();
             closeCardMenus();
             openToggle.focus();
+        }
+    });
+    shiftList.addEventListener("click", (event) => {
+        if (event.target.classList.contains("shift-detail-dialog")) {
+            event.target.close();
         }
     });
     styleSetting.addEventListener("change", () => updateSetting("visualStyle", styleSetting.value));
@@ -831,6 +837,21 @@ function handleListAction(event) {
         return;
     }
 
+    const summaryButton = button.classList.contains("shift-summary") ? button : null;
+    if (summaryButton) {
+        closeCardMenus();
+        const dialog = summaryButton.parentElement.querySelector(".shift-detail-dialog");
+        if (!dialog.open) {
+            dialog.showModal();
+        }
+        return;
+    }
+
+    if (button.classList.contains("close-shift-detail")) {
+        button.closest("dialog").close();
+        return;
+    }
+
     const card = button.closest(".shift-card");
     if (!card) {
         return;
@@ -882,6 +903,7 @@ function handleListAction(event) {
     }
 
     if (button.classList.contains("edit-shift")) {
+        card.closest("dialog")?.close();
         populateForm(shift);
         formTitle.textContent = "Edit Shift";
         showView("new-shift");
@@ -2148,6 +2170,23 @@ function renderPreviousShifts() {
         const cardNode = template.content.cloneNode(true);
         const card = cardNode.querySelector(".shift-card");
         card.dataset.shiftId = String(shift.id);
+        const summary = cardNode.querySelector(".shift-summary");
+        summary.dataset.shiftId = String(shift.id);
+        const weekday = new Date(`${shift.date}T00:00:00`)
+            .toLocaleDateString("en-US", { weekday: "short" });
+        summary.querySelector(".summary-date").textContent = Number.isNaN(Date.parse(shift.date))
+            ? formatDate(shift.date)
+            : `${weekday}, ${formatDate(shift.date)}`;
+        summary.querySelector(".summary-job").textContent = [shift.job, getWorkplaceName(shift.workplaceId)].filter(Boolean).join(" · ");
+        summary.querySelector(".summary-meal").textContent = shift.mealPeriod;
+        const summaryStatus = summary.querySelector(".summary-status");
+        const summaryStatusText = getReportStatus(shift);
+        summaryStatus.textContent = summaryStatusText;
+        summaryStatus.hidden = !summaryStatusText;
+        summary.querySelector(".summary-hours").textContent = formatDuration(getDurationMinutes(shift));
+        summary.querySelector(".summary-sales").textContent = formatReportAmount(shift, getSalesTotal(shift), "sales");
+        summary.querySelector(".summary-tips").textContent = formatReportAmount(shift, getNetTips(shift), "tips");
+        summary.setAttribute("aria-label", `View shift details: ${summary.querySelector(".summary-date").textContent}, ${summary.querySelector(".summary-job").textContent}`);
         card.querySelector(".card-date").textContent = formatDate(shift.date);
         card.querySelector(".card-meal").textContent = shift.mealPeriod;
         const reportStatus = card.querySelector(".card-report-status");
