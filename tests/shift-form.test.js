@@ -582,15 +582,38 @@ describe("Guided and manual entry", () => {
     test("review step previews the shift and Edit returns with values kept", () => withApp((harness) => {
         const { element, savedShifts, fillForm } = harness;
         chooseMode(harness, "manual");
-        fillForm({ date: "2026-10-20", mealPeriod: "Dinner", job: "Server", clockIn: "16:00", clockOut: "22:00", foodSales: 55 });
+        fillForm({ date: "2026-10-20", mealPeriod: "Dinner", job: "Server", clockIn: "16:00", clockOut: "22:00", foodSales: 55, ccTips: 12 });
+        element("#notes-list .note-input").value = "Busy patio";
+        harness.fire(element("#notes-list .note-input"), "input");
         element("#review-shift").click();
         expect(element("#shift-review").hidden).toBe(false);
+        expect(element("#shift-review-card .card-food-sales").textContent).toBe("$55.00");
+        expect(element("#shift-review-card .card-cc-tips").textContent).toBe("$12.00");
+        expect(element("#shift-review-card .card-notes").textContent).toContain("Busy patio");
+        expect(harness.doc.querySelector("#shift-review-card .edit-shift")).toBe(null);
         expect(element("#shift-entry-fields").hidden).toBe(true);
         expect(savedShifts()).toHaveLength(0);
         element("#edit-shift").click();
         expect(element("#shift-review").hidden).toBe(true);
         expect(element("#shift-entry-fields").hidden).toBe(false);
         expect(element("#shift-food-sales").value).toBe("55");
+    }));
+
+    test("cancelling from the review step asks first and keeps the shift when declined", () => withApp((harness) => {
+        const { element, win, fillForm, savedShifts } = harness;
+        chooseMode(harness, "manual");
+        fillForm({ date: "2026-10-20", mealPeriod: "Dinner", job: "Server", clockIn: "16:00", clockOut: "22:00" });
+        element("#review-shift").click();
+        let prompts = 0;
+        win.confirm = () => { prompts += 1; return false; };
+        element("#cancel-review").click();
+        expect(prompts).toBe(1);
+        expect(element("#shift-review").hidden).toBe(false);
+        expect(element("#new-shift").classList.contains("is-visible")).toBe(true);
+        win.confirm = () => true;
+        element("#cancel-review").click();
+        expect(element("#new-shift").classList.contains("is-visible")).toBe(false);
+        expect(savedShifts()).toHaveLength(0);
     }));
 
     test("editing a shift uses the manual layout without a mode prompt", () => withApp({ shifts: [makeShift()] }, ({ element, doc }) => {
