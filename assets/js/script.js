@@ -1306,10 +1306,15 @@ function syncAnswerRadios() {
     check(hasNotes ? "shift-has-notes-yes" : "shift-has-notes-no");
 }
 
+// The Edit phase shows every field at once; the Yes/No answers only gate fields while stepping through guided questions.
+function showsAllFields() {
+    return Boolean(getEditingShift()) || entryMode === "manual" || (entryMode === "guided" && Boolean(guidedStep.review));
+}
+
 function updateGuidedBreakQuestion(guided = hasEntryQuestions()) {
     const question = document.getElementById("guided-break-question");
     question.hidden = !guided;
-    document.getElementById("break-time-fields").hidden = guided && getGuidedBreakAnswer() !== "yes";
+    document.getElementById("break-time-fields").hidden = guided && !showsAllFields() && getGuidedBreakAnswer() !== "yes";
 }
 
 function getGuidedReportAnswer(kind) {
@@ -1327,7 +1332,7 @@ function updateGuidedSalesReport(guided = hasEntryQuestions()) {
     document.getElementById("shift-no-sales-report-control").hidden = guided;
     document.getElementById("shift-no-sales-report-hint").hidden = guided;
     document.getElementById("guided-sales-report-hint").hidden = !guided || salesAnswer !== "no";
-    document.getElementById("guided-sales-inputs").hidden = guided && salesAnswer !== "yes";
+    document.getElementById("guided-sales-inputs").hidden = guided && !showsAllFields() && salesAnswer !== "yes";
 
     const tipsAnswer = getGuidedReportAnswer("tips");
     document.getElementById("guided-tips-report-step").hidden = !guided;
@@ -1335,11 +1340,11 @@ function updateGuidedSalesReport(guided = hasEntryQuestions()) {
     document.getElementById("shift-no-tips-report-hint").hidden = guided;
     document.getElementById("guided-tips-report-hint").hidden = !guided || tipsAnswer !== "no";
     document.getElementById("guided-tips-inputs").hidden = guided
-        ? tipsAnswer !== "yes"
+        ? !showsAllFields() && tipsAnswer !== "yes"
         : document.getElementById("shift-no-tips-report").checked;
 
     document.getElementById("guided-notes-question").hidden = !guided;
-    document.getElementById("notes-entry").hidden = guided && getGuidedNotesAnswer() !== "yes";
+    document.getElementById("notes-entry").hidden = guided && !showsAllFields() && getGuidedNotesAnswer() !== "yes";
 }
 
 function getGuidedNotesAnswer() {
@@ -1424,6 +1429,7 @@ function renderEntryMode() {
     const review = shiftFormProgress.details && (guidedStep.review || index === steps.length);
     const current = review ? null : steps[index];
     guidedStep = { element: current, index: review ? steps.length : index, review };
+    updateGuidedBreakQuestion(guided);
     updateGuidedSalesReport(guided);
     question.hidden = !review;
     form.classList.toggle("is-guided-review", review);

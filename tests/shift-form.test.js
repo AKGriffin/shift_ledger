@@ -192,6 +192,10 @@ describe("Guided and manual entry", () => {
         expect(harness.element("#shift-has-tips-report-yes").checked).toBe(true);
         expect(harness.element("#shift-has-notes-no").checked).toBe(true);
         expect(harness.doc.querySelector("#switch-entry-mode")).toBe(null);
+        expect(harness.element("#break-time-fields").hidden).toBe(false);
+        expect(harness.element('[data-report-inputs="sales"]').hidden).toBe(false);
+        expect(harness.element('[data-report-inputs="tips"]').hidden).toBe(false);
+        expect(harness.element("#notes-entry").hidden).toBe(false);
     }));
 
     test("editing a saved shift shows the Yes/No answers that match its data", () => withApp({
@@ -469,7 +473,7 @@ describe("Guided and manual entry", () => {
         element("#guided-next").click();
         expect(element("#guided-question").textContent).toContain("Edit your shift");
         expect(element("#shift-has-notes-no").checked).toBe(true);
-        expect(element("#notes-entry").hidden).toBe(true);
+        expect(element("#notes-entry").hidden).toBe(false);
         expect(savedShifts()).toHaveLength(0);
     }));
 
@@ -534,7 +538,7 @@ describe("Guided and manual entry", () => {
         chooseBreakAnswer(harness, "no");
         expect(element("#guided-question").textContent).toContain("Edit your shift");
         expect(element("#guided-progress").textContent).toContain("Edit");
-        expect(element("#break-time-fields").hidden).toBe(true);
+        expect(element("#break-time-fields").hidden).toBe(false);
     }));
 
     test("sales and tips report choices remain editable in guided review", () => withApp((harness) => {
@@ -556,7 +560,7 @@ describe("Guided and manual entry", () => {
         element("#shift-has-sales-report-no").checked = true;
         fire(element("#shift-has-sales-report-no"), "change");
         expect(element("#guided-sales-report-choice").hidden).toBe(false);
-        expect(element('[data-report-inputs="sales"]').hidden).toBe(true);
+        expect(element('[data-report-inputs="sales"]').hidden).toBe(false);
 
         element("#shift-has-tips-report-yes").checked = true;
         fire(element("#shift-has-tips-report-yes"), "change");
@@ -574,9 +578,9 @@ describe("Guided and manual entry", () => {
         element("#shift-has-tips-report-no").checked = true;
         fire(element("#shift-has-tips-report-no"), "change");
         expect(element("#guided-tips-report-choice").hidden).toBe(false);
-        expect(element("#guided-tips-inputs").hidden).toBe(true);
-        expect(element("#shift-cc-tips").closest(".sub-card").closest("#guided-tips-inputs").hidden).toBe(true);
-        expect(element("#shift-tip-out-paid").closest(".sub-card").closest("#guided-tips-inputs").hidden).toBe(true);
+        expect(element("#guided-tips-inputs").hidden).toBe(false);
+        expect(element("#shift-cc-tips").closest(".sub-card").closest("#guided-tips-inputs").hidden).toBe(false);
+        expect(element("#shift-tip-out-paid").closest(".sub-card").closest("#guided-tips-inputs").hidden).toBe(false);
         expect(element("#review-shift").hidden).toBe(false);
     }));
 
