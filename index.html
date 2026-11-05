@@ -422,9 +422,19 @@
                         <button type="button" id="guided-next" class="primary-button" aria-describedby="guided-next-hint">Next</button>
                     </div>
                     <div id="form-actions" class="form-actions">
-                        <button type="submit" id="save-shift" class="primary-button">Save shift</button>
+                        <button type="submit" id="review-shift" class="primary-button">Review shift</button>
                         <button type="button" id="cancel-form" class="ghost-button">Cancel</button>
                     </div>
+                    <section id="shift-review" class="shift-review" aria-labelledby="shift-review-title" hidden>
+                        <h2 id="shift-review-title" tabindex="-1">Review your shift</h2>
+                        <p>This is how the shift will appear in your Shifts list.</p>
+                        <div id="shift-review-card"></div>
+                        <div class="form-actions">
+                            <button type="button" id="edit-shift" class="secondary-button">Edit</button>
+                            <button type="submit" id="save-shift" class="primary-button">Save shift</button>
+                            <button type="button" id="cancel-review" class="ghost-button">Cancel</button>
+                        </div>
+                    </section>
                 </form>
             </section>
 

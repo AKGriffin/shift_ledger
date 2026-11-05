@@ -57,6 +57,7 @@ let formStatusExpiresAt = null;
 let shiftFormDirty = false;
 let shiftFormProgress = { workplace: false, details: false };
 let entryMode = null;
+let shiftReviewing = false;
 let guidedStep = { element: null, index: 0 };
 let guidedNextAttempted = false;
 let allowUpdateReload = false;
@@ -378,6 +379,8 @@ function bindEvents() {
     document.getElementById("guided-back").addEventListener("click", () => moveGuidedStep(-1));
     document.getElementById("guided-next").addEventListener("click", () => moveGuidedStep(1));
     cancelFormButton.addEventListener("click", cancelShiftEntry);
+    document.getElementById("cancel-review").addEventListener("click", cancelShiftEntry);
+    document.getElementById("edit-shift").addEventListener("click", editShiftFromReview);
     guidedCancelButton.addEventListener("click", cancelShiftEntry);
     form.addEventListener("change", (event) => {
         if (![fields.workplace, fields.role, fields.job].includes(event.target)) {
@@ -1295,22 +1298,21 @@ function renderEntryMode() {
     const editing = Boolean(getEditingShift());
     const chosen = editing ? "manual" : entryMode;
     const guided = chosen === "guided";
+    const reviewing = shiftReviewing && Boolean(chosen);
     const container = document.getElementById("shift-entry-fields");
     document.getElementById("entry-mode-chooser").hidden = Boolean(chosen);
-    container.hidden = !chosen && !editing;
+    container.hidden = reviewing || (!chosen && !editing);
+    document.getElementById("shift-review").hidden = !reviewing;
     form.classList.toggle("is-guided", guided);
     form.classList.remove("is-guided-review");
 
     const controls = document.getElementById("guided-controls");
     const guidedButtons = document.getElementById("guided-buttons");
     const formActions = document.getElementById("form-actions");
-    const save = document.getElementById("save-shift");
     const question = document.getElementById("guided-question");
-    controls.hidden = !guided;
-    guidedButtons.hidden = !guided;
-    formActions.hidden = !chosen || (guided && !guidedStep.review);
-    save.hidden = !chosen;
-    cancelFormButton.hidden = !chosen || (guided && !guidedStep.review);
+    controls.hidden = !guided || reviewing;
+    guidedButtons.hidden = !guided || reviewing || Boolean(guidedStep.review);
+    formActions.hidden = reviewing || !chosen || (guided && !guidedStep.review);
     guidedCancelButton.hidden = !guided || guidedStep.review;
     updateGuidedBreakQuestion(guided);
     updateGuidedSalesReport(guided);
@@ -1344,12 +1346,12 @@ function renderEntryMode() {
     updateGuidedSalesReport(guided);
     question.hidden = !review;
     form.classList.toggle("is-guided-review", review);
-    formActions.hidden = !chosen || (guided && !review);
-    cancelFormButton.hidden = !chosen || (guided && !review);
+    formActions.hidden = reviewing || !chosen || (guided && !review);
+    guidedButtons.hidden = reviewing || review;
     guidedCancelButton.hidden = !guided || review;
     if (review) {
-        document.getElementById("guided-question").textContent = "Review your shift and make any changes below.";
-        document.getElementById("guided-progress").textContent = `Review · Step ${steps.length + 1} of ${steps.length + 1}`;
+        document.getElementById("guided-question").textContent = "Edit your shift below, then review it before saving.";
+        document.getElementById("guided-progress").textContent = `Edit · Step ${steps.length + 1} of ${steps.length + 1}`;
         container.querySelectorAll("[data-guided-review-prompt]").forEach((heading) => {
             heading.dataset.guidedOriginal = heading.textContent;
             heading.textContent = heading.dataset.guidedReviewPrompt;
@@ -1383,14 +1385,33 @@ function renderEntryMode() {
     document.getElementById("guided-back").disabled = false;
     const next = document.getElementById("guided-next");
     next.hidden = review;
-    next.textContent = shiftFormProgress.details && index === steps.length - 1 ? "Review shift" : "Next";
+    next.textContent = shiftFormProgress.details && index === steps.length - 1 ? "Finish" : "Next";
     const nextIssues = review ? [] : getGuidedStepIssues(current);
     next.disabled = false;
     const nextHint = document.getElementById("guided-next-hint");
     const showHint = guidedNextAttempted && nextIssues.length > 0;
     nextHint.hidden = !showHint;
     nextHint.textContent = showHint ? `To continue: ${nextIssues[0].message}` : "";
-    save.hidden = !review;
+}
+
+function showShiftReview(shift) {
+    const summary = buildShiftCardNode(shift).querySelector(".shift-summary");
+    const preview = document.createElement("div");
+    preview.className = "shift-summary shift-summary-preview";
+    preview.append(...[...summary.childNodes].filter((node) => !node.classList?.contains("summary-chevron")));
+    document.getElementById("shift-review-card").replaceChildren(preview);
+    shiftReviewing = true;
+    updateShiftFormProgression();
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    document.getElementById("shift-review-title").focus({ preventScroll: true });
+}
+
+function editShiftFromReview() {
+    shiftReviewing = false;
+    document.getElementById("shift-review-card").replaceChildren();
+    updateShiftFormProgression();
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    fields.date.focus({ preventScroll: true });
 }
 
 function getGuidedQuestionHeading(step) {
@@ -1628,6 +1649,8 @@ function resetForm(shouldClearStatus = true) {
     shiftFormDirty = false;
     shiftFormProgress = { workplace: false, details: false };
     entryMode = null;
+    shiftReviewing = false;
+    document.getElementById("shift-review-card").replaceChildren();
     guidedStep = { element: null, index: 0 };
     delete fields.workplace.dataset.initialized;
     guidedNextAttempted = false;
@@ -1653,6 +1676,7 @@ function resetForm(shouldClearStatus = true) {
 
 function populateForm(shift) {
     shiftFormDirty = false;
+    shiftReviewing = false;
     shiftFormProgress = { workplace: true, details: true };
     state.editingShiftId = shift.id;
     fields.date.value = shift.date || "";
@@ -1722,6 +1746,11 @@ function handleFormSubmit(event) {
             return;
         }
         clearValidationErrors();
+
+        if (!shiftReviewing) {
+            showShiftReview(shift);
+            return;
+        }
 
         if (state.editingShiftId !== null) {
             const index = state.shifts.findIndex((entry) => entry.id === state.editingShiftId);
@@ -2170,74 +2199,78 @@ function renderPreviousShifts() {
     const fragment = document.createDocumentFragment();
 
     filtered.forEach((shift) => {
-        const cardNode = template.content.cloneNode(true);
-        const card = cardNode.querySelector(".shift-card");
-        card.dataset.shiftId = String(shift.id);
-        const summary = cardNode.querySelector(".shift-summary");
-        summary.dataset.shiftId = String(shift.id);
-        const weekday = new Date(`${shift.date}T00:00:00`)
-            .toLocaleDateString("en-US", { weekday: "short" });
-        summary.querySelector(".summary-date").textContent = Number.isNaN(Date.parse(shift.date))
-            ? formatDate(shift.date)
-            : `${weekday}, ${formatDate(shift.date)}`;
-        summary.querySelector(".summary-job").textContent = [shift.job, getWorkplaceName(shift.workplaceId)].filter(Boolean).join(" · ");
-        summary.querySelector(".summary-meal").textContent = shift.mealPeriod;
-        const summaryStatus = summary.querySelector(".summary-status");
-        const summaryStatusText = getReportStatus(shift);
-        summaryStatus.textContent = summaryStatusText;
-        summaryStatus.hidden = !summaryStatusText;
-        summary.querySelector(".summary-hours").textContent = formatDuration(getDurationMinutes(shift));
-        summary.querySelector(".summary-sales").textContent = formatReportAmount(shift, getSalesTotal(shift), "sales");
-        summary.querySelector(".summary-tips").textContent = formatReportAmount(shift, getNetTips(shift), "tips");
-        summary.setAttribute("aria-label", `View shift details: ${summary.querySelector(".summary-date").textContent}, ${summary.querySelector(".summary-job").textContent}`);
-        card.querySelector(".card-date").textContent = formatDate(shift.date);
-        card.querySelector(".card-meal").textContent = shift.mealPeriod;
-        const reportStatus = card.querySelector(".card-report-status");
-        const reportStatusText = getReportStatus(shift);
-        reportStatus.textContent = reportStatusText;
-        reportStatus.hidden = !reportStatusText;
-        card.querySelector(".card-job").textContent = [shift.job, getWorkplaceName(shift.workplaceId)].filter(Boolean).join(" · ");
-        card.querySelector(".card-hours").textContent = formatDuration(getDurationMinutes(shift));
-        card.querySelector(".card-sales").textContent = formatReportAmount(shift, getSalesTotal(shift), "sales");
-        card.querySelector(".card-tips").textContent = formatReportAmount(shift, getNetTips(shift), "tips");
-        const autoGratuity = getAutoGratuity(shift);
-        const autoGratuityValue = card.querySelector(".card-auto-gratuity");
-        autoGratuityValue.textContent = formatCurrency(autoGratuity);
-        autoGratuityValue.parentElement.hidden = state.settings.zeroDetails === "hide" && !autoGratuity;
-        const breakdown = getFinancialBreakdown(shift);
-        Object.entries(CARD_BREAKDOWN_SELECTORS).forEach(([field, selector]) => {
-            const value = card.querySelector(selector);
-            value.textContent = formatCurrency(breakdown[field]);
-            value.parentElement.hidden = state.settings.zeroDetails === "hide" && !breakdown[field];
-        });
-        card.querySelector(".card-clock-in").textContent = formatTime(shift.clockIn);
-        card.querySelector(".card-clock-out").textContent = formatClockOut(shift);
-        const hasBreak = Boolean(shift.breakStart && shift.breakEnd);
-        const breakValue = card.querySelector(".card-break");
-        breakValue.textContent = hasBreak
-            ? `${formatTime(shift.breakStart)} - ${formatBreakEnd(shift)}`
-            : "None";
-        breakValue.parentElement.hidden = state.settings.zeroDetails === "hide" && !hasBreak;
-        const notesEl = card.querySelector(".card-notes");
-        const notes = getNotes(shift);
-        if (notes.length > 0) {
-            const list = document.createElement("ul");
-            list.className = "card-note-list";
-            notes.forEach((note) => {
-                const item = document.createElement("li");
-                item.textContent = note;
-                list.appendChild(item);
-            });
-            notesEl.replaceChildren(list);
-            notesEl.hidden = false;
-        } else {
-            notesEl.replaceChildren();
-            notesEl.hidden = true;
-        }
-        fragment.appendChild(cardNode);
+        fragment.appendChild(buildShiftCardNode(shift));
     });
 
     shiftList.replaceChildren(fragment);
+}
+
+function buildShiftCardNode(shift) {
+    const cardNode = template.content.cloneNode(true);
+    const card = cardNode.querySelector(".shift-card");
+    card.dataset.shiftId = String(shift.id);
+    const summary = cardNode.querySelector(".shift-summary");
+    summary.dataset.shiftId = String(shift.id);
+    const weekday = new Date(`${shift.date}T00:00:00`)
+        .toLocaleDateString("en-US", { weekday: "short" });
+    summary.querySelector(".summary-date").textContent = Number.isNaN(Date.parse(shift.date))
+        ? formatDate(shift.date)
+        : `${weekday}, ${formatDate(shift.date)}`;
+    summary.querySelector(".summary-job").textContent = [shift.job, getWorkplaceName(shift.workplaceId)].filter(Boolean).join(" · ");
+    summary.querySelector(".summary-meal").textContent = shift.mealPeriod;
+    const summaryStatus = summary.querySelector(".summary-status");
+    const summaryStatusText = getReportStatus(shift);
+    summaryStatus.textContent = summaryStatusText;
+    summaryStatus.hidden = !summaryStatusText;
+    summary.querySelector(".summary-hours").textContent = formatDuration(getDurationMinutes(shift));
+    summary.querySelector(".summary-sales").textContent = formatReportAmount(shift, getSalesTotal(shift), "sales");
+    summary.querySelector(".summary-tips").textContent = formatReportAmount(shift, getNetTips(shift), "tips");
+    summary.setAttribute("aria-label", `View shift details: ${summary.querySelector(".summary-date").textContent}, ${summary.querySelector(".summary-job").textContent}`);
+    card.querySelector(".card-date").textContent = formatDate(shift.date);
+    card.querySelector(".card-meal").textContent = shift.mealPeriod;
+    const reportStatus = card.querySelector(".card-report-status");
+    const reportStatusText = getReportStatus(shift);
+    reportStatus.textContent = reportStatusText;
+    reportStatus.hidden = !reportStatusText;
+    card.querySelector(".card-job").textContent = [shift.job, getWorkplaceName(shift.workplaceId)].filter(Boolean).join(" · ");
+    card.querySelector(".card-hours").textContent = formatDuration(getDurationMinutes(shift));
+    card.querySelector(".card-sales").textContent = formatReportAmount(shift, getSalesTotal(shift), "sales");
+    card.querySelector(".card-tips").textContent = formatReportAmount(shift, getNetTips(shift), "tips");
+    const autoGratuity = getAutoGratuity(shift);
+    const autoGratuityValue = card.querySelector(".card-auto-gratuity");
+    autoGratuityValue.textContent = formatCurrency(autoGratuity);
+    autoGratuityValue.parentElement.hidden = state.settings.zeroDetails === "hide" && !autoGratuity;
+    const breakdown = getFinancialBreakdown(shift);
+    Object.entries(CARD_BREAKDOWN_SELECTORS).forEach(([field, selector]) => {
+        const value = card.querySelector(selector);
+        value.textContent = formatCurrency(breakdown[field]);
+        value.parentElement.hidden = state.settings.zeroDetails === "hide" && !breakdown[field];
+    });
+    card.querySelector(".card-clock-in").textContent = formatTime(shift.clockIn);
+    card.querySelector(".card-clock-out").textContent = formatClockOut(shift);
+    const hasBreak = Boolean(shift.breakStart && shift.breakEnd);
+    const breakValue = card.querySelector(".card-break");
+    breakValue.textContent = hasBreak
+        ? `${formatTime(shift.breakStart)} - ${formatBreakEnd(shift)}`
+        : "None";
+    breakValue.parentElement.hidden = state.settings.zeroDetails === "hide" && !hasBreak;
+    const notesEl = card.querySelector(".card-notes");
+    const notes = getNotes(shift);
+    if (notes.length > 0) {
+        const list = document.createElement("ul");
+        list.className = "card-note-list";
+        notes.forEach((note) => {
+            const item = document.createElement("li");
+            item.textContent = note;
+            list.appendChild(item);
+        });
+        notesEl.replaceChildren(list);
+        notesEl.hidden = false;
+    } else {
+        notesEl.replaceChildren();
+        notesEl.hidden = true;
+    }
+    return cardNode;
 }
 
 function renderPeriodSummaries() {

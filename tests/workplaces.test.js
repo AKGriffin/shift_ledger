@@ -995,12 +995,12 @@ describe("Editing shifts without a role", () => {
     test("saving with a chosen role links the shift", () => withApp({
         workplaces: sampleData(),
         shifts: [makeShift({ id: 34, job: "Expo" })],
-    }, ({ element, openView, fire, change, savedShifts }) => {
+    }, ({ element, openView, change, submitForm, savedShifts }) => {
         openView("previous-shifts");
-        fire(element('.shift-card[data-shift-id="34"] .edit-shift'), "click");
+        element('.shift-card[data-shift-id="34"] .edit-shift').click();
         change("#shift-workplace", "wp-1");
         change("#shift-role", "r-1");
-        fire(element("#shift-form"), "submit");
+        submitForm();
         expect(savedShifts()[0].job).toBe("Server");
         expect(savedShifts()[0].roleId).toBe("r-1");
         expect(savedShifts()[0].workplaceId).toBe("wp-1");

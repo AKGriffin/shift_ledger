@@ -220,7 +220,13 @@ function createHarness(frame, consoleErrors) {
             doc.getElementById(id).value = String(value);
         });
     };
-    const submitForm = () => fire(element("#shift-form"), "submit");
+    const submitForm = () => {
+        fire(element("#shift-form"), "submit");
+        // A valid submit lands on the review step; submitting again saves.
+        if (!element("#shift-review").hidden) {
+            fire(element("#shift-form"), "submit");
+        }
+    };
     const saveShift = (values = {}) => {
         openView("new-shift");
         fillForm({ ...DEFAULT_FORM_VALUES, ...values });

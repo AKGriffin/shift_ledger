@@ -1999,6 +1999,30 @@ textarea {
     gap: 12px;
 }
 
+.shift-review {
+    display: grid;
+    gap: 14px;
+}
+
+.shift-review[hidden] {
+    display: none;
+}
+
+.shift-review h2,
+.shift-review p {
+    margin: 0;
+}
+
+.shift-review h2:focus {
+    outline: none;
+}
+
+.shift-summary-preview,
+.shift-summary-preview:hover {
+    background: var(--panel);
+    cursor: default;
+}
+
 .toolbar {
     display: flex;
     min-width: 0;
