@@ -1999,6 +1999,17 @@ textarea {
     gap: 12px;
 }
 
+.edit-history {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.edit-history[hidden] {
+    display: none;
+}
+
 .shift-review {
     display: grid;
     gap: 14px;

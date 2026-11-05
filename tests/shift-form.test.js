@@ -666,6 +666,86 @@ describe("Guided and manual entry", () => {
         expect(element("#shift-food-sales").value).not.toBe("25");
     }));
 
+    test("undo and redo step through committed edits on the edit phase", () => withApp((harness) => {
+        const { element, win, doc, fire } = harness;
+        const setValue = (selector, value) => {
+            element(selector).value = value;
+            fire(element(selector), "change");
+        };
+        chooseMode(harness, "manual");
+        expect(element("#edit-history").hidden).toBe(false);
+        expect(element("#undo-edit").disabled).toBe(true);
+        const blankSales = element("#shift-food-sales").value;
+
+        setValue("#shift-food-sales", "25");
+        setValue("#shift-cc-tips", "10");
+        element("#notes-list .note-input").value = "Slow night";
+        fire(element("#notes-list .note-input"), "change");
+        expect(element("#undo-edit").disabled).toBe(false);
+
+        element("#undo-edit").click();
+        expect(element("#notes-list .note-input").value).toBe("");
+        expect(element("#shift-cc-tips").value).toBe("10");
+        element("#undo-edit").click();
+        expect(element("#shift-cc-tips").value).not.toBe("10");
+        expect(element("#shift-food-sales").value).toBe("25");
+        expect(element("#redo-edit").disabled).toBe(false);
+
+        element("#redo-edit").click();
+        expect(element("#shift-cc-tips").value).toBe("10");
+
+        // A fresh edit discards the redo branch.
+        setValue("#shift-cash-tips", "7");
+        expect(element("#redo-edit").disabled).toBe(true);
+        element("#undo-edit").click();
+        element("#undo-edit").click();
+        element("#undo-edit").click();
+        expect(element("#shift-food-sales").value).toBe(blankSales);
+        expect(element("#undo-edit").disabled).toBe(true);
+
+        // Ctrl+Z works outside text fields and leaves text fields to the browser.
+        element("#redo-edit").click();
+        const press = (target, init) => {
+            const keyEvent = new win.KeyboardEvent("keydown", { bubbles: true, cancelable: true, ...init });
+            target.dispatchEvent(keyEvent);
+            return keyEvent.defaultPrevented;
+        };
+        expect(press(element("#shift-food-sales"), { key: "z", ctrlKey: true })).toBe(false);
+        expect(element("#shift-food-sales").value).toBe("25");
+        expect(press(doc.body, { key: "z", ctrlKey: true })).toBe(true);
+        expect(element("#shift-food-sales").value).toBe(blankSales);
+        expect(press(doc.body, { key: "y", ctrlKey: true })).toBe(true);
+        expect(element("#shift-food-sales").value).toBe("25");
+    }));
+
+    test("undo restores the workplace and notes, and survives a trip to review", () => withApp((harness) => {
+        const { element, fillForm, fire } = harness;
+        chooseMode(harness, "manual");
+        fillForm({ date: "2026-10-20", mealPeriod: "Dinner", job: "Server", clockIn: "16:00", clockOut: "22:00" });
+        element("#notes-list .note-input").value = "First";
+        fire(element("#notes-list .note-input"), "change");
+        element("#shift-meal-period").value = "Lunch";
+        fire(element("#shift-meal-period"), "change");
+        element("#review-shift").click();
+        expect(element("#edit-history").hidden).toBe(true);
+        element("#edit-shift").click();
+        expect(element("#edit-history").hidden).toBe(false);
+
+        element("#undo-edit").click();
+        expect(element("#shift-meal-period").value).toBe("Dinner");
+        expect(element("#notes-list .note-input").value).toBe("First");
+        element("#undo-edit").click();
+        expect(element("#notes-list .note-input").value).toBe("");
+    }));
+
+    test("undo controls only appear in the guided edit phase", () => withApp((harness) => {
+        const { element } = harness;
+        chooseMode(harness, "guided");
+        expect(element("#edit-history").hidden).toBe(true);
+        advanceGuidedToReview(harness);
+        expect(element("#edit-history").hidden).toBe(false);
+    }));
+
     test("editing a shift uses the manual layout without a mode prompt", () => withApp({ shifts: [makeShift()] }, ({ element, doc }) => {
         element(".main-nav [data-view=\"previous-shifts\"]").click();
         element(".edit-shift").click();

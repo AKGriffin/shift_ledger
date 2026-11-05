@@ -36,8 +36,7 @@ _Nothing is ready. Move the next Backlog item here once it is designed enough to
 
 ### Shift form
 
-- **Add undo and redo while editing forms** · `shift-form` `a11y`
-  Accessible controls and keyboard shortcuts that do not interfere with native input undo.
+_Nothing here right now._
 
 ### Workplaces and settings
 
@@ -138,6 +137,8 @@ Plan these together; they share dashboard code. Start with the stat layout.
 ## Done
 
 Newest first.
+
+- Shift entry flow: every new shift ends in an Edit phase (all fields, Review and Cancel, no Back) and then a Review phase that shows the shift as an opened shift card with Edit, Save and Cancel. Guided entry is only reachable from the start. Cancel always confirms. Back gestures and the browser Back button step back one stage (question, Review → Edit, then a discard prompt) instead of closing the entry. Leaving with Cancel or Save no longer leaves a stale New Shift screen in history. The Edit phase has Undo and Redo buttons plus Ctrl/Cmd+Z and Ctrl+Y (Ctrl/Cmd+Shift+Z); shortcuts leave text fields to the browser's own undo, and snapshots are taken when a change is committed.
 
 - Shifts redesign: summary cards open a fixed-size detail dialog (full screen on phones) with Net tips first, notes, visible Edit and Delete, and Previous/Next navigation with arrow keys. A compact Sort & filter toolbar replaces the old controls, with a count badge and filter chips. Scroll is locked behind dialogs.
 - Guided or manual shift entry: each new shift asks for a mode, with Close before entry. Guided puts each question in its active card, keeps the step count outside, uses Yes/No choices for break and sales-report questions, and focuses the first sales amount after Yes. It automatically advances after valid answers and keeps Next disabled until the current question is valid. Phones keep the step count and navigation near the bottom without moving answer cards. Manual shows the applicable fields together. Cancel confirms and returns to the mode chooser; editing uses the manual form. Workplace and role still decide which fields apply.

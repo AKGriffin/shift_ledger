@@ -56,7 +56,8 @@ if (workplaceLoad.notice) {
 let formStatusTimeout = null;
 let formStatusExpiresAt = null;
 let shiftFormDirty = false;
-let shiftFormProgress = { workplace: false, details: false };
+// Undo/redo snapshots for the Edit phase of shift entry.
+const formHistory = { undo: [], redo: [], current: null };let shiftFormProgress = { workplace: false, details: false };
 let entryMode = null;
 let shiftReviewing = false;
 let guidedStep = { element: null, index: 0 };
@@ -68,6 +69,7 @@ let hadServiceWorkerController = "serviceWorker" in navigator
     && Boolean(navigator.serviceWorker.controller);
 
 let entryReturnView = "previous-shifts";
+let shiftEntryHistoryDepth = 0;
 let shiftNavSwitching = false;
 
 const navButtons = document.querySelectorAll("[data-view]");
@@ -397,6 +399,10 @@ function bindEvents() {
         }
     });
     form.addEventListener("change", maybeAutoAdvanceGuidedStep);
+    form.addEventListener("change", recordFormHistory);
+    document.getElementById("undo-edit").addEventListener("click", () => stepFormHistory(-1));
+    document.getElementById("redo-edit").addEventListener("click", () => stepFormHistory(1));
+    document.addEventListener("keydown", handleFormHistoryKeydown);
     window.addEventListener("beforeunload", guardUnsavedShiftChanges);
     reloadAppButton.addEventListener("click", reloadForAppUpdate);
     checkForUpdatesButton.addEventListener("click", runManualUpdateCheck);
@@ -575,9 +581,11 @@ function showView(viewName, { historyAction = "push" } = {}) {
             window.history.replaceState(historyState, "", window.location.href);
         } else {
             window.history.pushState(historyState, "", window.location.href);
+            shiftEntryHistoryDepth = 0;
             if (viewName === "new-shift") {
                 // Extra entry so a back gesture steps through the entry flow instead of leaving it.
                 window.history.pushState({ ...historyState, [SHIFT_GUARD_KEY]: true }, "", window.location.href);
+                shiftEntryHistoryDepth = 2;
             }
         }
     }
@@ -668,6 +676,7 @@ function handleShiftEntryBack() {
         return;
     }
     resetForm();
+    shiftEntryHistoryDepth = 0;
     window.history.back();
 }
 
@@ -1076,6 +1085,7 @@ function handleNoteRemove(event) {
             markShiftFormDirty();
         }
         removeNoteRow(row);
+        recordFormHistory();
     }
 }
 
@@ -1094,6 +1104,7 @@ function handleNoteKeydown(event) {
     } else if (event.key === "Backspace" && input.value === "" && notesList.children.length > 1) {
         event.preventDefault();
         removeNoteRow(row, { focusPrevious: true });
+        recordFormHistory();
     }
 }
 
@@ -1240,12 +1251,21 @@ function updateShiftFormProgression() {
         applyRoleTemplate();
     }
     renderEntryMode();
+    syncFormHistory();
+}
+
+function syncFormHistory() {
+    if (isFormHistoryActive() && !formHistory.current) {
+        formHistory.current = captureFormSnapshot();
+    }
+    updateFormHistoryButtons();
 }
 
 function setEntryMode(mode) {
     entryMode = mode;
     guidedStep = { element: null, index: 0 };
     guidedNextAttempted = false;
+    resetFormHistory();
     updateShiftFormProgression();
     focusGuidedStep();
 }
@@ -1467,9 +1487,20 @@ function getGuidedQuestionHeading(step) {
         || null;
 }
 
-function closeNewShiftEntry() {
+// Leave entry via an on-screen button and drop the history entries entry pushed,
+// so a later back press doesn't land on a stale New Shift screen.
+function leaveShiftEntry() {
+    const unwind = shiftEntryHistoryDepth;
+    shiftEntryHistoryDepth = 0;
     resetForm();
-    showView(entryReturnView);
+    showView(entryReturnView, { historyAction: unwind ? "none" : "push" });
+    if (unwind) {
+        window.history.go(-unwind);
+    }
+}
+
+function closeNewShiftEntry() {
+    leaveShiftEntry();
 }
 
 function cancelShiftEntry() {
@@ -1477,8 +1508,7 @@ function cancelShiftEntry() {
         return;
     }
 
-    resetForm();
-    showView(entryReturnView);
+    leaveShiftEntry();
 }
 
 function moveGuidedStep(direction) {
@@ -1687,6 +1717,7 @@ async function addRoleFromShift() {
 
 function resetForm(shouldClearStatus = true) {
     form.reset();
+    resetFormHistory();
     shiftFormDirty = false;
     shiftFormProgress = { workplace: false, details: false };
     entryMode = null;
@@ -1763,11 +1794,140 @@ function populateForm(shift) {
         setReportInputsEnabled(reportNode, toggle.checked);
     });
     updateMealPeriodFields();
+    resetFormHistory();
     updateShiftFormProgression();
 }
 
 function markShiftFormDirty() {
     shiftFormDirty = true;
+}
+
+// Snapshots are taken when a change is committed (not per keystroke),
+// so text fields keep their native in-field undo.
+
+function getHistoryControls() {
+    return [...document.querySelectorAll(
+        "#shift-entry-fields input, #shift-entry-fields select, #shift-entry-fields textarea:not(.note-input)",
+    )];
+}
+
+function isFormHistoryActive() {
+    const chosen = getEditingShift() ? "manual" : entryMode;
+    return Boolean(chosen) && !shiftReviewing && (chosen !== "guided" || Boolean(guidedStep.review));
+}
+
+function captureFormSnapshot() {
+    const controls = getHistoryControls();
+    return {
+        values: controls.map((control) => (
+            control.type === "checkbox" || control.type === "radio" ? control.checked : control.value
+        )),
+        notes: [...notesList.querySelectorAll(".note-input")]
+            .map((input) => input.value)
+            .filter((value) => value.trim() !== ""),
+    };
+}
+
+function resetFormHistory() {
+    formHistory.undo = [];
+    formHistory.redo = [];
+    formHistory.current = null;
+}
+
+function recordFormHistory() {
+    if (!isFormHistoryActive()) {
+        return;
+    }
+    const snapshot = captureFormSnapshot();
+    if (!formHistory.current) {
+        formHistory.current = snapshot;
+        return;
+    }
+    if (JSON.stringify(snapshot) === JSON.stringify(formHistory.current)) {
+        return;
+    }
+    formHistory.undo.push(formHistory.current);
+    formHistory.current = snapshot;
+    formHistory.redo = [];
+    updateFormHistoryButtons();
+}
+
+function applyFormSnapshot(snapshot) {
+    const controls = getHistoryControls();
+    if (controls.length !== snapshot.values.length) {
+        return;
+    }
+    const apply = (control, value) => {
+        if (control.type === "checkbox" || control.type === "radio") {
+            control.checked = value;
+        } else {
+            control.value = value;
+        }
+    };
+    // Role options depend on the workplace, so restore the workplace first.
+    const workplaceIndex = controls.indexOf(fields.workplace);
+    if (workplaceIndex >= 0) {
+        apply(fields.workplace, snapshot.values[workplaceIndex]);
+        fields.workplace.dataset.previousValue = fields.workplace.value;
+        renderRoleOptions();
+    }
+    controls.forEach((control, index) => {
+        if (control !== fields.workplace) {
+            apply(control, snapshot.values[index]);
+        }
+    });
+    delete fields.role.dataset.autoSelected;
+    fields.role.dataset.previousValue = fields.role.value;
+    fields.job.dataset.previousValue = fields.job.value;
+    setNoteRows(snapshot.notes);
+    shiftFormDirty = true;
+    updateMealPeriodFields();
+    updateShiftFormProgression();
+    updateValidationErrors();
+}
+
+function stepFormHistory(direction) {
+    if (!isFormHistoryActive()) {
+        return;
+    }
+    const from = direction < 0 ? formHistory.undo : formHistory.redo;
+    const to = direction < 0 ? formHistory.redo : formHistory.undo;
+    if (from.length === 0 || !formHistory.current) {
+        return;
+    }
+    to.push(formHistory.current);
+    formHistory.current = from.pop();
+    applyFormSnapshot(formHistory.current);
+    updateFormHistoryButtons();
+}
+
+function updateFormHistoryButtons() {
+    const active = isFormHistoryActive();
+    document.getElementById("edit-history").hidden = !active;
+    document.getElementById("undo-edit").disabled = formHistory.undo.length === 0;
+    document.getElementById("redo-edit").disabled = formHistory.redo.length === 0;
+}
+
+function handleFormHistoryKeydown(event) {
+    if (!(event.ctrlKey || event.metaKey) || event.altKey || !isFormHistoryActive()) {
+        return;
+    }
+    const key = event.key.toLowerCase();
+    const isRedo = key === "y" || (key === "z" && event.shiftKey);
+    const isUndo = key === "z" && !event.shiftKey;
+    if (!isUndo && !isRedo) {
+        return;
+    }
+    // Leave text fields to the browser's own undo.
+    const target = event.target;
+    if (target.matches?.("textarea, input:not([type=checkbox]):not([type=radio]):not([type=button])")) {
+        return;
+    }
+    if (!document.getElementById("new-shift").contains(target) && target !== document.body) {
+        return;
+    }
+    event.preventDefault();
+    stepFormHistory(isRedo ? 1 : -1);
 }
 
 function handleFormSubmit(event) {
