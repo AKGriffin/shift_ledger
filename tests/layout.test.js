@@ -5,6 +5,9 @@ function revealShiftDetails({ element, fire, openView }) {
     openView("new-shift");
     element("#shift-date").value = "2026-10-22";
     fire(element("#shift-date"), "input");
+    // Break and notes sit behind Yes/No questions on the shared Edit screen.
+    element("#shift-had-break-yes").click();
+    element("#shift-has-notes-yes").click();
 }
 
 describe("Branding", () => {

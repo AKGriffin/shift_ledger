@@ -5,6 +5,8 @@ function revealShiftDetails(harness) {
     harness.openView("new-shift");
     harness.element("#shift-date").value = "2026-10-22";
     harness.fire(harness.element("#shift-date"), "input");
+    // Notes sit behind a Yes/No question on the shared Edit screen.
+    harness.element("#shift-has-notes-yes").click();
 }
 
 describe("Shift form validation", () => {
@@ -176,13 +178,32 @@ describe("Guided and manual entry", () => {
         expect(element("#dashboard").classList.contains("is-visible")).toBe(true);
     }));
 
-    test("manual entry shows every applicable field together once the role is chosen", () => withApp((harness) => {
+    test("manual entry uses the same Edit screen as guided once the role is chosen", () => withApp((harness) => {
         chooseMode(harness, "manual");
         harness.fillForm({ date: "2026-10-22" });
         harness.fire(harness.element("#shift-date"), "input");
         expect(harness.element("#shift-workplace-card").hidden).toBe(false);
-        expect(harness.element("#guided-controls").hidden).toBe(true);
+        expect(harness.element("#guided-controls").hidden).toBe(false);
+        expect(harness.element("#guided-progress").textContent).toBe("Edit");
+        expect(harness.element("#guided-question").textContent).toContain("Edit your shift");
+        expect(harness.element("#guided-buttons").hidden).toBe(true);
+        expect(harness.element("#shift-had-break-no").checked).toBe(true);
+        expect(harness.element("#shift-has-sales-report-yes").checked).toBe(true);
+        expect(harness.element("#shift-has-tips-report-yes").checked).toBe(true);
+        expect(harness.element("#shift-has-notes-no").checked).toBe(true);
         expect(harness.doc.querySelector("#switch-entry-mode")).toBe(null);
+    }));
+
+    test("editing a saved shift shows the Yes/No answers that match its data", () => withApp({
+        shifts: [makeShift({ breakStart: "18:00", breakEnd: "18:30", notes: ["Busy"], noTips: true })],
+    }, ({ element }) => {
+        element(".main-nav [data-view=\"previous-shifts\"]").click();
+        element(".edit-shift").click();
+        expect(element("#shift-had-break-yes").checked).toBe(true);
+        expect(element("#shift-has-notes-yes").checked).toBe(true);
+        expect(element("#shift-has-tips-report-no").checked).toBe(true);
+        expect(element("#shift-has-sales-report-yes").checked).toBe(true);
+        expect(element("#guided-progress").textContent).toBe("Edit");
     }));
 
     test("guided entry groups related fields into steps and moves with Next and Back", () => withApp((harness) => {
@@ -583,6 +604,7 @@ describe("Guided and manual entry", () => {
         const { element, savedShifts, fillForm } = harness;
         chooseMode(harness, "manual");
         fillForm({ date: "2026-10-20", mealPeriod: "Dinner", job: "Server", clockIn: "16:00", clockOut: "22:00", foodSales: 55, ccTips: 12 });
+        element("#shift-has-notes-yes").click();
         element("#notes-list .note-input").value = "Busy patio";
         harness.fire(element("#notes-list .note-input"), "input");
         element("#review-shift").click();

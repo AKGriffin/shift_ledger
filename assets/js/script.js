@@ -107,6 +107,7 @@ const reportPeriods = [
     ["dinner", "Dinner report"],
     ["whole", "Whole-double report"],
 ];
+const EDIT_PHASE_INTRO = "Edit your shift below, then review it before saving.";
 const GUIDED_REPORT_KINDS = {
     sales: { radioName: "guided-has-sales-report", checkboxId: "shift-no-sales-report" },
     tips: { radioName: "guided-has-tips-report", checkboxId: "shift-no-tips-report" },
@@ -1109,7 +1110,7 @@ function handleNoteKeydown(event) {
 }
 
 function readNotes() {
-    if (entryMode === "guided" && getGuidedNotesAnswer() === "no") {
+    if (getGuidedNotesAnswer() === "no") {
         return [];
     }
     return [...notesList.querySelectorAll(".note-input")]
@@ -1266,6 +1267,9 @@ function setEntryMode(mode) {
     guidedStep = { element: null, index: 0 };
     guidedNextAttempted = false;
     resetFormHistory();
+    if (mode === "manual") {
+        syncAnswerRadios();
+    }
     updateShiftFormProgression();
     focusGuidedStep();
 }
@@ -1286,7 +1290,23 @@ function getGuidedSteps() {
     return steps;
 }
 
-function updateGuidedBreakQuestion(guided = entryMode === "guided") {
+function hasEntryQuestions() {
+    return Boolean(entryMode) || Boolean(getEditingShift());
+}
+
+// Manual entry and editing show the same Yes/No questions as guided Edit, so derive the answers from the data.
+function syncAnswerRadios() {
+    const check = (id) => {
+        document.getElementById(id).checked = true;
+    };
+    check(fields.breakStart.value || fields.breakEnd.value ? "shift-had-break-yes" : "shift-had-break-no");
+    check(document.getElementById("shift-no-sales-report").checked ? "shift-has-sales-report-no" : "shift-has-sales-report-yes");
+    check(document.getElementById("shift-no-tips-report").checked ? "shift-has-tips-report-no" : "shift-has-tips-report-yes");
+    const hasNotes = [...notesList.querySelectorAll(".note-input")].some((input) => input.value.trim() !== "");
+    check(hasNotes ? "shift-has-notes-yes" : "shift-has-notes-no");
+}
+
+function updateGuidedBreakQuestion(guided = hasEntryQuestions()) {
     const question = document.getElementById("guided-break-question");
     question.hidden = !guided;
     document.getElementById("break-time-fields").hidden = guided && getGuidedBreakAnswer() !== "yes";
@@ -1301,7 +1321,7 @@ function getGuidedReportKind(element) {
         .find((kind) => element?.matches?.(`input[name="${GUIDED_REPORT_KINDS[kind].radioName}"]`)) || "";
 }
 
-function updateGuidedSalesReport(guided = entryMode === "guided") {
+function updateGuidedSalesReport(guided = hasEntryQuestions()) {
     const salesAnswer = getGuidedReportAnswer("sales");
     document.getElementById("guided-sales-report-step").hidden = !guided;
     document.getElementById("shift-no-sales-report-control").hidden = guided;
@@ -1361,19 +1381,20 @@ function renderEntryMode() {
     document.getElementById("entry-mode-chooser").hidden = Boolean(chosen);
     container.hidden = reviewing || (!chosen && !editing);
     document.getElementById("shift-review").hidden = !reviewing;
-    form.classList.toggle("is-guided", guided);
-    form.classList.remove("is-guided-review");
+    form.classList.toggle("is-guided", Boolean(chosen));
+    // Manual entry and editing are always in the Edit phase.
+    form.classList.toggle("is-guided-review", Boolean(chosen) && !guided);
 
     const controls = document.getElementById("guided-controls");
     const guidedButtons = document.getElementById("guided-buttons");
     const formActions = document.getElementById("form-actions");
     const question = document.getElementById("guided-question");
-    controls.hidden = !guided || reviewing;
+    controls.hidden = !chosen || reviewing;
     guidedButtons.hidden = !guided || reviewing || Boolean(guidedStep.review);
     formActions.hidden = reviewing || !chosen || (guided && !guidedStep.review);
     guidedCancelButton.hidden = !guided || guidedStep.review;
-    updateGuidedBreakQuestion(guided);
-    updateGuidedSalesReport(guided);
+    updateGuidedBreakQuestion(Boolean(chosen));
+    updateGuidedSalesReport(Boolean(chosen));
     container.querySelectorAll(".guided-off").forEach((element) => element.classList.remove("guided-off"));
     container.querySelectorAll(".guided-current, .guided-active-context").forEach((element) => {
         element.classList.remove("guided-current", "guided-active-context");
@@ -1384,7 +1405,9 @@ function renderEntryMode() {
         heading.classList.remove("guided-step-question");
     });
     if (!guided) {
-        question.hidden = true;
+        question.hidden = !chosen;
+        question.textContent = EDIT_PHASE_INTRO;
+        document.getElementById("guided-progress").textContent = "Edit";
         return;
     }
 
@@ -1408,12 +1431,8 @@ function renderEntryMode() {
     guidedButtons.hidden = reviewing || review;
     guidedCancelButton.hidden = !guided || review;
     if (review) {
-        document.getElementById("guided-question").textContent = "Edit your shift below, then review it before saving.";
-        document.getElementById("guided-progress").textContent = `Edit · Step ${steps.length + 1} of ${steps.length + 1}`;
-        container.querySelectorAll("[data-guided-review-prompt]").forEach((heading) => {
-            heading.dataset.guidedOriginal = heading.textContent;
-            heading.textContent = heading.dataset.guidedReviewPrompt;
-        });
+        question.textContent = EDIT_PHASE_INTRO;
+        document.getElementById("guided-progress").textContent = "Edit";
     } else {
         steps.forEach((step) => {
             step.classList.toggle("guided-off", step !== current);
@@ -1794,6 +1813,7 @@ function populateForm(shift) {
         setReportInputsEnabled(reportNode, toggle.checked);
     });
     updateMealPeriodFields();
+    syncAnswerRadios();
     resetFormHistory();
     updateShiftFormProgression();
 }
