@@ -1,6 +1,7 @@
 const STORAGE_KEY = "shift-ledger-shifts-v1";
 const SETTINGS_KEY = "shift-ledger-settings-v1";
 const VIEW_HISTORY_KEY = "shiftLedgerView";
+const SHIFT_GUARD_KEY = "shiftLedgerEntryGuard";
 const DASHBOARD_STATS = ["shifts", "hours", "sales", "tips"];
 const VIEW_TITLES = {
     "dashboard": "Dashboard",
@@ -574,6 +575,10 @@ function showView(viewName, { historyAction = "push" } = {}) {
             window.history.replaceState(historyState, "", window.location.href);
         } else {
             window.history.pushState(historyState, "", window.location.href);
+            if (viewName === "new-shift") {
+                // Extra entry so a back gesture steps through the entry flow instead of leaving it.
+                window.history.pushState({ ...historyState, [SHIFT_GUARD_KEY]: true }, "", window.location.href);
+            }
         }
     }
 
@@ -625,12 +630,45 @@ function showView(viewName, { historyAction = "push" } = {}) {
 
 function handlePopState(event) {
     const viewName = event.state?.[VIEW_HISTORY_KEY];
+    if (state.currentView === "new-shift" && viewName === "new-shift") {
+        if (!event.state[SHIFT_GUARD_KEY]) {
+            handleShiftEntryBack();
+        }
+        return;
+    }
     if (typeof viewName === "string" && document.getElementById(viewName)?.classList.contains("view")) {
         showView(viewName, { historyAction: "none" });
         return;
     }
 
     showView("dashboard", { historyAction: "replace" });
+}
+
+// Back gesture or button inside new-shift entry: go back one stage, never silently discard.
+function handleShiftEntryBack() {
+    const stay = () => {
+        window.history.pushState({ ...(window.history.state || {}), [SHIFT_GUARD_KEY]: true }, "", window.location.href);
+    };
+    const editing = Boolean(getEditingShift());
+    const chosen = editing ? "manual" : entryMode;
+
+    if (shiftReviewing) {
+        editShiftFromReview();
+        stay();
+        return;
+    }
+    if (chosen === "guided" && !guidedStep.review) {
+        moveGuidedStep(-1);
+        stay();
+        return;
+    }
+    if (chosen && shiftFormDirty
+        && !window.confirm("Cancel this shift? Your entries will be discarded.")) {
+        stay();
+        return;
+    }
+    resetForm();
+    window.history.back();
 }
 
 function getInitialView() {

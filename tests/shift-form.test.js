@@ -616,6 +616,56 @@ describe("Guided and manual entry", () => {
         expect(savedShifts()).toHaveLength(0);
     }));
 
+    test("back gesture steps back through guided questions without leaving or discarding", () => withApp((harness) => {
+        const { element, win } = harness;
+        const back = () => win.dispatchEvent(new win.PopStateEvent("popstate", { state: { shiftLedgerView: "new-shift" } }));
+        chooseMode(harness, "guided");
+        element("#shift-date").value = "2026-10-20";
+        harness.fire(element("#shift-date"), "input");
+        element("#guided-next").click();
+        expect(element("#guided-progress").textContent).toContain("Step 2 of");
+
+        back();
+        expect(element("#guided-progress").textContent).toContain("Step 1 of");
+        expect(element("#new-shift").classList.contains("is-visible")).toBe(true);
+        expect(element("#shift-date").value).toBe("2026-10-20");
+        expect(win.history.state.shiftLedgerEntryGuard).toBe(true);
+
+        back();
+        expect(element("#entry-mode-chooser").hidden).toBe(false);
+        expect(element("#new-shift").classList.contains("is-visible")).toBe(true);
+    }));
+
+    test("back gesture on the review step returns to the edit step", () => withApp((harness) => {
+        const { element, win, fillForm } = harness;
+        chooseMode(harness, "manual");
+        fillForm({ date: "2026-10-20", mealPeriod: "Dinner", job: "Server", clockIn: "16:00", clockOut: "22:00" });
+        element("#review-shift").click();
+        expect(element("#shift-review").hidden).toBe(false);
+
+        win.dispatchEvent(new win.PopStateEvent("popstate", { state: { shiftLedgerView: "new-shift" } }));
+        expect(element("#shift-review").hidden).toBe(true);
+        expect(element("#shift-entry-fields").hidden).toBe(false);
+        expect(element("#shift-date").value).toBe("2026-10-20");
+    }));
+
+    test("back gesture on an edited form asks before discarding", () => withApp((harness) => {
+        const { element, win, fire } = harness;
+        chooseMode(harness, "manual");
+        element("#shift-food-sales").value = "25";
+        fire(element("#shift-food-sales"), "input");
+
+        win.confirm = () => false;
+        win.dispatchEvent(new win.PopStateEvent("popstate", { state: { shiftLedgerView: "new-shift" } }));
+        expect(element("#shift-food-sales").value).toBe("25");
+        expect(element("#shift-entry-fields").hidden).toBe(false);
+        expect(win.history.state.shiftLedgerEntryGuard).toBe(true);
+
+        win.confirm = () => true;
+        win.dispatchEvent(new win.PopStateEvent("popstate", { state: { shiftLedgerView: "new-shift" } }));
+        expect(element("#shift-food-sales").value).not.toBe("25");
+    }));
+
     test("editing a shift uses the manual layout without a mode prompt", () => withApp({ shifts: [makeShift()] }, ({ element, doc }) => {
         element(".main-nav [data-view=\"previous-shifts\"]").click();
         element(".edit-shift").click();
