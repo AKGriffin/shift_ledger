@@ -2000,14 +2000,41 @@ textarea {
 }
 
 .edit-history {
+    position: sticky;
+    top: 0;
+    z-index: 5;
     display: flex;
+    align-items: center;
     justify-content: flex-end;
     gap: 8px;
+    min-height: 52px;
     margin-bottom: 12px;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--panel);
+    box-shadow: var(--shadow);
 }
 
 .edit-history[hidden] {
     display: none;
+}
+
+.edit-history-message {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--muted);
+    font-size: 0.9rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.edit-history button {
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 1.25rem;
+    line-height: 1;
 }
 
 .shift-review {

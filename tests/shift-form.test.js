@@ -673,25 +673,29 @@ describe("Guided and manual entry", () => {
             fire(element(selector), "change");
         };
         chooseMode(harness, "manual");
-        expect(element("#edit-history").hidden).toBe(false);
-        expect(element("#undo-edit").disabled).toBe(true);
+        expect(element("#edit-history").hidden).toBe(true);
         const blankSales = element("#shift-food-sales").value;
 
         setValue("#shift-food-sales", "25");
+        expect(element("#edit-history").hidden).toBe(false);
         setValue("#shift-cc-tips", "10");
         element("#notes-list .note-input").value = "Slow night";
         fire(element("#notes-list .note-input"), "change");
         expect(element("#undo-edit").disabled).toBe(false);
 
         element("#undo-edit").click();
+        expect(element("#edit-history-message").textContent).toBe("Undid: Notes");
         expect(element("#notes-list .note-input").value).toBe("");
         expect(element("#shift-cc-tips").value).toBe("10");
         element("#undo-edit").click();
+        expect(element("#edit-history-message").textContent).toContain("Undid: ");
+        expect(element("#edit-history-message").textContent).not.toBe("Undid: Notes");
         expect(element("#shift-cc-tips").value).not.toBe("10");
         expect(element("#shift-food-sales").value).toBe("25");
         expect(element("#redo-edit").disabled).toBe(false);
 
         element("#redo-edit").click();
+        expect(element("#edit-history-message").textContent).toContain("Redid: ");
         expect(element("#shift-cc-tips").value).toBe("10");
 
         // A fresh edit discards the redo branch.
@@ -733,16 +737,20 @@ describe("Guided and manual entry", () => {
 
         element("#undo-edit").click();
         expect(element("#shift-meal-period").value).toBe("Dinner");
+        expect(element("#edit-history-message").textContent).toBe("Undid: Meal period");
         expect(element("#notes-list .note-input").value).toBe("First");
         element("#undo-edit").click();
         expect(element("#notes-list .note-input").value).toBe("");
     }));
 
-    test("undo controls only appear in the guided edit phase", () => withApp((harness) => {
-        const { element } = harness;
+    test("undo controls only appear in the guided edit phase once something changed", () => withApp((harness) => {
+        const { element, fire } = harness;
         chooseMode(harness, "guided");
         expect(element("#edit-history").hidden).toBe(true);
         advanceGuidedToReview(harness);
+        expect(element("#edit-history").hidden).toBe(true);
+        element("#shift-food-sales").value = "9";
+        fire(element("#shift-food-sales"), "change");
         expect(element("#edit-history").hidden).toBe(false);
     }));
 

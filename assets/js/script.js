@@ -1834,16 +1834,29 @@ function resetFormHistory() {
     formHistory.current = null;
 }
 
-function recordFormHistory() {
+function getChangeLabel(target) {
+    if (!target || target === notesList || notesList.contains(target)) {
+        return "Notes";
+    }
+    const label = target.closest?.("label.field")?.querySelector(":scope > span")?.textContent
+        || target.getAttribute?.("aria-label")
+        || target.closest?.("fieldset")?.querySelector(":scope > legend")?.textContent
+        || "Change";
+    return label.trim();
+}
+
+function recordFormHistory(event) {
     if (!isFormHistoryActive()) {
         return;
     }
     const snapshot = captureFormSnapshot();
+    snapshot.label = getChangeLabel(event?.target);
     if (!formHistory.current) {
         formHistory.current = snapshot;
         return;
     }
-    if (JSON.stringify(snapshot) === JSON.stringify(formHistory.current)) {
+    const content = ({ values, notes }) => JSON.stringify({ values, notes });
+    if (content(snapshot) === content(formHistory.current)) {
         return;
     }
     formHistory.undo.push(formHistory.current);
@@ -1896,14 +1909,27 @@ function stepFormHistory(direction) {
         return;
     }
     to.push(formHistory.current);
+    const undone = formHistory.current.label;
     formHistory.current = from.pop();
     applyFormSnapshot(formHistory.current);
     updateFormHistoryButtons();
+    announceFormHistory(direction < 0 ? `Undid: ${undone}` : `Redid: ${formHistory.current.label}`);
+}
+
+let formHistoryMessageTimer = null;
+
+function announceFormHistory(message) {
+    const output = document.getElementById("edit-history-message");
+    output.textContent = message;
+    clearTimeout(formHistoryMessageTimer);
+    formHistoryMessageTimer = setTimeout(() => {
+        output.textContent = "";
+    }, 3000);
 }
 
 function updateFormHistoryButtons() {
-    const active = isFormHistoryActive();
-    document.getElementById("edit-history").hidden = !active;
+    const hasHistory = formHistory.undo.length > 0 || formHistory.redo.length > 0;
+    document.getElementById("edit-history").hidden = !isFormHistoryActive() || !hasHistory;
     document.getElementById("undo-edit").disabled = formHistory.undo.length === 0;
     document.getElementById("redo-edit").disabled = formHistory.redo.length === 0;
 }

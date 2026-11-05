@@ -175,8 +175,9 @@
                     </div>
                     <div id="shift-entry-fields" hidden>
                     <div id="edit-history" class="edit-history" role="group" aria-label="Undo and redo" hidden>
-                        <button type="button" id="undo-edit" class="ghost-button" disabled>↶ Undo</button>
-                        <button type="button" id="redo-edit" class="ghost-button" disabled>↷ Redo</button>
+                        <span id="edit-history-message" class="edit-history-message" role="status" aria-live="polite"></span>
+                        <button type="button" id="undo-edit" class="ghost-button" aria-label="Undo" title="Undo (Ctrl+Z)" disabled>↶</button>
+                        <button type="button" id="redo-edit" class="ghost-button" aria-label="Redo" title="Redo (Ctrl+Y)" disabled>↷</button>
                     </div>
                     <div class="form-context-grid">
                         <fieldset id="shift-date-card" data-guided-step data-guided-prompt="What date did your shift start?">
