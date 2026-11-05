@@ -1395,16 +1395,14 @@ function renderEntryMode() {
 }
 
 function showShiftReview(shift) {
-    const cardNode = buildShiftCardNode(shift);
-    const summary = cardNode.querySelector(".shift-summary");
-    const preview = document.createElement("div");
-    preview.className = "shift-summary shift-summary-preview";
-    preview.append(...[...summary.childNodes].filter((node) => !node.classList?.contains("summary-chevron")));
-    const detail = cardNode.querySelector(".shift-card");
-    detail.classList.add("shift-card-preview");
-    detail.querySelector(".card-header")?.remove();
+    const detail = buildShiftCardNode(shift).querySelector(".shift-card");
+    detail.querySelector(".card-header-side")?.remove();
     detail.querySelector(".card-actions")?.remove();
-    document.getElementById("shift-review-card").replaceChildren(preview, detail);
+    // Reuse the shift-detail styling so the preview matches the opened shift card.
+    const preview = document.createElement("div");
+    preview.className = "shift-detail-dialog shift-review-detail";
+    preview.append(detail);
+    document.getElementById("shift-review-card").replaceChildren(preview);
     shiftReviewing = true;
     updateShiftFormProgression();
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });

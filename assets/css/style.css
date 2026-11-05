@@ -2017,10 +2017,17 @@ textarea {
     outline: none;
 }
 
-.shift-summary-preview,
-.shift-summary-preview:hover {
+.shift-review-detail {
+    padding: 22px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
     background: var(--panel);
-    cursor: default;
+    color: var(--text);
+}
+
+.shift-review-detail .card-body {
+    overflow-y: visible;
+    padding-right: 0;
 }
 
 .toolbar {
