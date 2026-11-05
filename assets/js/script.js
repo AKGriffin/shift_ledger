@@ -68,9 +68,6 @@ let hadServiceWorkerController = "serviceWorker" in navigator
 let entryReturnView = "previous-shifts";
 let shiftNavSwitching = false;
 
-let formHistory = new window.FormHistory();
-let currentPhase = "entry-mode";  // entry-mode, edit, review
-
 const navButtons = document.querySelectorAll("[data-view]");
 const formStatus = document.getElementById("form-status");
 const appUpdateDialog = document.getElementById("app-update-dialog");
@@ -83,16 +80,6 @@ const formTitle = document.getElementById("form-title");
 const cancelFormButton = document.getElementById("cancel-form");
 const guidedCancelButton = document.getElementById("guided-cancel");
 const closeEntryModeButton = document.getElementById("close-entry-mode");
-const undoButton = document.getElementById("undo-button");
-const redoButton = document.getElementById("redo-button");
-const reviewShiftButton = document.getElementById("review-shift-button");
-const editShiftButton = document.getElementById("edit-shift-button");
-const cancelReviewButton = document.getElementById("cancel-review");
-const saveShiftButton = document.getElementById("save-shift");
-const shiftReviewCard = document.getElementById("shift-review-card");
-const reviewShiftPreview = document.getElementById("review-shift-preview");
-const editPhaseButtons = document.getElementById("edit-phase-buttons");
-const reviewPhaseButtons = document.getElementById("review-phase-buttons");
 const shiftList = document.getElementById("shift-list");
 const sortBySelect = document.getElementById("sort-by");
 const filterJobSelect = document.getElementById("filter-job");
@@ -385,16 +372,9 @@ function bindEvents() {
     form.addEventListener("change", markShiftFormDirty);
     form.addEventListener("input", updateShiftFormProgression);
     form.addEventListener("change", updateShiftFormProgression);
-    form.addEventListener("change", captureFormStateForHistory);
     document.getElementById("choose-guided").addEventListener("click", () => setEntryMode("guided"));
     document.getElementById("choose-manual").addEventListener("click", () => setEntryMode("manual"));
     closeEntryModeButton.addEventListener("click", closeNewShiftEntry);
-    undoButton.addEventListener("click", handleFormUndo);
-    redoButton.addEventListener("click", handleFormRedo);
-    reviewShiftButton.addEventListener("click", moveToReviewPhase);
-    editShiftButton.addEventListener("click", moveToEditPhase);
-    cancelReviewButton.addEventListener("click", cancelShiftEntry);
-    document.addEventListener("keydown", handleFormHistoryKeydown);
     document.getElementById("guided-back").addEventListener("click", () => moveGuidedStep(-1));
     document.getElementById("guided-next").addEventListener("click", () => moveGuidedStep(1));
     cancelFormButton.addEventListener("click", cancelShiftEntry);
@@ -626,9 +606,6 @@ function showView(viewName, { historyAction = "push" } = {}) {
 
     if (viewName === "new-shift") {
         notesList.querySelectorAll(".note-input").forEach(autosizeNote);
-        if (entryMode === null && currentPhase === "entry-mode") {
-            moveToEditPhase();
-        }
     }
 
     const activeNav = viewName === "new-shift" ? "previous-shifts" : viewName;
@@ -1652,8 +1629,6 @@ function resetForm(shouldClearStatus = true) {
     shiftFormProgress = { workplace: false, details: false };
     entryMode = null;
     guidedStep = { element: null, index: 0 };
-    currentPhase = "entry-mode";
-    formHistory.clear();
     delete fields.workplace.dataset.initialized;
     guidedNextAttempted = false;
     updateMealPeriodFields();
@@ -1670,9 +1645,6 @@ function resetForm(shouldClearStatus = true) {
         }
     });
 
-    shiftReviewCard.hidden = true;
-    editPhaseButtons.hidden = true;
-    reviewPhaseButtons.hidden = true;
     clearValidationErrors();
     if (shouldClearStatus) {
         setStatus("");
@@ -1733,213 +1705,8 @@ function markShiftFormDirty() {
     shiftFormDirty = true;
 }
 
-function captureFormStateForHistory() {
-    if (currentPhase !== "edit") {
-        return;
-    }
-    formHistory.captureState(() => ({
-        date: fields.date.value,
-        workplace: fields.workplace.value,
-        role: fields.role.value,
-        mealPeriod: fields.mealPeriod.value,
-        job: fields.job.value,
-        clockIn: fields.clockIn.value,
-        clockOut: fields.clockOut.value,
-        breakStart: fields.breakStart.value,
-        breakEnd: fields.breakEnd.value,
-        foodSales: fields.foodSales.value,
-        bawSales: fields.bawSales.value,
-        liquorSales: fields.liquorSales.value,
-        naBevSales: fields.naSales.value,
-        additionalSales: fields.additionalSales.value,
-        ccTips: fields.ccTips.value,
-        cashTips: fields.cashTips.value,
-        autoGratuity: fields.autoGratuity.value,
-        tipOutPaid: fields.tipOutPaid.value,
-        tipOutReceived: fields.tipOutReceived.value,
-    }));
-    updateUndoRedoButtons();
-}
-
-function restoreFormState(state) {
-    if (!state) return;
-    fields.date.value = state.date || "";
-    fields.workplace.value = state.workplace || "";
-    fields.role.value = state.role || "";
-    fields.mealPeriod.value = state.mealPeriod || "";
-    fields.job.value = state.job || "";
-    fields.clockIn.value = state.clockIn || "";
-    fields.clockOut.value = state.clockOut || "";
-    fields.breakStart.value = state.breakStart || "";
-    fields.breakEnd.value = state.breakEnd || "";
-    fields.foodSales.value = state.foodSales || "";
-    fields.bawSales.value = state.bawSales || "";
-    fields.liquorSales.value = state.liquorSales || "";
-    fields.naSales.value = state.naBevSales || "";
-    fields.additionalSales.value = state.additionalSales || "";
-    fields.ccTips.value = state.ccTips || "";
-    fields.cashTips.value = state.cashTips || "";
-    fields.autoGratuity.value = state.autoGratuity || "";
-    fields.tipOutPaid.value = state.tipOutPaid || "";
-    fields.tipOutReceived.value = state.tipOutReceived || "";
-    updateMealPeriodFields();
-    updateValidationErrors();
-    updateUndoRedoButtons();
-}
-
-function handleFormUndo() {
-    formHistory.undo(restoreFormState);
-}
-
-function handleFormRedo() {
-    formHistory.redo(restoreFormState);
-}
-
-function updateUndoRedoButtons() {
-    undoButton.disabled = !formHistory.canUndo();
-    redoButton.disabled = !formHistory.canRedo();
-}
-
-function handleFormHistoryKeydown(event) {
-    if (currentPhase !== "edit" || !form.closest(".view:not(.is-hidden)")) {
-        return;
-    }
-    const isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform);
-    const isUndo = (isMac && event.metaKey && event.key === "z") || (!isMac && event.ctrlKey && event.key === "z");
-    const isRedo = (isMac && event.metaKey && event.shiftKey && event.key === "z") || (!isMac && event.ctrlKey && event.key === "y");
-    
-    if (isUndo) {
-        event.preventDefault();
-        handleFormUndo();
-    } else if (isRedo) {
-        event.preventDefault();
-        handleFormRedo();
-    }
-}
-
-function moveToEditPhase() {
-    currentPhase = "edit";
-    formHistory.initialize({
-        date: fields.date.value,
-        workplace: fields.workplace.value,
-        role: fields.role.value,
-        mealPeriod: fields.mealPeriod.value,
-        job: fields.job.value,
-        clockIn: fields.clockIn.value,
-        clockOut: fields.clockOut.value,
-        breakStart: fields.breakStart.value,
-        breakEnd: fields.breakEnd.value,
-        foodSales: fields.foodSales.value,
-        bawSales: fields.bawSales.value,
-        liquorSales: fields.liquorSales.value,
-        naBevSales: fields.naSales.value,
-        additionalSales: fields.additionalSales.value,
-        ccTips: fields.ccTips.value,
-        cashTips: fields.cashTips.value,
-        autoGratuity: fields.autoGratuity.value,
-        tipOutPaid: fields.tipOutPaid.value,
-        tipOutReceived: fields.tipOutReceived.value,
-    });
-    updateUndoRedoButtons();
-    shiftReviewCard.hidden = true;
-    editPhaseButtons.hidden = false;
-    reviewPhaseButtons.hidden = true;
-    form.scrollIntoView({ behavior: "smooth", block: "start" });
-}
-
-function moveToReviewPhase() {
-    try {
-        updateShiftFormProgression();
-        const shift = readFormValues();
-        const issues = validateShift(shift);
-        if (issues.length > 0) {
-            showValidationErrors(issues);
-            return;
-        }
-        clearValidationErrors();
-        
-        currentPhase = "review";
-        renderShiftPreview(shift);
-        shiftReviewCard.hidden = false;
-        editPhaseButtons.hidden = true;
-        reviewPhaseButtons.hidden = false;
-        shiftReviewCard.scrollIntoView({ behavior: "smooth", block: "start" });
-    } catch (error) {
-        setStatus(error.message, true);
-    }
-}
-
-function renderShiftPreview(shift) {
-    const workplace = state.workplaces.workplaces.find((w) => w.id === shift.workplaceId);
-    const role = workplace?.roles.find((r) => r.id === shift.roleId);
-    
-    const hours = getDurationMinutes(shift) / 60;
-    const sales = getSalesTotal(shift);
-    const tips = getNetTips(shift);
-    
-    const date = new Date(shift.date + "T00:00:00");
-    const dayName = date.toLocaleDateString("en-US", { weekday: "short" });
-    const dateStr = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    const dateDisplay = `${dayName}, ${dateStr}`;
-    
-    const summaryJob = role ? `${role.name}${workplace ? ` · ${workplace.name}` : ""}` : (shift.job || "");
-    const mealPill = shift.mealPeriod ? `<span class="pill">${shift.mealPeriod}</span>` : "";
-    const noSalesReport = hasSalesReport(shift) === false ? '<span class="pill no-report">No sales</span>' : "";
-    const noTipsReport = hasTipReport(shift) === false ? '<span class="pill no-report">No tips</span>' : "";
-    
-    reviewShiftPreview.innerHTML = `
-        <button type="button" class="shift-summary" aria-haspopup="dialog" style="cursor: default;">
-            <span class="shift-summary-main">
-                <strong class="summary-date">${dateDisplay}</strong>
-                <span class="summary-job">${summaryJob}</span>
-                <span class="summary-tags">${mealPill}${noSalesReport}${noTipsReport}</span>
-            </span>
-            <span class="shift-summary-metrics">
-                <span class="summary-metric"><small>Hours</small><strong>${hours.toFixed(1)}h</strong></span>
-                <span class="summary-metric"><small>Sales</small><strong>$${sales.toFixed(2)}</strong></span>
-                <span class="summary-metric"><small>Net tips</small><strong>$${tips.toFixed(2)}</strong></span>
-            </span>
-        </button>
-    `;
-}
-
 function handleFormSubmit(event) {
     event.preventDefault();
-
-    if (currentPhase === "review") {
-        try {
-            updateShiftFormProgression();
-            const shift = readFormValues();
-            const issues = validateShift(shift);
-            if (issues.length > 0) {
-                showValidationErrors(issues);
-                return;
-            }
-            clearValidationErrors();
-
-            if (state.editingShiftId !== null) {
-                const index = state.shifts.findIndex((entry) => entry.id === state.editingShiftId);
-                if (index >= 0) {
-                    state.shifts[index] = shift;
-                }
-            } else {
-                state.shifts.push(shift);
-            }
-
-            const saved = persistShifts();
-            renderDashboard();
-            renderPreviousShifts();
-            const successMessage = state.editingShiftId !== null ? "Shift updated." : "Shift saved.";
-            resetForm(false);
-            showView("dashboard");
-            if (saved) {
-                setStatus(successMessage);
-            }
-        } catch (error) {
-            setStatus(error.message, true);
-        }
-        return;
-    }
 
     if (entryMode === "guided" && !getEditingShift() && !guidedStep.review && guidedStep.element) {
         moveGuidedStep(1);
@@ -1948,35 +1715,6 @@ function handleFormSubmit(event) {
 
     try {
         updateShiftFormProgression();
-        const shift = readFormValues();
-        const issues = validateShift(shift);
-        if (issues.length > 0) {
-            showValidationErrors(issues);
-            return;
-        }
-        clearValidationErrors();
-
-        if (state.editingShiftId !== null) {
-            const index = state.shifts.findIndex((entry) => entry.id === state.editingShiftId);
-            if (index >= 0) {
-                state.shifts[index] = shift;
-            }
-        } else {
-            state.shifts.push(shift);
-        }
-
-        const saved = persistShifts();
-        renderDashboard();
-        renderPreviousShifts();
-        const successMessage = state.editingShiftId !== null ? "Shift updated." : "Shift saved.";
-        resetForm(false);
-        showView("dashboard");
-        if (saved) {
-            setStatus(successMessage);
-        }
-    } catch (error) {
-        setStatus(error.message, true);
-    }
         const shift = readFormValues();
         const issues = validateShift(shift);
         if (issues.length > 0) {

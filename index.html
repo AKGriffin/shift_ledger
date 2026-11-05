@@ -416,33 +416,14 @@
                         <ul></ul>
                     </div>
                     <p id="guided-next-hint" class="field-hint guided-next-hint" role="status" aria-live="polite" hidden></p>
-                    
-                    <div id="shift-review-card" class="shift-review-card" hidden>
-                        <h2>Review your shift</h2>
-                        <article class="shift-entry" id="review-shift-preview">
-                            <!-- Populated by JavaScript with shift preview -->
-                        </article>
-                    </div>
-
                     <div id="guided-buttons" class="guided-buttons" hidden>
                         <button type="button" id="guided-back" class="secondary-button">Back</button>
                         <button type="button" id="guided-cancel" class="ghost-button">Cancel</button>
                         <button type="button" id="guided-next" class="primary-button" aria-describedby="guided-next-hint">Next</button>
                     </div>
-                    
-                    <div id="edit-phase-buttons" class="form-actions" hidden>
-                        <button type="button" id="undo-button" class="secondary-button" aria-label="Undo (Ctrl+Z)" title="Undo (Ctrl+Z)" disabled>↶ Undo</button>
-                        <button type="button" id="redo-button" class="secondary-button" aria-label="Redo (Ctrl+Y)" title="Redo (Ctrl+Y)" disabled>↷ Redo</button>
-                        <span style="flex: 1;"></span>
-                        <button type="button" id="review-shift-button" class="primary-button">Review</button>
-                        <button type="button" id="cancel-form" class="ghost-button">Cancel</button>
-                    </div>
-                    
-                    <div id="review-phase-buttons" class="form-actions" hidden>
-                        <span style="flex: 1;"></span>
-                        <button type="button" id="edit-shift-button" class="secondary-button">Edit</button>
+                    <div id="form-actions" class="form-actions">
                         <button type="submit" id="save-shift" class="primary-button">Save shift</button>
-                        <button type="button" id="cancel-review" class="ghost-button">Cancel</button>
+                        <button type="button" id="cancel-form" class="ghost-button">Cancel</button>
                     </div>
                 </form>
             </section>
@@ -1114,7 +1095,6 @@
 
     <script src="assets/js/shift-math.js"></script>
     <script src="assets/js/workplaces.js"></script>
-    <script src="assets/js/form-history.js"></script>
     <script src="assets/js/app-version.js"></script>
     <script src="assets/js/script.js"></script>
 </body>
