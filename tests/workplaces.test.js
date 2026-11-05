@@ -545,17 +545,17 @@ describe("Shift form workplace mode", () => {
         expect(savedShifts()[0].foodSales).toBe(125.5);
     }));
 
-    test("reveals workplace and role before the rest of the form", () => withApp({ workplaces: sampleData() }, ({ element, fire, openView }) => {
+    test("shows workplace and role together with the rest of the form", () => withApp({ workplaces: sampleData() }, ({ element, fire, openView }) => {
         openView("new-shift");
-        expect(element("#shift-workplace-card").hidden).toBe(true);
-        expect(element("#shift-details").hidden).toBe(true);
+        expect(element("#shift-workplace-card").hidden).toBe(false);
+        expect(element("#shift-details").hidden).toBe(false);
         element("#shift-date").value = "2026-10-22";
         fire(element("#shift-date"), "input");
 
         expect(element("#shift-workplace-card").hidden).toBe(false);
         expect(element("#shift-workplace-field").hidden).toBe(false);
         expect(element("#shift-role-field").hidden).toBe(false);
-        expect(element("#shift-details").hidden).toBe(true);
+        expect(element("#shift-details").hidden).toBe(false);
         expect(element("#shift-job-field").hidden).toBe(true);
         expect(element("#shift-workplace-field").closest("fieldset")).toBe(element("#shift-workplace-card"));
         expect(element("#shift-role-field").closest("fieldset")).toBe(element("#shift-workplace-card"));
@@ -569,11 +569,10 @@ describe("Shift form workplace mode", () => {
         submitForm();
 
         expect(element("#shift-role-error").textContent).toBe("Choose a role for this workplace.");
-        expect(element("#shift-details").hidden).toBe(true);
         expect(savedShifts()).toHaveLength(0);
     }));
 
-    test("requires a workplace before revealing shift details", () => withApp({
+    test("requires a workplace before saving", () => withApp({
         workplaces: { version: 1, setupDismissed: true, workplaces: [] },
     }, ({ element, fire, openView, submitForm, savedShifts }) => {
         openView("new-shift");
@@ -582,7 +581,6 @@ describe("Shift form workplace mode", () => {
         submitForm();
 
         expect(element("#shift-workplace-error").textContent).toBe("Choose a workplace.");
-        expect(element("#shift-details").hidden).toBe(true);
         expect(element("#shift-meal-period-error").textContent).toBe("");
         expect(savedShifts()).toHaveLength(0);
     }));
@@ -729,7 +727,7 @@ describe("Shift form workplace mode", () => {
         expect(element("#workplace-setup-dialog").open).toBe(false);
         expect(element("#shift-workplace").value).toBe("");
         expect(element("#shift-workplace-card").hidden).toBe(false);
-        expect(element("#shift-details").hidden).toBe(true);
+        expect(element("#shift-details").hidden).toBe(false);
     }));
 
     test("workplace dates do not restrict shift logging", () => withApp({ workplaces: (() => {

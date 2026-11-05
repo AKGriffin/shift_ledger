@@ -10,10 +10,10 @@ function revealShiftDetails(harness) {
 }
 
 describe("Shift form validation", () => {
-    test("starts with the date and focuses its error before revealing later fields", () => withApp(({ doc, element, elements, openView, submitForm, savedShifts }) => {
+    test("manual entry shows the whole form while the date still gets the first error", () => withApp(({ doc, element, elements, openView, submitForm, savedShifts }) => {
         openView("new-shift");
-        expect(element("#shift-workplace-card").hidden).toBe(true);
-        expect(element("#shift-details").hidden).toBe(true);
+        expect(element("#shift-workplace-card").hidden).toBe(false);
+        expect(element("#shift-details").hidden).toBe(false);
         submitForm();
 
         expect(element("#shift-date").getAttribute("aria-invalid")).toBe("true");
@@ -180,6 +180,8 @@ describe("Guided and manual entry", () => {
 
     test("manual entry uses the same Edit screen as guided once the role is chosen", () => withApp((harness) => {
         chooseMode(harness, "manual");
+        expect(harness.element("#shift-workplace-card").hidden).toBe(false);
+        expect(harness.element("#shift-details").hidden).toBe(false);
         harness.fillForm({ date: "2026-10-22" });
         harness.fire(harness.element("#shift-date"), "input");
         expect(harness.element("#shift-workplace-card").hidden).toBe(false);

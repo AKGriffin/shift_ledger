@@ -1268,6 +1268,7 @@ function setEntryMode(mode) {
     guidedNextAttempted = false;
     resetFormHistory();
     if (mode === "manual") {
+        shiftFormProgress = { workplace: true, details: true };
         syncAnswerRadios();
     }
     updateShiftFormProgression();
