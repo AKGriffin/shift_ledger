@@ -387,8 +387,8 @@
                         </div>
 
                         <section id="double-report-fields" data-guided-step data-guided-prompt="Which reports do you have for this double shift?" hidden aria-labelledby="double-report-heading">
-                            <h3 id="double-report-heading">Double-shift reports</h3>
-                            <p>Record the reports you have. A missing report is different from a report with zero sales or tips.</p>
+                            <h3 id="double-report-heading">Which reports do you have?</h3>
+                            <p>Toggle on the reports you have. Once you select two reports, the third will be calculated. A missing report is different from zero sales or tips.</p>
                             <div id="double-report-list" class="double-report-list"></div>
                         </section>
 
@@ -1060,13 +1060,14 @@
     </template>
 
     <template id="double-report-template">
-        <div class="double-report">
-            <label class="report-toggle">
+        <div class="double-report" role="group">
+            <label class="double-report-toggle">
                 <input type="checkbox" data-report-toggle>
                 <span data-report-label></span>
+                <span class="report-toggle-indicator" aria-hidden="true">✓</span>
             </label>
             <fieldset data-report-fields disabled>
-                <legend>Report details</legend>
+                <legend class="sr-only">Report details</legend>
                 <div class="report-details-grid">
                     <section class="report-data-group" role="group" aria-label="Sales" data-role-capability="tracksSales">
                         <h4>Sales</h4>

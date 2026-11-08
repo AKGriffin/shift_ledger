@@ -102,10 +102,13 @@ const weekDateRange = document.getElementById("week-date-range");
 const monthDateRange = document.getElementById("month-date-range");
 const doubleReportList = document.getElementById("double-report-list");
 const doubleReportTemplate = document.getElementById("double-report-template");
-const reportPeriods = [
-    ["lunch", "Lunch report"],
-    ["dinner", "Dinner report"],
-    ["whole", "Whole-double report"],
+// Report periods for double shifts. Values: [id, displayName, capability]
+// Capability determines when to show this period based on role.
+// Updated dynamically in initializeDoubleReports().
+let reportPeriods = [
+    ["lunch", "Lunch", "lunch"],
+    ["dinner", "Dinner", "dinner"],
+    ["whole", "Whole", "whole"],
 ];
 const EDIT_PHASE_INTRO = "Edit your shift below, then review it before saving.";
 const GUIDED_REPORT_KINDS = {
@@ -3948,6 +3951,10 @@ function formatDuration(totalMinutes) {
 }
 
 function initializeDoubleReports() {
+    // Clear existing reports (in case this is re-initialized)
+    doubleReportList.innerHTML = "";
+    
+    // Build report nodes for each period
     reportPeriods.forEach(([period, label]) => {
         const reportNode = doubleReportTemplate.content.firstElementChild.cloneNode(true);
         reportNode.dataset.reportPeriod = period;

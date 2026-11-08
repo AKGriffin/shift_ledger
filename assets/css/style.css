@@ -1779,6 +1779,53 @@ legend {
     background: var(--panel);
 }
 
+.double-report-toggle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    font-weight: 600;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    background: var(--panel);
+    cursor: pointer;
+    transition: all 150ms ease-out;
+}
+
+.double-report-toggle input {
+    width: 1rem;
+    height: 1rem;
+    margin: 0;
+    cursor: pointer;
+    accent-color: var(--primary);
+}
+
+.double-report-toggle:has(input:checked) {
+    border-color: var(--primary);
+    background: var(--panel-alt);
+}
+
+.double-report-toggle:has(input:hover) {
+    border-color: var(--muted);
+}
+
+.double-report-toggle:has(input:focus-visible) {
+    outline: 3px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.report-toggle-indicator {
+    margin-left: auto;
+    opacity: 0;
+    transition: opacity 150ms ease-out;
+    color: var(--success);
+    font-weight: 800;
+}
+
+.double-report-toggle:has(input:checked) .report-toggle-indicator {
+    opacity: 1;
+}
+
 .report-toggle {
     display: flex;
     align-items: center;
@@ -1809,6 +1856,12 @@ legend {
 
 .double-report fieldset {
     background: var(--panel-alt);
+    transition: opacity 150ms ease-out;
+}
+
+.double-report fieldset:disabled {
+    opacity: 0.5;
+    pointer-events: none;
 }
 
 .report-details-grid {
