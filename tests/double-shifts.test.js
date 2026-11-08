@@ -278,4 +278,105 @@ describe("Double-shift report entry", () => {
         expect(harness.element('[data-report-period="lunch"] [data-report-field="foodSales"]').value).toBe("125.00");
         expect(harness.element('[data-report-period="dinner"] [data-report-toggle]').checked).toBe(false);
     }));
+
+    test("infers dinner report from lunch and whole reports during form entry", () => withApp((harness) => {
+        const { element, fire, fillForm, openView, submitForm } = harness;
+        openView("new-shift");
+        fillForm({
+            date: "2026-10-23",
+            mealPeriod: "Double",
+            job: "Server",
+            clockIn: "10:00",
+            clockOut: "22:00",
+        });
+        const mealPeriod = element("#shift-meal-period");
+        fire(mealPeriod, "change");
+
+        const lunchSection = element('[data-report-period="lunch"]');
+        const lunchToggle = lunchSection.querySelector("[data-report-toggle]");
+        lunchToggle.checked = true;
+        fire(lunchToggle, "change");
+        lunchSection.querySelector('[data-report-field="foodSales"]').value = "100";
+        fire(lunchSection.querySelector('[data-report-field="foodSales"]'), "input");
+
+        const wholeSection = element('[data-report-period="whole"]');
+        const wholeToggle = wholeSection.querySelector("[data-report-toggle]");
+        wholeToggle.checked = true;
+        fire(wholeToggle, "change");
+        wholeSection.querySelector('[data-report-field="foodSales"]').value = "250";
+        fire(wholeSection.querySelector('[data-report-field="foodSales"]'), "input");
+
+        const dinnerSection = element('[data-report-period="dinner"]');
+        const dinnerToggle = dinnerSection.querySelector("[data-report-toggle]");
+        expect(dinnerToggle.checked).toBe(true);
+        expect(dinnerToggle.disabled).toBe(true);
+        expect(dinnerSection.querySelector('[data-report-field="foodSales"]').value).toBe("150.00");
+        expect(dinnerSection.querySelector('[data-report-field="foodSales"]').disabled).toBe(true);
+
+        submitForm();
+        const [saved] = harness.savedShifts();
+        expect(saved.reports.lunch.foodSales).toBe(100);
+        expect(saved.reports.dinner.foodSales).toBe(150);
+        expect(saved.reports.whole.foodSales).toBe(250);
+    }));
+
+    test("infers lunch report from dinner and whole reports", () => withApp((harness) => {
+        const { element, fire, openView } = harness;
+        openView("new-shift");
+        const mealPeriod = element("#shift-meal-period");
+        mealPeriod.value = "Double";
+        fire(mealPeriod, "change");
+
+        const dinnerSection = element('[data-report-period="dinner"]');
+        const dinnerToggle = dinnerSection.querySelector("[data-report-toggle]");
+        dinnerToggle.checked = true;
+        fire(dinnerToggle, "change");
+        dinnerSection.querySelector('[data-report-field="foodSales"]').value = "150";
+        fire(dinnerSection.querySelector('[data-report-field="foodSales"]'), "input");
+
+        const wholeSection = element('[data-report-period="whole"]');
+        const wholeToggle = wholeSection.querySelector("[data-report-toggle]");
+        wholeToggle.checked = true;
+        fire(wholeToggle, "change");
+        wholeSection.querySelector('[data-report-field="foodSales"]').value = "300";
+        fire(wholeSection.querySelector('[data-report-field="foodSales"]'), "input");
+
+        const lunchSection = element('[data-report-period="lunch"]');
+        const lunchToggle = lunchSection.querySelector("[data-report-toggle]");
+        expect(lunchToggle.checked).toBe(true);
+        expect(lunchToggle.disabled).toBe(true);
+        expect(lunchSection.querySelector('[data-report-field="foodSales"]').value).toBe("150.00");
+    }));
+
+    test("clears inferred report when sufficient reports are no longer available", () => withApp((harness) => {
+        const { element, fire, openView } = harness;
+        openView("new-shift");
+        const mealPeriod = element("#shift-meal-period");
+        mealPeriod.value = "Double";
+        fire(mealPeriod, "change");
+
+        const lunchSection = element('[data-report-period="lunch"]');
+        const lunchToggle = lunchSection.querySelector("[data-report-toggle]");
+        lunchToggle.checked = true;
+        fire(lunchToggle, "change");
+        lunchSection.querySelector('[data-report-field="foodSales"]').value = "100";
+        fire(lunchSection.querySelector('[data-report-field="foodSales"]'), "input");
+
+        const wholeSection = element('[data-report-period="whole"]');
+        const wholeToggle = wholeSection.querySelector("[data-report-toggle]");
+        wholeToggle.checked = true;
+        fire(wholeToggle, "change");
+        wholeSection.querySelector('[data-report-field="foodSales"]').value = "250";
+        fire(wholeSection.querySelector('[data-report-field="foodSales"]'), "input");
+
+        const dinnerSection = element('[data-report-period="dinner"]');
+        const dinnerToggle = dinnerSection.querySelector("[data-report-toggle]");
+        expect(dinnerToggle.disabled).toBe(true);
+
+        lunchToggle.checked = false;
+        fire(lunchToggle, "change");
+
+        expect(dinnerToggle.checked).toBe(false);
+        expect(dinnerToggle.disabled).toBe(false);
+    }));
 });

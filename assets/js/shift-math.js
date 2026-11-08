@@ -120,6 +120,7 @@
     const SALES_FIELDS = ["foodSales", "bawSales", "liquorSales", "naBevSales", "additionalSales"];
     const TIP_FIELDS = ["ccTips", "cashTips", "autoGratuity", "tipsPaidOut", "tipOutReceived"];
     const BREAKDOWN_FIELDS = [...SALES_FIELDS, ...TIP_FIELDS];
+    const REPORT_FIELDS = [...SALES_FIELDS, ...TIP_FIELDS, "noSales", "noTips"];
 
     function getFinancialBreakdown(shift) {
         const sources = getFinancialReports(shift) || [shift];
@@ -167,6 +168,51 @@
         return Math.max(0, endMinutes - startMinutes - breakMinutes);
     }
 
+    function inferMissingReport(reports) {
+        if (!reports || typeof reports !== "object") {
+            return null;
+        }
+
+        const { lunch, dinner, whole } = reports;
+        const hasLunch = Boolean(lunch);
+        const hasDinner = Boolean(dinner);
+        const hasWhole = Boolean(whole);
+        const reportCount = [hasLunch, hasDinner, hasWhole].filter(Boolean).length;
+
+        if (reportCount !== 2) {
+            return null;
+        }
+
+        if (hasLunch && hasWhole && !hasDinner) {
+            return { period: "dinner", report: subtractReports(whole, lunch) };
+        }
+        if (hasDinner && hasWhole && !hasLunch) {
+            return { period: "lunch", report: subtractReports(whole, dinner) };
+        }
+
+        return null;
+    }
+
+    function subtractReports(wholeReport, partialReport) {
+        if (!wholeReport || !partialReport) {
+            return null;
+        }
+
+        const result = {};
+        REPORT_FIELDS.forEach((field) => {
+            const wholeVal = Number(wholeReport[field]) || 0;
+            const partialVal = Number(partialReport[field]) || 0;
+
+            if (field === "noSales" || field === "noTips") {
+                result[field] = wholeReport[field] || partialReport[field];
+            } else {
+                result[field] = round(Math.max(0, wholeVal - partialVal));
+            }
+        });
+
+        return result;
+    }
+
     global.ShiftMath = {
         getAutoGratuity,
         getDurationMinutes,
@@ -176,6 +222,7 @@
         hasReport,
         hasSalesReport,
         hasTipReport,
+        inferMissingReport,
         toMinutes,
     };
 })(window);

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "./assert.js";
 
-const { getAutoGratuity, getDurationMinutes, getFinancialBreakdown, getNetTips, getSalesTotal, hasReport, hasSalesReport, hasTipReport, toMinutes } = window.ShiftMath;
+const { getAutoGratuity, getDurationMinutes, getFinancialBreakdown, getNetTips, getSalesTotal, hasReport, hasSalesReport, hasTipReport, inferMissingReport, toMinutes } = window.ShiftMath;
 
 describe("report coverage", () => {
     test("covers sales and tips independently on single shifts", () => {
@@ -212,5 +212,107 @@ describe("shift duration", () => {
             breakStart: "23:30",
             breakEnd: "00:30",
         })).toBe(420);
+    });
+});
+
+describe("report inference", () => {
+    test("infers dinner from lunch and whole reports", () => {
+        const reports = {
+            lunch: { foodSales: 100, ccTips: 20, bawSales: 25, cashTips: 15, autoGratuity: 5 },
+            dinner: null,
+            whole: { foodSales: 300, ccTips: 50, bawSales: 75, cashTips: 40, autoGratuity: 12 },
+        };
+        const result = inferMissingReport(reports);
+        expect(result.period).toBe("dinner");
+        expect(result.report.foodSales).toBe(200);
+        expect(result.report.ccTips).toBe(30);
+        expect(result.report.bawSales).toBe(50);
+        expect(result.report.cashTips).toBe(25);
+        expect(result.report.autoGratuity).toBe(7);
+    });
+
+    test("infers lunch from dinner and whole reports", () => {
+        const reports = {
+            lunch: null,
+            dinner: { foodSales: 150, liquorSales: 50, ccTips: 25 },
+            whole: { foodSales: 350, liquorSales: 100, ccTips: 55 },
+        };
+        const result = inferMissingReport(reports);
+        expect(result.period).toBe("lunch");
+        expect(result.report.foodSales).toBe(200);
+        expect(result.report.liquorSales).toBe(50);
+        expect(result.report.ccTips).toBe(30);
+    });
+
+    test("returns null when reports object is invalid or missing", () => {
+        expect(inferMissingReport(null)).toBe(null);
+        expect(inferMissingReport(undefined)).toBe(null);
+        expect(inferMissingReport({})).toBe(null);
+    });
+
+    test("returns null when fewer than two reports are present", () => {
+        expect(inferMissingReport({ lunch: { foodSales: 100 }, dinner: null, whole: null })).toBe(null);
+        expect(inferMissingReport({ lunch: null, dinner: null, whole: null })).toBe(null);
+    });
+
+    test("returns null when all three reports are present", () => {
+        const reports = {
+            lunch: { foodSales: 100 },
+            dinner: { foodSales: 200 },
+            whole: { foodSales: 300 },
+        };
+        expect(inferMissingReport(reports)).toBe(null);
+    });
+
+    test("infers report with zero values when amounts result in zero", () => {
+        const reports = {
+            lunch: { foodSales: 100, ccTips: 20 },
+            dinner: null,
+            whole: { foodSales: 100, ccTips: 20 },
+        };
+        const result = inferMissingReport(reports);
+        expect(result.period).toBe("dinner");
+        expect(result.report.foodSales).toBe(0);
+        expect(result.report.ccTips).toBe(0);
+    });
+
+    test("handles tipsPaidOut subtraction correctly (subtracts in reverse)", () => {
+        const reports = {
+            lunch: { tipsPaidOut: 3 },
+            dinner: null,
+            whole: { tipsPaidOut: 10 },
+        };
+        const result = inferMissingReport(reports);
+        expect(result.report.tipsPaidOut).toBe(7);
+    });
+
+    test("preserves noSales and noTips flags from either report", () => {
+        const reports = {
+            lunch: { foodSales: 100, noTips: true },
+            dinner: null,
+            whole: { foodSales: 300, noTips: true },
+        };
+        const result = inferMissingReport(reports);
+        expect(result.report.noTips).toBe(true);
+        expect(result.report.noSales).toBeUndefined();
+    });
+
+    test("includes all report fields in the inferred report", () => {
+        const reports = {
+            lunch: { foodSales: 50, bawSales: 10, liquorSales: 5, naBevSales: 2, additionalSales: 3, ccTips: 10, cashTips: 5, autoGratuity: 2, tipsPaidOut: 1, tipOutReceived: 1 },
+            dinner: null,
+            whole: { foodSales: 150, bawSales: 30, liquorSales: 20, naBevSales: 5, additionalSales: 10, ccTips: 30, cashTips: 15, autoGratuity: 5, tipsPaidOut: 3, tipOutReceived: 3 },
+        };
+        const result = inferMissingReport(reports);
+        expect(result.report.foodSales).toBe(100);
+        expect(result.report.bawSales).toBe(20);
+        expect(result.report.liquorSales).toBe(15);
+        expect(result.report.naBevSales).toBe(3);
+        expect(result.report.additionalSales).toBe(7);
+        expect(result.report.ccTips).toBe(20);
+        expect(result.report.cashTips).toBe(10);
+        expect(result.report.autoGratuity).toBe(3);
+        expect(result.report.tipsPaidOut).toBe(2);
+        expect(result.report.tipOutReceived).toBe(2);
     });
 });

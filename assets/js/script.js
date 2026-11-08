@@ -10,7 +10,7 @@ const VIEW_TITLES = {
     "paystubs": "Paystubs",
     "settings": "Settings",
 };
-const { getAutoGratuity, getDurationMinutes, getFinancialBreakdown, getNetTips, getSalesTotal, hasSalesReport, hasTipReport, toMinutes } = window.ShiftMath;
+const { getAutoGratuity, getDurationMinutes, getFinancialBreakdown, getNetTips, getSalesTotal, hasSalesReport, hasTipReport, inferMissingReport, toMinutes } = window.ShiftMath;
 const CARD_BREAKDOWN_SELECTORS = {
     foodSales: ".card-food-sales",
     bawSales: ".card-baw-sales",
@@ -416,6 +416,11 @@ function bindEvents() {
     document.getElementById("template-use-times").addEventListener("change", updateTemplateDefaultFields);
     document.getElementById("template-use-break").addEventListener("change", updateTemplateDefaultFields);
     doubleReportList.addEventListener("change", handleDoubleReportToggle);
+    doubleReportList.addEventListener("input", (event) => {
+        if (event.target.matches("[data-report-field]")) {
+            updateInferredReports();
+        }
+    });
     form.addEventListener("focusin", selectNumberOnFocus);
     form.addEventListener("mouseup", (event) => {
         if (event.target.type === "number" && event.target.dataset.selectedOnFocus) {
@@ -1813,6 +1818,9 @@ function populateForm(shift) {
         });
         setReportInputsEnabled(reportNode, toggle.checked);
     });
+    if (shift.mealPeriod === "Double") {
+        updateInferredReports();
+    }
     updateMealPeriodFields();
     syncAnswerRadios();
     resetFormHistory();
@@ -4017,11 +4025,71 @@ function setReportInputsEnabled(reportNode, enabled) {
     reportNode.querySelector("[data-report-fields]").disabled = !enabled;
 }
 
+function updateInferredReports() {
+    const reports = {};
+    reportPeriods.forEach(([period]) => {
+        const reportNode = getReportNode(period);
+        const toggle = reportNode.querySelector("[data-report-toggle]");
+        const fieldset = reportNode.querySelector("[data-report-fields]");
+        
+        if (!toggle.checked || (fieldset && fieldset.disabled)) {
+            reports[period] = null;
+            return;
+        }
+        
+        const values = {};
+        reportAmountFields.forEach((field) => {
+            const input = reportNode.querySelector(`[data-report-field="${field}"]`);
+            values[field] = toNumber(input.value);
+        });
+        reports[period] = values;
+    });
+
+    const inferred = inferMissingReport(reports);
+    
+    reportPeriods.forEach(([period]) => {
+        const reportNode = getReportNode(period);
+        const toggle = reportNode.querySelector("[data-report-toggle]");
+        const fieldset = reportNode.querySelector("[data-report-fields]");
+        
+        if (inferred && inferred.period === period) {
+            toggle.checked = true;
+            toggle.disabled = true;
+            toggle.title = "Inferred from other reports";
+            if (fieldset) {
+                fieldset.disabled = false;
+            }
+            reportAmountFields.forEach((field) => {
+                const input = reportNode.querySelector(`[data-report-field="${field}"]`);
+                input.value = formatInputAmount(inferred.report[field]);
+                input.disabled = true;
+                input.title = "Calculated from other reports";
+            });
+        } else {
+            if (toggle.disabled) {
+                toggle.checked = false;
+                toggle.disabled = false;
+                toggle.title = "";
+                if (fieldset) {
+                    fieldset.disabled = true;
+                }
+                reportAmountFields.forEach((field) => {
+                    const input = reportNode.querySelector(`[data-report-field="${field}"]`);
+                    input.value = "0.00";
+                    input.disabled = false;
+                    input.title = "";
+                });
+            }
+        }
+    });
+}
+
 function handleDoubleReportToggle(event) {
     if (!event.target.matches("[data-report-toggle]")) {
         return;
     }
     setReportInputsEnabled(event.target.closest(".double-report"), event.target.checked);
+    updateInferredReports();
 }
 
 function getRecentReportNote(shift) {
