@@ -2224,10 +2224,11 @@ function readFormValues() {
         }));
     }
 
+    baseline.isIncomplete = isShiftIncomplete(baseline);
     return baseline;
 }
 
-function validateShift(shift) {
+function validateShift(shift, allowPartial = false) {
     const issues = [];
 
     if (!shift.date) {
@@ -2235,6 +2236,13 @@ function validateShift(shift) {
         return issues;
     }
 
+    // If partial validation is allowed and shift is incomplete, skip strict requirements
+    if (allowPartial && isShiftIncomplete(shift)) {
+        // Only validate data that's actually provided
+        return validatePartialShiftData(shift);
+    }
+
+    // Full validation (existing behavior)
     const editing = getEditingShift();
     const legacyEdit = editing && !editing.workplaceId && !editing.roleId;
     if (isWorkplaceMode() && !legacyEdit) {
@@ -2317,6 +2325,93 @@ function validateShift(shift) {
         }
 
         if (shift.clockIn && shift.clockOut && shiftEndMinutes > shiftStartMinutes) {
+            if (breakStartMinutes < shiftStartMinutes || breakStartMinutes >= shiftEndMinutes) {
+                issues.push({ field: "breakStart", message: "Break start must be during the shift." });
+            }
+            if (breakEndMinutes > shiftEndMinutes || breakEndMinutes <= shiftStartMinutes) {
+                issues.push({ field: "breakEnd", message: "Break end must be during the shift." });
+            }
+        }
+    }
+
+    return issues;
+}
+
+function getIncompleteFields(shift) {
+    const missing = [];
+
+    if (isWorkplaceMode()) {
+        if (!shift.workplaceId) missing.push("Workplace");
+        if (!shift.roleId) missing.push("Role");
+    } else if (!shift.job) {
+        missing.push("Job");
+    }
+
+    if (!shift.mealPeriod) missing.push("Meal period");
+    if (!shift.clockIn) missing.push("Clock in");
+    if (!shift.clockOut) missing.push("Clock out");
+
+    if (shift.breakStart && !shift.breakEnd) missing.push("Break end");
+    if (shift.breakEnd && !shift.breakStart) missing.push("Break start");
+
+    return missing;
+}
+
+function getMissingFieldsText(shift) {
+    const fields = getIncompleteFields(shift);
+    if (fields.length === 0) return "";
+    return "Missing: " + fields.join(", ");
+}
+
+function isShiftIncomplete(shift) {
+    return getIncompleteFields(shift).length > 0;
+}
+
+function validatePartialShiftData(shift) {
+    const issues = [];
+
+    // Only validate data that's actually provided - check for logical inconsistencies
+    
+    if (shift.clockIn && shift.clockOut && toMinutes(shift.clockOut) === toMinutes(shift.clockIn)) {
+        issues.push({
+            field: "clockOut",
+            message: "Clock out must differ from clock in; an earlier time means the next day.",
+        });
+    }
+
+    // Always enforce: if one break time is provided, both must be provided
+    if (shift.breakStart && !shift.breakEnd) {
+        issues.push({ field: "breakEnd", message: "Break end is required when a break starts." });
+    }
+    if (shift.breakEnd && !shift.breakStart) {
+        issues.push({ field: "breakStart", message: "Break start is required when a break ends." });
+    }
+
+    // Only validate break timing if all break and shift times are provided
+    if (shift.clockIn && shift.clockOut && shift.breakStart && shift.breakEnd) {
+        const shiftStartMinutes = toMinutes(shift.clockIn);
+        let shiftEndMinutes = toMinutes(shift.clockOut);
+        if (shiftEndMinutes < shiftStartMinutes) {
+            shiftEndMinutes += 24 * 60;
+        }
+
+        let breakStartMinutes = toMinutes(shift.breakStart);
+        let breakEndMinutes = toMinutes(shift.breakEnd);
+        if (breakStartMinutes < shiftStartMinutes) {
+            breakStartMinutes += 24 * 60;
+        }
+        if (breakEndMinutes < shiftStartMinutes) {
+            breakEndMinutes += 24 * 60;
+        }
+        if (breakEndMinutes < breakStartMinutes) {
+            breakEndMinutes += 24 * 60;
+        }
+
+        if (breakEndMinutes <= breakStartMinutes) {
+            issues.push({ field: "breakEnd", message: "Break end must be later than break start." });
+        }
+
+        if (shiftEndMinutes > shiftStartMinutes) {
             if (breakStartMinutes < shiftStartMinutes || breakStartMinutes >= shiftEndMinutes) {
                 issues.push({ field: "breakStart", message: "Break start must be during the shift." });
             }
@@ -2937,11 +3032,25 @@ async function importBackup(event) {
 
 function normalizeImportedShift(shift, index) {
     if (!shift || typeof shift !== "object" || Array.isArray(shift)
-        || typeof shift.date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(shift.date)
-        || !MEAL_PERIODS.includes(shift.mealPeriod) || typeof shift.job !== "string"
-        || !TIME_PATTERN.test(shift.clockIn) || !TIME_PATTERN.test(shift.clockOut)) {
-        throw new Error(`Backup shift ${index + 1} is missing valid required fields.`);
+        || typeof shift.date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(shift.date)) {
+        throw new Error(`Backup shift ${index + 1} is missing a valid date.`);
     }
+
+    // For backward compatibility: old backups require these fields
+    // New backups might have incomplete shifts (date only)
+    const isFromOldBackup = !Object.hasOwn(shift, "isIncomplete");
+    const isIncomplete = !isFromOldBackup && shift.isIncomplete === true;
+
+    if (isFromOldBackup) {
+        // Old backup - strict validation
+        if (!MEAL_PERIODS.includes(shift.mealPeriod) || typeof shift.job !== "string"
+            || !TIME_PATTERN.test(shift.clockIn) || !TIME_PATTERN.test(shift.clockOut)) {
+            throw new Error(`Backup shift ${index + 1} is missing valid required fields.`);
+        }
+    }
+    // New backup with partial shift - only validate what's provided
+    // mealPeriod, job, clockIn, clockOut are all optional for incomplete shifts
+
     for (const field of ["breakStart", "breakEnd"]) {
         if (shift[field] !== undefined && shift[field] !== "" && !TIME_PATTERN.test(shift[field])) {
             throw new Error(`Backup shift ${index + 1} has an invalid ${field} time.`);
