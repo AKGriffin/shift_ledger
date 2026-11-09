@@ -326,6 +326,47 @@ function showAppUpdateDialog() {
     }
 }
 
+function showConfirmDialog(title, message, okLabel = "OK", isDangerous = false) {
+    return new Promise((resolve) => {
+        const confirmDialog = document.getElementById("confirm-dialog");
+        const confirmTitle = document.getElementById("confirm-title");
+        const confirmMessage = document.getElementById("confirm-message");
+        const confirmOkButton = document.getElementById("confirm-ok");
+        const confirmCancelButton = document.getElementById("confirm-cancel");
+
+        confirmTitle.textContent = title;
+        confirmMessage.textContent = message;
+        confirmOkButton.textContent = okLabel;
+
+        confirmOkButton.className = isDangerous ? "danger-button" : "primary-button";
+
+        const handleOk = () => {
+            confirmDialog.close();
+            cleanup();
+            resolve(true);
+        };
+
+        const handleCancel = () => {
+            confirmDialog.close();
+            cleanup();
+            resolve(false);
+        };
+
+        const cleanup = () => {
+            confirmOkButton.removeEventListener("click", handleOk);
+            confirmCancelButton.removeEventListener("click", handleCancel);
+            confirmDialog.removeEventListener("close", handleCancel);
+        };
+
+        confirmOkButton.addEventListener("click", handleOk);
+        confirmCancelButton.addEventListener("click", handleCancel);
+        confirmDialog.addEventListener("close", handleCancel, { once: true });
+
+        confirmDialog.showModal();
+        confirmOkButton.focus();
+    });
+}
+
 // A first install has no controller, so only a replacement worker counts as an update.
 function offerWaitingWorker(registration) {
     if (registration.waiting && navigator.serviceWorker.controller) {
@@ -334,10 +375,23 @@ function offerWaitingWorker(registration) {
 }
 
 function reloadForAppUpdate() {
-    if (shiftFormDirty && !window.confirm("Reload now and discard the unsaved shift changes?")) {
+    if (!shiftFormDirty) {
+        performReload();
         return;
     }
 
+    showConfirmDialog(
+        "Reload and discard changes?",
+        "Reload now and discard your unsaved shift changes?",
+        "Reload"
+    ).then((confirmed) => {
+        if (confirmed) {
+            performReload();
+        }
+    });
+}
+
+function performReload() {
     const waitingWorker = serviceWorkerRegistration && serviceWorkerRegistration.waiting;
     if (waitingWorker) {
         updateRequested = true;
@@ -679,9 +733,18 @@ function handleShiftEntryBack() {
         stay();
         return;
     }
-    if (chosen && shiftFormDirty
-        && !window.confirm("Cancel this shift? Your entries will be discarded.")) {
-        stay();
+    if (chosen && shiftFormDirty) {
+        showConfirmDialog(
+            "Cancel this shift?",
+            "Your entries will be discarded.",
+            "Cancel"
+        ).then((confirmed) => {
+            if (confirmed) {
+                resetForm();
+                shiftEntryHistoryDepth = 0;
+                window.history.back();
+            }
+        });
         return;
     }
     resetForm();
@@ -1532,11 +1595,15 @@ function closeNewShiftEntry() {
 }
 
 function cancelShiftEntry() {
-    if (!window.confirm("Cancel this shift? Your entries will be discarded.")) {
-        return;
-    }
-
-    leaveShiftEntry();
+    showConfirmDialog(
+        "Cancel this shift?",
+        "Your entries will be discarded.",
+        "Cancel"
+    ).then((confirmed) => {
+        if (confirmed) {
+            leaveShiftEntry();
+        }
+    });
 }
 
 function moveGuidedStep(direction) {
