@@ -2888,7 +2888,13 @@ async function importBackup(event) {
             }
         }
         const workplaceNote = importedWorkplaces ? " and its workplaces" : "";
-        if (!window.confirm(`Replace your ${state.shifts.length} saved shifts with ${importedShifts.length} shifts${workplaceNote} from this backup?`)) {
+        const confirmed = await showConfirmDialog(
+            "Replace your shifts?",
+            `Replace your ${state.shifts.length} saved shifts with ${importedShifts.length} shifts${workplaceNote} from this backup?`,
+            "Restore from backup",
+            false
+        );
+        if (!confirmed) {
             return;
         }
 
@@ -3601,11 +3607,17 @@ async function handleWorkplaceAction(event) {
             : `Unarchived ${kind} “${entry.name}”.`;
         nextFocus = focusSelector(archived ? "unarchive" : "archive");
     } else if (action === "delete") {
-        if (!window.confirm(`Delete the ${kind} “${entry.name}”? It has no saved shifts. This can't be undone.`)) {
+        const confirmed = await showConfirmDialog(
+            `Delete ${kind}?`,
+            `Delete the ${kind} "${entry.name}"? It has no saved shifts. This can't be undone.`,
+            "Delete",
+            true
+        );
+        if (!confirmed) {
             return;
         }
         result = commitWorkplaces((draft) => window.Workplaces.remove(draft, kind, id, state.shifts));
-        message = `Deleted ${kind} “${entry.name}”.`;
+        message = `Deleted ${kind} "${entry.name}".`;
         nextFocus = null;
     } else {
         return;
@@ -3893,20 +3905,27 @@ function clearAllShifts() {
         setStatus("There are no shifts to delete.");
         return;
     }
-    if (!window.confirm(`Permanently delete all ${state.shifts.length} saved shifts? Export a backup first if you may need these records.`)) {
-        return;
-    }
+    showConfirmDialog(
+        "Delete all shifts?",
+        `Permanently delete all ${state.shifts.length} saved shifts? Export a backup first if you may need these records.`,
+        "Delete all",
+        true
+    ).then((confirmed) => {
+        if (!confirmed) {
+            return;
+        }
 
-    try {
-        localStorage.removeItem(STORAGE_KEY);
-        state.shifts = [];
-        renderDashboard();
-        renderPreviousShifts();
-        setStatus("All shifts have been deleted.");
-    } catch (error) {
-        console.error("Unable to delete saved shifts:", error);
-        setStatus("Unable to delete saved shifts from this browser.", true);
-    }
+        try {
+            localStorage.removeItem(STORAGE_KEY);
+            state.shifts = [];
+            renderDashboard();
+            renderPreviousShifts();
+            setStatus("All shifts have been deleted.");
+        } catch (error) {
+            console.error("Unable to delete saved shifts:", error);
+            setStatus("Unable to delete saved shifts from this browser.", true);
+        }
+    });
 }
 
 function downloadFile(content, fileName, contentType) {
