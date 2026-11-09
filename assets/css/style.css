@@ -2430,6 +2430,24 @@ main:focus,
     letter-spacing: 0.05em;
 }
 
+.pill.card-incomplete,
+.pill.summary-incomplete {
+    background: rgba(242, 185, 63, 0.15);
+    color: #d97706;
+}
+
+:root[data-theme="dark"] .pill.card-incomplete,
+:root[data-theme="dark"] .pill.summary-incomplete {
+    background: rgba(242, 185, 63, 0.2);
+    color: #fbbf24;
+}
+
+.card-missing-fields {
+    margin: 6px 0 0;
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
 .card-stat {
     display: grid;
     align-content: start;

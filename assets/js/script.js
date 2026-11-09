@@ -2658,6 +2658,11 @@ function buildShiftCardNode(shift) {
         : `${weekday}, ${formatDate(shift.date)}`;
     summary.querySelector(".summary-job").textContent = [shift.job, getWorkplaceName(shift.workplaceId)].filter(Boolean).join(" · ");
     summary.querySelector(".summary-meal").textContent = shift.mealPeriod;
+    
+    // Handle incomplete badge
+    const summaryIncompleteBadge = summary.querySelector(".summary-incomplete");
+    summaryIncompleteBadge.hidden = !shift.isIncomplete;
+    
     const summaryStatus = summary.querySelector(".summary-status");
     const summaryStatusText = getReportStatus(shift);
     summaryStatus.textContent = summaryStatusText;
@@ -2668,6 +2673,20 @@ function buildShiftCardNode(shift) {
     summary.setAttribute("aria-label", `View shift details: ${summary.querySelector(".summary-date").textContent}, ${summary.querySelector(".summary-job").textContent}`);
     card.querySelector(".card-date").textContent = formatDate(shift.date);
     card.querySelector(".card-meal").textContent = shift.mealPeriod;
+    
+    // Handle incomplete badge on card
+    const cardIncompleteBadge = card.querySelector(".card-incomplete");
+    cardIncompleteBadge.hidden = !shift.isIncomplete;
+    
+    // Handle missing fields display
+    const cardMissingFields = card.querySelector(".card-missing-fields");
+    if (shift.isIncomplete) {
+        cardMissingFields.textContent = getMissingFieldsText(shift);
+        cardMissingFields.hidden = false;
+    } else {
+        cardMissingFields.hidden = true;
+    }
+    
     const reportStatus = card.querySelector(".card-report-status");
     const reportStatusText = getReportStatus(shift);
     reportStatus.textContent = reportStatusText;
