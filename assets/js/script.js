@@ -91,6 +91,7 @@ const filterJobSelect = document.getElementById("filter-job");
 const filterWorkplaceSelect = document.getElementById("filter-workplace");
 const filterDateFrom = document.getElementById("filter-date-from");
 const filterDateTo = document.getElementById("filter-date-to");
+const filterIncompleteSelect = document.getElementById("filter-incomplete");
 const historyFilterDialog = document.getElementById("history-filter-dialog");
 const openHistoryFiltersButton = document.getElementById("open-history-filters");
 const activeFilterCount = document.getElementById("active-filter-count");
@@ -499,6 +500,7 @@ function bindEvents() {
     filterWorkplaceSelect.addEventListener("change", renderPreviousShifts);
     filterDateFrom.addEventListener("change", renderPreviousShifts);
     filterDateTo.addEventListener("change", renderPreviousShifts);
+    filterIncompleteSelect.addEventListener("change", renderPreviousShifts);
     openHistoryFiltersButton.addEventListener("click", () => {
         if (!historyFilterDialog.open) {
             historyFilterDialog.showModal();
@@ -2790,13 +2792,17 @@ function getFilteredShifts() {
     const toDate = filterDateTo.value;
     const jobFilter = filterJobSelect.value;
     const workplaceFilter = filterWorkplaceSelect.value;
+    const incompleteFilter = filterIncompleteSelect.value;
     const sortMode = sortBySelect.value;
 
     return state.shifts
         .filter((shift) => (!fromDate || shift.date >= fromDate)
             && (!toDate || shift.date <= toDate)
             && (workplaceFilter === "all" || shift.workplaceId === workplaceFilter)
-            && (jobFilter === "all" || shift.job === jobFilter))
+            && (jobFilter === "all" || shift.job === jobFilter)
+            && (incompleteFilter === "all" 
+                || (incompleteFilter === "incomplete" && shift.isIncomplete)
+                || (incompleteFilter === "complete" && !shift.isIncomplete)))
         .sort((a, b) => {
             switch (sortMode) {
                 case "date-asc":
@@ -2817,6 +2823,7 @@ function clearHistoryFilters() {
     filterDateTo.value = "";
     filterJobSelect.value = "all";
     filterWorkplaceSelect.value = "all";
+    filterIncompleteSelect.value = "all";
     renderPreviousShifts();
 }
 
