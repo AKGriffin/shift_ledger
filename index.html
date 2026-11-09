@@ -433,9 +433,14 @@
                     <section id="shift-review" class="shift-review" aria-labelledby="shift-review-title" hidden>
                         <h2 id="shift-review-title" tabindex="-1">Review your shift</h2>
                         <p>This is how the shift will appear in your Shifts list.</p>
+                        <div id="shift-incomplete-warning" class="shift-incomplete-warning" hidden>
+                            <p><strong>This shift is incomplete.</strong> <span id="shift-missing-fields"></span></p>
+                            <p>You can save it now and fill in the details later, or go back and add more information.</p>
+                        </div>
                         <div id="shift-review-card"></div>
                         <div class="form-actions">
                             <button type="button" id="edit-shift" class="secondary-button">Edit</button>
+                            <button type="button" id="save-incomplete-shift" class="secondary-button" hidden>Save incomplete</button>
                             <button type="submit" id="save-shift" class="primary-button">Save shift</button>
                             <button type="button" id="cancel-review" class="ghost-button">Cancel</button>
                         </div>

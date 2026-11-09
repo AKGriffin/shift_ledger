@@ -71,6 +71,7 @@ let hadServiceWorkerController = "serviceWorker" in navigator
 let entryReturnView = "previous-shifts";
 let shiftEntryHistoryDepth = 0;
 let shiftNavSwitching = false;
+let saveIncompleteRequested = false;
 
 const navButtons = document.querySelectorAll("[data-view]");
 const formStatus = document.getElementById("form-status");
@@ -442,6 +443,10 @@ function bindEvents() {
     cancelFormButton.addEventListener("click", cancelShiftEntry);
     document.getElementById("cancel-review").addEventListener("click", cancelShiftEntry);
     document.getElementById("edit-shift").addEventListener("click", editShiftFromReview);
+    document.getElementById("save-incomplete-shift").addEventListener("click", () => {
+        saveIncompleteRequested = true;
+        form.dispatchEvent(new Event("submit"));
+    });
     guidedCancelButton.addEventListener("click", cancelShiftEntry);
     form.addEventListener("change", (event) => {
         if (![fields.workplace, fields.role, fields.job].includes(event.target)) {
@@ -1552,7 +1557,21 @@ function showShiftReview(shift) {
     preview.className = "shift-detail-dialog shift-review-detail";
     preview.append(detail);
     document.getElementById("shift-review-card").replaceChildren(preview);
+    
+    // Show incomplete warning if applicable
+    const incompletWarning = document.getElementById("shift-incomplete-warning");
+    const saveIncompleteButton = document.getElementById("save-incomplete-shift");
+    if (isShiftIncomplete(shift)) {
+        document.getElementById("shift-missing-fields").textContent = getMissingFieldsText(shift);
+        incompletWarning.hidden = false;
+        saveIncompleteButton.hidden = false;
+    } else {
+        incompletWarning.hidden = true;
+        saveIncompleteButton.hidden = true;
+    }
+    
     shiftReviewing = true;
+    saveIncompleteRequested = false;
     updateShiftFormProgression();
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
     document.getElementById("shift-review-title").focus({ preventScroll: true });
@@ -2066,7 +2085,7 @@ function handleFormSubmit(event) {
     try {
         updateShiftFormProgression();
         const shift = readFormValues();
-        const issues = validateShift(shift);
+        const issues = validateShift(shift, saveIncompleteRequested);
         if (issues.length > 0) {
             showValidationErrors(issues);
             return;

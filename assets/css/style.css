@@ -1980,6 +1980,23 @@ legend {
     text-underline-offset: 0.15em;
 }
 
+.shift-incomplete-warning {
+    padding: 12px 14px;
+    border: 1px solid var(--gold);
+    border-radius: 10px;
+    background: var(--panel-alt);
+    color: var(--text);
+    margin-bottom: 12px;
+}
+
+.shift-incomplete-warning p {
+    margin: 0 0 6px;
+}
+
+.shift-incomplete-warning p:last-child {
+    margin: 0;
+}
+
 .notes-hint {
     margin: 8px 0 12px;
     color: var(--muted);
