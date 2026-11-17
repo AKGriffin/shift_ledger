@@ -34,6 +34,33 @@ describe("PWA updates", () => {
         expect(harness.element("#update-check-status").textContent).toContain("only available");
     }));
 
+    test("restores saved shifts when a fresh app instance loads", () => withApp(async (harness) => {
+        harness.saveShift({ foodSales: 125 });
+
+        const refreshedFrame = harness.doc.createElement("iframe");
+        refreshedFrame.title = "Fresh Shift Ledger app test";
+        const loaded = new Promise((resolve, reject) => {
+            const timeout = harness.win.setTimeout(
+                () => reject(new Error("The fresh app instance did not load.")),
+                10000,
+            );
+            refreshedFrame.addEventListener("load", () => {
+                harness.win.clearTimeout(timeout);
+                resolve();
+            }, { once: true });
+        });
+        refreshedFrame.src = new URL("../index.html", import.meta.url).href;
+        harness.doc.body.appendChild(refreshedFrame);
+
+        try {
+            await loaded;
+            expect(refreshedFrame.contentDocument.querySelector("#summary-total-shifts").textContent).toBe("1");
+            expect(refreshedFrame.contentDocument.querySelector("#summary-total-sales").textContent).toBe("$125.00");
+        } finally {
+            refreshedFrame.remove();
+        }
+    }));
+
     test("warns before leaving a shift form with unsaved changes", () => withApp((harness) => {
         const foodSales = harness.element("#shift-food-sales");
         foodSales.value = "25";

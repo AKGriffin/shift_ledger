@@ -1,317 +1,178 @@
 import { describe, expect, test } from "./assert.js";
 import { makeShift, withApp } from "./app-harness.js";
 
-describe("Incomplete shifts - data model", () => {
-    test("isIncomplete is set to false for complete shifts", () => withApp(({ saveShift, savedShifts }) => {
-        saveShift({ date: "2026-10-20", mealPeriod: "Dinner", job: "Server", clockIn: "16:00", clockOut: "22:00" });
-
-        const saved = savedShifts();
-        expect(saved).toHaveLength(1);
-        expect(saved[0].isIncomplete).toBe(false);
+function importBackup(harness, backup) {
+    const input = harness.element("#backup-file");
+    const transfer = new harness.win.DataTransfer();
+    transfer.items.add(new harness.win.File([JSON.stringify(backup)], "backup.json", {
+        type: "application/json",
     }));
+    input.files = transfer.files;
+    harness.fire(input, "change");
+    return harness.respondToConfirmDialog(true);
+}
 
-    test("isIncomplete is set to true when required fields are missing", () => withApp(({ openView, element, submitForm, savedShifts }) => {
-        openView("new-shift");
-        // Set only date, leave everything else empty
-        element("#shift-date").value = "2026-10-20";
-        element("#shift-date").dispatchEvent(new Event("input", { bubbles: true }));
-        
-        // Click "Save incomplete" button
-        element("#save-incomplete-shift").click();
-
-        const saved = savedShifts();
-        expect(saved).toHaveLength(1);
-        expect(saved[0].isIncomplete).toBe(true);
-        expect(saved[0].date).toBe("2026-10-20");
-    }));
-});
-
-describe("Incomplete shifts - form validation", () => {
-    test("allows saving with just a date when save-incomplete is clicked", () => withApp(({ openView, element, savedShifts }) => {
-        openView("new-shift");
-        element("#shift-date").value = "2026-10-20";
-        element("#shift-date").dispatchEvent(new Event("input", { bubbles: true }));
-        
-        expect(element("#save-incomplete-shift").hidden).toBe(false);
-        element("#save-incomplete-shift").click();
-
-        const saved = savedShifts();
-        expect(saved).toHaveLength(1);
-        expect(saved[0].isIncomplete).toBe(true);
-    }));
-
-    test("shows incomplete badge on shift card", () => withApp(({ openView, element, elements, fire }) => {
-        // Create an incomplete shift
-        openView("new-shift");
-        element("#shift-date").value = "2026-10-20";
-        fire(element("#shift-date"), "input");
-        element("#save-incomplete-shift").click();
-
-        // Navigate to history to see the card
+describe("Incomplete shifts", () => {
+    test("marks complete shifts as complete", () => withApp({
+        shifts: [makeShift({ id: 21 })],
+    }, ({ openView, element }) => {
         openView("previous-shifts");
-        const incompleteBadge = element(".summary-incomplete");
-        expect(incompleteBadge).toBeDefined();
-        expect(incompleteBadge.hidden).toBe(false);
-        expect(incompleteBadge.textContent).toContain("Incomplete");
+        expect(element('.shift-card[data-shift-id="21"] .card-incomplete').hidden).toBe(true);
     }));
 
-    test("displays missing fields text on shift card", () => withApp(({ openView, element, fire }) => {
-        openView("new-shift");
-        element("#shift-date").value = "2026-10-20";
-        fire(element("#shift-date"), "input");
-        element("#save-incomplete-shift").click();
-
+    test("shows the incomplete badge and missing fields in history", () => withApp({
+        shifts: [makeShift({
+            id: 22,
+            job: "",
+            mealPeriod: "",
+            clockIn: "",
+            clockOut: "",
+            isIncomplete: true,
+        })],
+    }, ({ openView, element }) => {
         openView("previous-shifts");
-        const missingFields = element(".card-missing-fields");
-        expect(missingFields.hidden).toBe(false);
-        expect(missingFields.textContent).toContain("Missing:");
-        // Should list some of the missing required fields
-        expect(/(Meal period|Clock in|Clock out|Job)/.test(missingFields.textContent)).toBe(true);
+
+        const card = element('.shift-card[data-shift-id="22"]');
+        expect(card.querySelector(".card-incomplete").hidden).toBe(false);
+        expect(card.querySelector(".card-missing-fields").hidden).toBe(false);
+        expect(card.querySelector(".card-missing-fields").textContent).toContain("Missing:");
+        expect(card.querySelector(".card-missing-fields").textContent).toContain("Meal period");
     }));
 
-    test("requires both break times even in incomplete shifts", () => withApp(({ openView, element, submitForm, fire, savedShifts }) => {
-        openView("new-shift");
-        element("#shift-date").value = "2026-10-20";
-        fire(element("#shift-date"), "input");
-        element("#shift-break-start").value = "18:00";
-        fire(element("#shift-break-start"), "input");
-        
-        element("#save-incomplete-shift").click();
-
-        // Should not save because break requires both start and end
-        const saved = savedShifts();
-        expect(saved).toHaveLength(0);
-        expect(element("#shift-break-end-error").textContent).toContain("Break end is required");
-    }));
-
-    test("validates partial clock times are consistent", () => withApp(({ openView, element, fire, savedShifts }) => {
-        openView("new-shift");
-        element("#shift-date").value = "2026-10-20";
-        fire(element("#shift-date"), "input");
-        element("#shift-clock-in").value = "16:00";
-        fire(element("#shift-clock-in"), "input");
-        element("#shift-clock-out").value = "16:00"; // Same time
-        fire(element("#shift-clock-out"), "input");
-        
-        element("#save-incomplete-shift").click();
-
-        // Should not save because times are identical
-        const saved = savedShifts();
-        expect(saved).toHaveLength(0);
-        expect(element("#shift-clock-out-error").textContent).toContain("Clock out must differ");
-    }));
-});
-
-describe("Incomplete shifts - display and calculations", () => {
-    test("incomplete shifts with missing hours show dash instead of duration", () => withApp(({ openView, element, elements, fire }) => {
-        // Create shift with date only (no times)
-        openView("new-shift");
-        element("#shift-date").value = "2026-10-20";
-        fire(element("#shift-date"), "input");
-        element("#save-incomplete-shift").click();
-
-        openView("previous-shifts");
-        const hourDisplay = element(".summary-hours");
-        // Should show dash or empty for incomplete hours
-        expect(/\d+h/.test(hourDisplay.textContent)).toBe(false);
-    }));
-
-    test("incomplete shifts are excluded from dashboard totals", () => withApp(({ openView, elements, savedShifts, element, fire }) => {
-        // Create one complete shift
-        openView("new-shift");
-        element("#shift-date").value = "2026-10-15";
-        element("#shift-mealPeriod").value = "Dinner";
-        fire(element("#shift-mealPeriod"), "change");
-        element("#shift-job").value = "Server";
-        element("#shift-clock-in").value = "16:00";
-        element("#shift-clock-out").value = "22:00";
-        element("#shift-form").dispatchEvent(new Event("submit", { bubbles: true }));
-
-        // Create one incomplete shift
-        element("#shift-date").value = "2026-10-20";
-        element("#shift-date").dispatchEvent(new Event("input", { bubbles: true }));
-        element("#save-incomplete-shift").click();
-
-        // Check that only complete shift is counted in totals
+    test("excludes incomplete shifts from dashboard totals", () => withApp({
+        shifts: [
+            makeShift({ id: 23, foodSales: 100 }),
+            makeShift({
+                id: 24,
+                date: "2026-10-21",
+                job: "",
+                mealPeriod: "",
+                clockIn: "",
+                clockOut: "",
+                foodSales: 900,
+                isIncomplete: true,
+            }),
+        ],
+    }, ({ element, openView }) => {
         openView("dashboard");
-        const totalHours = element(".dashboard-total-hours");
-        // Should show 6 hours (16:00 to 22:00) from complete shift only
-        expect(/6/.test(totalHours.textContent)).toBe(true);
-    }));
-});
 
-describe("Incomplete shifts - filtering and sorting", () => {
-    test("incomplete filter option exists in history", () => withApp(({ openView, elements }) => {
-        openView("previous-shifts");
-        const filterOptions = elements("#filter-incomplete option");
-        const hasIncompleteOption = Array.from(filterOptions).some(opt => opt.value === "incomplete");
-        expect(hasIncompleteOption).toBe(true);
+        expect(element("#summary-total-shifts").textContent).toBe("1");
+        expect(element("#summary-total-sales").textContent).toBe("$100.00");
     }));
 
-    test("can filter to show only incomplete shifts", () => withApp(({ openView, element, elements, fire, savedShifts }) => {
-        // Create both complete and incomplete shifts
-        // Complete shift
-        openView("new-shift");
-        element("#shift-date").value = "2026-10-15";
-        element("#shift-mealPeriod").value = "Dinner";
-        fire(element("#shift-mealPeriod"), "change");
-        element("#shift-job").value = "Server";
-        element("#shift-clock-in").value = "16:00";
-        element("#shift-clock-out").value = "22:00";
-        element("#shift-form").dispatchEvent(new Event("submit", { bubbles: true }));
-
-        // Incomplete shift
-        element("#shift-date").value = "2026-10-20";
-        fire(element("#shift-date"), "input");
-        element("#save-incomplete-shift").click();
-
-        // Apply filter
+    test("filters history to incomplete shifts only", () => withApp({
+        shifts: [
+            makeShift({ id: 25 }),
+            makeShift({
+                id: 26,
+                job: "",
+                mealPeriod: "",
+                clockIn: "",
+                clockOut: "",
+                isIncomplete: true,
+            }),
+        ],
+    }, ({ openView, element, elements, fire }) => {
         openView("previous-shifts");
         element("#filter-incomplete").value = "incomplete";
-        element("#filter-incomplete").dispatchEvent(new Event("change", { bubbles: true }));
+        fire(element("#filter-incomplete"), "change");
 
-        // Should show only 1 shift (incomplete)
         const cards = elements(".shift-card");
         expect(cards).toHaveLength(1);
+        expect(cards[0].dataset.shiftId).toBe("26");
         expect(cards[0].querySelector(".card-incomplete").hidden).toBe(false);
     }));
 
-    test("incomplete shifts are sorted last when mixed with complete shifts", () => withApp(({ openView, element, elements, fire, savedShifts }) => {
-        // Create incomplete shift on later date
-        openView("new-shift");
-        element("#shift-date").value = "2026-10-25";
-        fire(element("#shift-date"), "input");
-        element("#save-incomplete-shift").click();
-
-        // Create complete shift on earlier date
-        element("#shift-date").value = "2026-10-20";
-        element("#shift-mealPeriod").value = "Dinner";
-        fire(element("#shift-mealPeriod"), "change");
-        element("#shift-job").value = "Server";
-        element("#shift-clock-in").value = "16:00";
-        element("#shift-clock-out").value = "22:00";
-        element("#shift-form").dispatchEvent(new Event("submit", { bubbles: true }));
-
+    test("filters history to complete shifts only", () => withApp({
+        shifts: [
+            makeShift({ id: 27 }),
+            makeShift({
+                id: 28,
+                job: "",
+                mealPeriod: "",
+                clockIn: "",
+                clockOut: "",
+                isIncomplete: true,
+            }),
+        ],
+    }, ({ openView, element, elements, fire }) => {
         openView("previous-shifts");
-        const dates = elements(".summary-date");
-        // Check that complete shift appears before incomplete shift
-        expect(dates).toHaveLength(2);
-        // The incomplete shift should be last despite having later date
-        // (or verify the actual sort order expected)
+        element("#filter-incomplete").value = "complete";
+        fire(element("#filter-incomplete"), "change");
+
+        const cards = elements(".shift-card");
+        expect(cards).toHaveLength(1);
+        expect(cards[0].dataset.shiftId).toBe("27");
+        expect(cards[0].querySelector(".card-incomplete").hidden).toBe(true);
     }));
-});
 
-describe("Incomplete shifts - editing and completion", () => {
-    test("can edit an incomplete shift", () => withApp(({ openView, element, fire, savedShifts }) => {
-        // Create incomplete shift
-        openView("new-shift");
-        element("#shift-date").value = "2026-10-20";
-        fire(element("#shift-date"), "input");
-        element("#save-incomplete-shift").click();
-
-        // Open the shift detail and click edit
+    test("can complete an incomplete shift by editing its missing fields", () => withApp({
+        shifts: [makeShift({
+            id: 29,
+            job: "",
+            mealPeriod: "",
+            clockIn: "",
+            clockOut: "",
+            isIncomplete: true,
+        })],
+    }, ({ element, openView, fillForm, change, savedShifts, submitForm }) => {
         openView("previous-shifts");
-        element(".shift-card").click();
-        element("#edit-shift").click();
+        element('.shift-card[data-shift-id="29"] .edit-shift').click();
+        change("#shift-workplace", "test-workplace");
+        change("#shift-role", "test-server");
+        change("#shift-meal-period", "Dinner");
+        fillForm({ clockIn: "16:00", clockOut: "22:00" });
+        submitForm();
 
-        // Verify we're in edit mode and can fill in missing fields
-        expect(element("#shift-date").value).toBe("2026-10-20");
-        expect(element("#shift-mealPeriod").value).toBe(""); // Should be empty
+        expect(savedShifts()).toHaveLength(1);
+        expect(savedShifts()[0].isIncomplete).toBe(false);
+        expect(savedShifts()[0].mealPeriod).toBe("Dinner");
+        expect(savedShifts()[0].clockOut).toBe("22:00");
     }));
 
-    test("incomplete shift can be completed by filling in missing fields", () => withApp(({ openView, element, elements, fire, savedShifts }) => {
-        // Create incomplete shift
-        openView("new-shift");
-        element("#shift-date").value = "2026-10-20";
-        fire(element("#shift-date"), "input");
-        element("#save-incomplete-shift").click();
+    test("exports the incomplete flag in a backup", () => withApp({
+        shifts: [makeShift({
+            id: 30,
+            job: "",
+            mealPeriod: "",
+            clockIn: "",
+            clockOut: "",
+            isIncomplete: true,
+        })],
+    }, (harness) => {
+        let exported = "";
+        harness.win.Blob = class {
+            constructor(parts) {
+                exported = parts.join("");
+            }
+        };
+        harness.win.URL.createObjectURL = () => "blob:test";
+        harness.win.URL.revokeObjectURL = () => {};
+        harness.openView("settings");
+        harness.element("#export-backup").click();
 
-        // Open and edit the shift
-        openView("previous-shifts");
-        element(".shift-card").click();
-        element("#edit-shift").click();
-
-        // Fill in missing fields
-        element("#shift-mealPeriod").value = "Dinner";
-        fire(element("#shift-mealPeriod"), "change");
-        element("#shift-job").value = "Server";
-        element("#shift-clock-in").value = "16:00";
-        fire(element("#shift-clock-in"), "input");
-        element("#shift-clock-out").value = "22:00";
-        fire(element("#shift-clock-out"), "input");
-
-        // Save the now-complete shift
-        element("#save-shift").click();
-
-        // Verify shift is no longer marked incomplete
-        const saved = savedShifts();
-        expect(saved).toHaveLength(1);
-        expect(saved[0].isIncomplete).toBe(false);
-        expect(saved[0].mealPeriod).toBe("Dinner");
-    }));
-});
-
-describe("Incomplete shifts - backup and restore", () => {
-    test("incomplete shifts are preserved in JSON backup", () => withApp(({ openView, element, fire, savedShifts }) => {
-        // Create incomplete shift
-        openView("new-shift");
-        element("#shift-date").value = "2026-10-20";
-        fire(element("#shift-date"), "input");
-        element("#save-incomplete-shift").click();
-
-        // Export backup
-        openView("settings");
-        element("#backup-button").click();
-
-        // For this test, we'd need to verify the JSON contains isIncomplete: true
-        // This is primarily a structure test to ensure the property is preserved
-        const saved = savedShifts();
-        expect(saved[0].isIncomplete).toBe(true);
+        const backup = JSON.parse(exported);
+        expect(backup.shifts).toHaveLength(1);
+        expect(backup.shifts[0].isIncomplete).toBe(true);
     }));
 
-    test("incomplete shifts are restored correctly from JSON backup", () => withApp(({ openView, element, savedShifts }) => {
-        // Create a shift with isIncomplete property
-        const incomplete = makeShift({ isIncomplete: true, job: "", mealPeriod: "", clockIn: "", clockOut: "" });
-        
-        // This would involve importing a backup with incomplete shifts
-        // For now, verify the data model accepts it
-        expect(incomplete.isIncomplete).toBe(true);
-        expect(incomplete.job).toBe("");
-    }));
-});
+    test("restores an incomplete shift from a JSON backup", () => withApp(async (harness) => {
+        harness.openView("settings");
+        await importBackup(harness, {
+            format: "shift-ledger-backup",
+            version: 2,
+            shifts: [makeShift({
+                id: 31,
+                job: "",
+                mealPeriod: "",
+                clockIn: "",
+                clockOut: "",
+                isIncomplete: true,
+            })],
+        });
 
-describe("Incomplete shifts - preview display", () => {
-    test("incomplete badge shows in preview card", () => withApp(({ openView, element, fire }) => {
-        // Create incomplete shift
-        openView("new-shift");
-        element("#shift-date").value = "2026-10-20";
-        fire(element("#shift-date"), "input");
-        element("#save-incomplete-shift").click();
-
-        // Open detail view
-        openView("previous-shifts");
-        element(".shift-summary").click();
-
-        // Should show incomplete badge in detail view
-        const badge = element(".card-incomplete");
-        expect(badge).toBeDefined();
-        expect(badge.hidden).toBe(false);
-    }));
-
-    test("missing fields section shows in preview of incomplete shift", () => withApp(({ openView, element, fire }) => {
-        // Create incomplete shift
-        openView("new-shift");
-        element("#shift-date").value = "2026-10-20";
-        fire(element("#shift-date"), "input");
-        element("#save-incomplete-shift").click();
-
-        // Open detail view
-        openView("previous-shifts");
-        element(".shift-summary").click();
-
-        // Should show missing fields text
-        const missingSection = element(".card-missing-fields");
-        expect(missingSection.hidden).toBe(false);
-        expect(missingSection.textContent).toContain("Missing:");
+        expect(harness.savedShifts()).toHaveLength(1);
+        expect(harness.savedShifts()[0].isIncomplete).toBe(true);
+        expect(harness.element("#form-status").textContent).toContain("Restored 1 shift");
     }));
 });

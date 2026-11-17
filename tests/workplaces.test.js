@@ -454,14 +454,13 @@ describe("Workplace manager in Settings", () => {
     test("hides Delete for items used by shifts and deletes unused ones", () => withApp({
         workplaces: sampleData(),
         shifts: [makeShift({ workplaceId: "wp-1", roleId: "r-1" })],
-    }, async ({ win, doc, element, elements, openView, savedWorkplaces }) => {
+    }, async ({ doc, element, elements, openView, savedWorkplaces, respondToConfirmDialog }) => {
         openView("settings");
-        win.confirm = () => true;
         expect(elements('button[data-action="delete"][data-id="r-1"]')).toHaveLength(0);
         expect(elements('button[data-action="delete"][data-id="wp-1"]')).toHaveLength(0);
 
         element('button[data-action="delete"][data-id="r-2"]').click();
-        await tick(win);
+        await respondToConfirmDialog(true);
         expect(savedWorkplaces().workplaces[0].roles).toHaveLength(1);
         expect(doc.activeElement).toBeDefined();
     }));
@@ -1046,14 +1045,17 @@ describe("History with workplaces", () => {
 });
 
 describe("Backup with workplaces", () => {
-    const restore = async ({ win, element, fire }, payload) => {
-        win.confirm = () => true;
+    const restore = async ({ win, element, fire, respondToConfirmDialog }, payload, confirm = true) => {
         const input = element("#backup-file");
         const transfer = new win.DataTransfer();
         transfer.items.add(new win.File([payload], "backup.json", { type: "application/json" }));
         input.files = transfer.files;
         fire(input, "change");
-        await new Promise((resolve) => win.setTimeout(resolve, 100));
+        if (confirm) {
+            await respondToConfirmDialog(true);
+        } else {
+            await new Promise((resolve) => win.setTimeout(resolve, 100));
+        }
     };
 
     test("exports version 2 with workplaces and hourly wages", () => withApp({
@@ -1093,7 +1095,7 @@ describe("Backup with workplaces", () => {
     }));
 
     test("rejects invalid workplace data without changing anything", () =>     withApp({ workplaces: sampleData(), shifts: [makeShift()], expectConsoleErrors: true }, async (app) => {
-        await restore(app, JSON.stringify({ shifts: [makeShift(), makeShift()], workplaces: [{ id: 1 }] }));
+        await restore(app, JSON.stringify({ shifts: [makeShift(), makeShift()], workplaces: [{ id: 1 }] }), false);
         expect(app.savedShifts()).toHaveLength(1);
         expect(app.savedWorkplaces().workplaces[0].name).toBe("Bistro");
     }));

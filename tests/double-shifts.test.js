@@ -20,7 +20,9 @@ function saveDouble(harness, reports = {}) {
         toggle.checked = true;
         fire(toggle, "change");
         Object.entries(amounts).forEach(([field, amount]) => {
-            section.querySelector(`[data-report-field="${field}"]`).value = String(amount);
+            const input = section.querySelector(`[data-report-field="${field}"]`);
+            input.value = String(amount);
+            fire(input, "input");
         });
     });
     submitForm();
@@ -103,14 +105,14 @@ describe("Single-shift report coverage", () => {
 
     test("restores the no-report choices when editing and resets after cancelling", () => withApp({
         shifts: [makeShift({ noTips: true })],
-    }, ({ element, openView, win }) => {
+    }, async ({ element, openView, respondToConfirmDialog }) => {
         openView("previous-shifts");
         element(".edit-shift").click();
         expect(element("#shift-no-tips-report").checked).toBe(true);
         expect(element("#shift-no-sales-report").checked).toBe(false);
 
-        win.confirm = () => true;
         element("#cancel-form").click();
+        await respondToConfirmDialog(true);
         openView("new-shift");
         expect(element("#shift-no-tips-report").checked).toBe(false);
         expect([...element("#single-report-fields").querySelectorAll("input")].every((input) => !input.disabled)).toBe(true);
@@ -125,9 +127,8 @@ describe("Single-shift report coverage", () => {
     }));
 
     test("keeps no-report shifts through backup restore and zeroes their amounts", () => withApp(async (harness) => {
-        const { element, fire, openView, win, savedShifts } = harness;
+        const { element, fire, openView, win, savedShifts, respondToConfirmDialog } = harness;
         openView("settings");
-        win.confirm = () => true;
         const input = element("#backup-file");
         const transfer = new win.DataTransfer();
         transfer.items.add(new win.File(
@@ -137,7 +138,7 @@ describe("Single-shift report coverage", () => {
         ));
         input.files = transfer.files;
         fire(input, "change");
-        await new Promise((resolve) => win.setTimeout(resolve, 100));
+        await respondToConfirmDialog(true);
 
         const [first, second] = savedShifts();
         expect(first.noReport).toBe(true);
@@ -229,7 +230,7 @@ describe("Double-shift report entry", () => {
         expect(harness.element("#summary-total-sales").textContent).toBe("$400.00");
         expect(harness.element("#summary-total-tips").textContent).toBe("$60.00");
         expect(harness.element(".card-report-status").textContent)
-            .toBe("Whole-double totals; lunch detail also saved");
+            .toBe("Lunch and dinner reports (whole-double report also saved)");
     }));
 
     test("keeps an explicitly unreported double distinct from a zero-value report", () => withApp((harness) => {

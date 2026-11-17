@@ -243,6 +243,16 @@ function createHarness(frame, consoleErrors) {
         target.value = value;
         fire(target, "change");
     };
+    const respondToConfirmDialog = async (accepted = true) => {
+        const dialog = element("#confirm-dialog");
+        for (let attempt = 0; attempt < 100 && !dialog.open; attempt += 1) {
+            await new Promise((resolve) => win.setTimeout(resolve, 10));
+        }
+        if (!dialog.open) {
+            throw new Error(`Confirmation dialog did not open. Status: ${element("#form-status").textContent}`);
+        }
+        element(accepted ? "#confirm-ok" : "#confirm-cancel").click();
+    };
 
     return {
         frame,
@@ -259,6 +269,7 @@ function createHarness(frame, consoleErrors) {
         submitForm,
         saveShift,
         change,
+        respondToConfirmDialog,
         savedShifts: () => JSON.parse(localStorage.getItem(SHIFT_STORAGE_KEY) || "[]"),
         savedDraft: () => {
             const raw = localStorage.getItem(SHIFT_DRAFT_STORAGE_KEY);

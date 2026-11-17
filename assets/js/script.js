@@ -2330,7 +2330,8 @@ function handleFormSubmit(event) {
     try {
         updateShiftFormProgression();
         const shift = readFormValues();
-        const issues = validateShift(shift, saveIncompleteRequested);
+        const allowPartial = saveIncompleteRequested || (!shiftReviewing && isShiftIncomplete(shift));
+        const issues = validateShift(shift, allowPartial);
         if (issues.length > 0) {
             showValidationErrors(issues);
             return;
@@ -4529,8 +4530,7 @@ function updateInferredReports() {
         const reportNode = getReportNode(period);
         const toggle = reportNode.querySelector("[data-report-toggle]");
         const fieldset = reportNode.querySelector("[data-report-fields]");
-        
-        if (!toggle.checked || (fieldset && fieldset.disabled)) {
+        if (!toggle.checked || toggle.disabled || (fieldset && fieldset.disabled)) {
             reports[period] = null;
             return;
         }

@@ -71,11 +71,13 @@ describe("Shift form validation", () => {
     });
 
     describe("Partial validation for incomplete shifts", () => {
-        test("incomplete shifts can be saved with only a date", () => withApp(({ openView, element, savedShifts }) => {
+        test("incomplete shifts can be reviewed and saved with only a date", () => withApp(({ openView, element, fire, savedShifts }) => {
             openView("new-shift");
             element("#shift-date").value = "2026-10-20";
-            element("#shift-date").dispatchEvent(new Event("input", { bubbles: true }));
-            
+            fire(element("#shift-date"), "input");
+            fire(element("#shift-form"), "submit");
+
+            expect(element("#shift-review").hidden).toBe(false);
             expect(element("#save-incomplete-shift").hidden).toBe(false);
             element("#save-incomplete-shift").click();
 
@@ -90,8 +92,7 @@ describe("Shift form validation", () => {
             fire(element("#shift-date"), "input");
             element("#shift-break-start").value = "18:00";
             fire(element("#shift-break-start"), "input");
-            
-            element("#save-incomplete-shift").click();
+            fire(element("#shift-form"), "submit");
 
             expect(savedShifts()).toHaveLength(0);
             expect(element("#shift-break-end-error").textContent).toContain("Break end is required");
@@ -105,8 +106,7 @@ describe("Shift form validation", () => {
             fire(element("#shift-clock-in"), "input");
             element("#shift-clock-out").value = "16:00";
             fire(element("#shift-clock-out"), "input");
-            
-            element("#save-incomplete-shift").click();
+            fire(element("#shift-form"), "submit");
 
             expect(savedShifts()).toHaveLength(0);
             expect(element("#shift-clock-out-error").textContent).toContain("Clock out must differ");
@@ -189,7 +189,7 @@ describe("Guided and manual entry", () => {
     test("asks for an entry mode each time and offers Cancel before entry starts", () => withApp({
         width: 390,
         height: 800,
-    }, ({ element, openView, win, doc }) => {
+    }, async ({ element, openView, win, doc, respondToConfirmDialog }) => {
         openView("new-shift", { entryMode: null });
         expect(doc.querySelector("#clear-form")).toBe(null);
         expect(doc.querySelector("#switch-entry-mode")).toBe(null);
@@ -213,8 +213,8 @@ describe("Guided and manual entry", () => {
         expect(element("#shift-review").hidden).toBe(true);
         expect(element("#guided-cancel").hidden).toBe(true);
 
-        win.confirm = () => true;
         element("#cancel-form").click();
+        await respondToConfirmDialog(true);
         expect(element("#new-shift").classList.contains("is-visible")).toBe(false);
         expect(element("#previous-shifts").classList.contains("is-visible")
             || element("#dashboard").classList.contains("is-visible")).toBe(true);
@@ -476,19 +476,19 @@ describe("Guided and manual entry", () => {
         expect(element("#guided-question").textContent).toContain("shift end");
     }));
 
-    test("cancel confirms before discarding entry and returns to the shifts section", () => withApp((harness) => {
+    test("cancel confirms before discarding entry and returns to the shifts section", () => withApp(async (harness) => {
         const { element } = harness;
         chooseMode(harness, "guided");
         harness.fillForm({ date: "2026-10-22" });
         harness.fire(element("#shift-date"), "input");
 
-        harness.win.confirm = () => false;
         element("#guided-cancel").click();
+        await harness.respondToConfirmDialog(false);
         expect(element("#guided-controls").hidden).toBe(false);
         expect(element("#shift-date").value).toBe("2026-10-22");
 
-        harness.win.confirm = () => true;
         element("#guided-cancel").click();
+        await harness.respondToConfirmDialog(true);
         expect(element("#new-shift").classList.contains("is-visible")).toBe(false);
         expect(element("#entry-mode-chooser").hidden).toBe(false);
         expect(element("#shift-entry-fields").hidden).toBe(true);
@@ -670,19 +670,18 @@ describe("Guided and manual entry", () => {
         expect(element("#shift-food-sales").value).toBe("55");
     }));
 
-    test("cancelling from the review step asks first and keeps the shift when declined", () => withApp((harness) => {
-        const { element, win, fillForm, savedShifts } = harness;
+    test("cancelling from the review step asks first and keeps the shift when declined", () => withApp(async (harness) => {
+        const { element, fillForm, savedShifts } = harness;
         chooseMode(harness, "manual");
         fillForm({ date: "2026-10-20", mealPeriod: "Dinner", job: "Server", clockIn: "16:00", clockOut: "22:00" });
+        harness.fire(element("#shift-date"), "input");
         element("#review-shift").click();
-        let prompts = 0;
-        win.confirm = () => { prompts += 1; return false; };
         element("#cancel-review").click();
-        expect(prompts).toBe(1);
+        await harness.respondToConfirmDialog(false);
         expect(element("#shift-review").hidden).toBe(false);
         expect(element("#new-shift").classList.contains("is-visible")).toBe(true);
-        win.confirm = () => true;
         element("#cancel-review").click();
+        await harness.respondToConfirmDialog(true);
         expect(element("#new-shift").classList.contains("is-visible")).toBe(false);
         expect(savedShifts()).toHaveLength(0);
     }));
@@ -720,20 +719,20 @@ describe("Guided and manual entry", () => {
         expect(element("#shift-date").value).toBe("2026-10-20");
     }));
 
-    test("back gesture on an edited form asks before discarding", () => withApp((harness) => {
+    test("back gesture on an edited form asks before discarding", () => withApp(async (harness) => {
         const { element, win, fire } = harness;
         chooseMode(harness, "manual");
         element("#shift-food-sales").value = "25";
         fire(element("#shift-food-sales"), "input");
 
-        win.confirm = () => false;
         win.dispatchEvent(new win.PopStateEvent("popstate", { state: { shiftLedgerView: "new-shift" } }));
+        await harness.respondToConfirmDialog(false);
         expect(element("#shift-food-sales").value).toBe("25");
         expect(element("#shift-entry-fields").hidden).toBe(false);
         expect(win.history.state.shiftLedgerEntryGuard).toBe(true);
 
-        win.confirm = () => true;
         win.dispatchEvent(new win.PopStateEvent("popstate", { state: { shiftLedgerView: "new-shift" } }));
+        await harness.respondToConfirmDialog(true);
         expect(element("#shift-food-sales").value).not.toBe("25");
     }));
 
@@ -1065,7 +1064,7 @@ describe("Shift notes", () => {
 
     test("restores notes when editing and shows legacy text notes as a single note", () => withApp({
         shifts: [makeShift({ id: 1, notes: ["First", "Second"] }), makeShift({ id: 2, date: "2026-10-21", notes: "Old single note" })],
-    }, (harness) => {
+    }, async (harness) => {
         harness.openView("previous-shifts");
         const cards = harness.elements(".shift-card");
         const legacy = cards.find((card) => card.textContent.includes("Old single note"));
@@ -1074,8 +1073,8 @@ describe("Shift notes", () => {
         cards.find((card) => card.textContent.includes("Second")).querySelector(".edit-shift").click();
         expect(harness.elements(".note-input").map((input) => input.value)).toEqual(["First", "Second"]);
 
-        harness.win.confirm = () => true;
         harness.element("#cancel-form").click();
+        await harness.respondToConfirmDialog(true);
         expect(harness.elements(".note-input").map((input) => input.value)).toEqual([""]);
     }));
 });

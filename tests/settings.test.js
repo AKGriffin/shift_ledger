@@ -29,7 +29,6 @@ describe("Settings page", () => {
         openView("settings");
 
         expect(element("#current-app-version").textContent).toBe(win.SHIFT_LEDGER_VERSION);
-        expect(element("#current-app-version").textContent).toBe("v114");
     }));
 
     test("makes controls and entry choices distinct in both minimalist themes", () => withApp(({
@@ -265,14 +264,17 @@ describe("Currency", () => {
 });
 
 describe("Data reliability", () => {
-    const restore = async ({ doc, win, element, fire }, payload) => {
-        win.confirm = () => true;
+    const restore = async ({ doc, win, element, fire, respondToConfirmDialog }, payload, confirm = true) => {
         const input = element("#backup-file");
         const transfer = new win.DataTransfer();
         transfer.items.add(new win.File([payload], "backup.json", { type: "application/json" }));
         input.files = transfer.files;
         fire(input, "change");
-        await new Promise((resolve) => win.setTimeout(resolve, 100));
+        if (confirm) {
+            await respondToConfirmDialog(true);
+        } else {
+            await new Promise((resolve) => win.setTimeout(resolve, 100));
+        }
         return doc;
     };
 
@@ -306,11 +308,11 @@ describe("Data reliability", () => {
         expect(savedShifts()).toHaveLength(2);
         expect(element("#form-status").textContent).toContain("Restored 2 shifts");
 
-        await restore(app, JSON.stringify([makeShift({ clockIn: "25:99" })]));
+        await restore(app, JSON.stringify([makeShift({ clockIn: "25:99" })]), false);
         expect(element("#form-status").textContent).toContain("missing valid required fields");
         expect(savedShifts()).toHaveLength(2);
 
-        await restore(app, JSON.stringify([makeShift({ mealPeriod: "Brunch" })]));
+        await restore(app, JSON.stringify([makeShift({ mealPeriod: "Brunch" })]), false);
         expect(element("#form-status").textContent).toContain("missing valid required fields");
         expect(savedShifts()).toHaveLength(2);
     }));
