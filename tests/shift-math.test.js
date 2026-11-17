@@ -316,3 +316,71 @@ describe("report inference", () => {
         expect(result.report.tipOutReceived).toBe(2);
     });
 });
+
+describe("incomplete shifts", () => {
+    test("handles shifts with missing clock times without crashing", () => {
+        expect(getDurationMinutes({ clockIn: "16:00" })).toBe(0);
+        expect(getDurationMinutes({ clockOut: "22:00" })).toBe(0);
+        expect(getDurationMinutes({})).toBe(0);
+    });
+
+    test("calculates sales from incomplete single shifts with partial data", () => {
+        expect(getSalesTotal({ foodSales: 100 })).toBe(100);
+        expect(getSalesTotal({ foodSales: 100, ccTips: 50 })).toBe(100);
+        expect(getSalesTotal({})).toBe(0);
+    });
+
+    test("calculates tips from incomplete single shifts with partial data", () => {
+        expect(getNetTips({ ccTips: 25 })).toBe(25);
+        expect(getNetTips({ cashTips: 15 })).toBe(15);
+        expect(getNetTips({ ccTips: 25, tipsPaidOut: 10 })).toBe(15);
+        expect(getNetTips({})).toBe(0);
+    });
+
+    test("handles incomplete double shifts with only one meal period reported", () => {
+        const shift = {
+            mealPeriod: "Double",
+            reports: {
+                lunch: { foodSales: 100 },
+                dinner: null,
+                whole: null,
+            },
+        };
+        expect(hasReport(shift)).toBe(true);
+        expect(getSalesTotal(shift)).toBe(100);
+    });
+
+    test("treats incomplete shifts without any reports as not reported", () => {
+        const shift = {
+            mealPeriod: "Double",
+            reports: {
+                lunch: null,
+                dinner: null,
+                whole: null,
+            },
+        };
+        expect(hasReport(shift)).toBe(false);
+        expect(getSalesTotal(shift)).toBe(0);
+        expect(getNetTips(shift)).toBe(0);
+    });
+
+    test("handles auto-gratuity calculations for incomplete shifts", () => {
+        expect(getAutoGratuity({ autoGratuity: 5 })).toBe(5);
+        expect(getAutoGratuity({ ccTips: 20, autoGratuity: 5 })).toBe(5);
+        expect(getAutoGratuity({})).toBe(0);
+    });
+
+    test("ignores missing break times in duration calculation", () => {
+        expect(getDurationMinutes({
+            clockIn: "16:00",
+            clockOut: "22:00",
+            breakStart: "",
+            breakEnd: "",
+        })).toBe(360);
+        expect(getDurationMinutes({
+            clockIn: "16:00",
+            clockOut: "22:00",
+            breakEnd: "19:30",
+        })).toBe(360);
+    });
+});

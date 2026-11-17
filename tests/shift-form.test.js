@@ -10,61 +10,108 @@ function revealShiftDetails(harness) {
 }
 
 describe("Shift form validation", () => {
-    test("manual entry shows the whole form while the date still gets the first error", () => withApp(({ doc, element, elements, openView, submitForm, savedShifts }) => {
-        openView("new-shift");
-        expect(element("#shift-workplace-card").hidden).toBe(false);
-        expect(element("#shift-details").hidden).toBe(false);
-        submitForm();
+    describe("Full shift validation (submitForm)", () => {
+        test("manual entry shows the whole form while the date still gets the first error", () => withApp(({ doc, element, elements, openView, submitForm, savedShifts }) => {
+            openView("new-shift");
+            expect(element("#shift-workplace-card").hidden).toBe(false);
+            expect(element("#shift-details").hidden).toBe(false);
+            submitForm();
 
-        expect(element("#shift-date").getAttribute("aria-invalid")).toBe("true");
-        expect(element("#shift-date-error").textContent).toBe("Date is required.");
-        expect(element("#shift-meal-period-error").textContent).toBe("");
-        expect(element("#shift-clock-in-error").textContent).toBe("");
-        expect(element("#form-errors").hidden).toBe(false);
-        expect(element("#form-errors").textContent).toContain("Please fix the following before saving:");
-        expect(elements("#form-errors a").map((link) => link.getAttribute("href"))).toEqual(["#shift-date"]);
-        expect(doc.activeElement.id).toBe("shift-date");
-        expect(savedShifts()).toHaveLength(0);
-    }));
+            expect(element("#shift-date").getAttribute("aria-invalid")).toBe("true");
+            expect(element("#shift-date-error").textContent).toBe("Date is required.");
+            expect(element("#shift-meal-period-error").textContent).toBe("");
+            expect(element("#shift-clock-in-error").textContent).toBe("");
+            expect(element("#form-errors").hidden).toBe(false);
+            expect(element("#form-errors").textContent).toContain("Please fix the following before saving:");
+            expect(elements("#form-errors a").map((link) => link.getAttribute("href"))).toEqual(["#shift-date"]);
+            expect(doc.activeElement.id).toBe("shift-date");
+            expect(savedShifts()).toHaveLength(0);
+        }));
 
-    test("drops an error once its field is corrected while keeping the others", () => withApp(({ element, elements, fire, openView, submitForm }) => {
-        openView("new-shift");
-        submitForm();
+        test("drops an error once its field is corrected while keeping the others", () => withApp(({ element, elements, fire, openView, submitForm }) => {
+            openView("new-shift");
+            submitForm();
 
-        element("#shift-date").value = "2026-10-19";
-        fire(element("#shift-date"), "change");
+            element("#shift-date").value = "2026-10-19";
+            fire(element("#shift-date"), "change");
 
-        expect(element("#form-errors").hidden).toBe(false);
-        expect(element("#shift-date").hasAttribute("aria-invalid")).toBe(false);
-        expect(element("#shift-clock-in").getAttribute("aria-invalid")).toBe("true");
-        expect(elements("#form-errors a").map((link) => link.getAttribute("href"))).not.toContain("#shift-date");
-    }));
+            expect(element("#form-errors").hidden).toBe(false);
+            expect(element("#shift-date").hasAttribute("aria-invalid")).toBe(false);
+            expect(element("#shift-clock-in").getAttribute("aria-invalid")).toBe("true");
+            expect(elements("#form-errors a").map((link) => link.getAttribute("href"))).not.toContain("#shift-date");
+        }));
 
-    test("rejects identical clock-in and clock-out times", () => withApp(({ element, fillForm, openView, submitForm, savedShifts }) => {
-        openView("new-shift");
-        fillForm({ date: "2026-10-19", mealPeriod: "Dinner", job: "Server", clockIn: "16:00", clockOut: "16:00" });
-        submitForm();
+        test("rejects identical clock-in and clock-out times", () => withApp(({ element, fillForm, openView, submitForm, savedShifts }) => {
+            openView("new-shift");
+            fillForm({ date: "2026-10-19", mealPeriod: "Dinner", job: "Server", clockIn: "16:00", clockOut: "16:00" });
+            submitForm();
 
-        expect(element("#shift-clock-out").getAttribute("aria-invalid")).toBe("true");
-        expect(element("#shift-clock-out-error").textContent)
-            .toBe("Clock out must differ from clock in; an earlier time means the next day.");
-        expect(savedShifts()).toHaveLength(0);
-    }));
+            expect(element("#shift-clock-out").getAttribute("aria-invalid")).toBe("true");
+            expect(element("#shift-clock-out-error").textContent)
+                .toBe("Clock out must differ from clock in; an earlier time means the next day.");
+            expect(savedShifts()).toHaveLength(0);
+        }));
+    });
 
-    test("requires both ends of a break", () => withApp(({ element, saveShift, savedShifts }) => {
-        saveShift({ breakStart: "18:00" });
+    describe("Required field validation for all shift types", () => {
+        test("requires both ends of a break", () => withApp(({ element, saveShift, savedShifts }) => {
+            saveShift({ breakStart: "18:00" });
 
-        expect(element("#shift-break-end-error").textContent).toBe("Break end is required when a break starts.");
-        expect(savedShifts()).toHaveLength(0);
-    }));
+            expect(element("#shift-break-end-error").textContent).toBe("Break end is required when a break starts.");
+            expect(savedShifts()).toHaveLength(0);
+        }));
 
-    test("rejects a break outside the shift", () => withApp(({ element, saveShift, savedShifts }) => {
-        saveShift({ clockIn: "22:00", clockOut: "06:00", breakStart: "07:00", breakEnd: "08:00" });
+        test("rejects a break outside the shift", () => withApp(({ element, saveShift, savedShifts }) => {
+            saveShift({ clockIn: "22:00", clockOut: "06:00", breakStart: "07:00", breakEnd: "08:00" });
 
-        expect(element("#shift-break-start").getAttribute("aria-invalid")).toBe("true");
-        expect(element("#form-errors").textContent).toContain("Break start must be during the shift.");
-        expect(savedShifts()).toHaveLength(0);
-    }));
+            expect(element("#shift-break-start").getAttribute("aria-invalid")).toBe("true");
+            expect(element("#form-errors").textContent).toContain("Break start must be during the shift.");
+            expect(savedShifts()).toHaveLength(0);
+        }));
+    });
+
+    describe("Partial validation for incomplete shifts", () => {
+        test("incomplete shifts can be saved with only a date", () => withApp(({ openView, element, savedShifts }) => {
+            openView("new-shift");
+            element("#shift-date").value = "2026-10-20";
+            element("#shift-date").dispatchEvent(new Event("input", { bubbles: true }));
+            
+            expect(element("#save-incomplete-shift").hidden).toBe(false);
+            element("#save-incomplete-shift").click();
+
+            const saved = savedShifts();
+            expect(saved).toHaveLength(1);
+            expect(saved[0].isIncomplete).toBe(true);
+        }));
+
+        test("still validates break consistency for incomplete shifts", () => withApp(({ openView, element, fire, savedShifts }) => {
+            openView("new-shift");
+            element("#shift-date").value = "2026-10-20";
+            fire(element("#shift-date"), "input");
+            element("#shift-break-start").value = "18:00";
+            fire(element("#shift-break-start"), "input");
+            
+            element("#save-incomplete-shift").click();
+
+            expect(savedShifts()).toHaveLength(0);
+            expect(element("#shift-break-end-error").textContent).toContain("Break end is required");
+        }));
+
+        test("still validates clock time consistency for incomplete shifts", () => withApp(({ openView, element, fire, savedShifts }) => {
+            openView("new-shift");
+            element("#shift-date").value = "2026-10-20";
+            fire(element("#shift-date"), "input");
+            element("#shift-clock-in").value = "16:00";
+            fire(element("#shift-clock-in"), "input");
+            element("#shift-clock-out").value = "16:00";
+            fire(element("#shift-clock-out"), "input");
+            
+            element("#save-incomplete-shift").click();
+
+            expect(savedShifts()).toHaveLength(0);
+            expect(element("#shift-clock-out-error").textContent).toContain("Clock out must differ");
+        }));
+    });
 });
 
 describe("Guided and manual entry", () => {
