@@ -36,8 +36,18 @@ _Nothing is ready. Move the next Backlog item here once it is designed enough to
 
 ### Shift form
 
-- Save partially filled shifts: only the date is required. Show an "Incomplete" badge on the shift card (history and detail) plus an Incomplete filter in Sort & filter. Review lists what is missing, for example "Missing: clock out, meal period". Hours are left out of totals and shown as a dash when a clock time is missing, sorting puts blanks last, and a missing workplace shows as "No workplace" in filters. Keep validating real values (identical clock times, a break outside the shift, a break with only one end).
-- Shift draft: keep an unfinished new shift so it can be resumed later (deferred).
+- **Save partially filled shifts** · `shift-form` `data` `history`
+  Support recording a sales report even when hours are not yet known, then completing the shift later. Only the date is required; show an "Incomplete" badge on history and detail cards, list missing fields in review, and add an Incomplete filter. Missing hours show as a dash and are excluded from hour totals; preserve recorded sales and tips rather than treating missing values as zero. Design how partial records contribute to each total and rate, sort blanks last, and show a missing workplace as "No workplace" in filters. Validate values that are provided, including paired break times. `?` How should the user save and later complete an incomplete record, and how should intentionally omitted or inapplicable fields differ from missing information?
+- **Resume an unfinished shift draft** · `shift-form` `data`
+  Consider keeping in-progress entry separately so it can be resumed later. `?` Is a separate draft needed in addition to saved incomplete shifts, and how should drafts be saved, resumed, discarded, and distinguished from records included in history and totals?
+- **Make double-shift report selection and entry clear** · `bug` `shift-form` `reports`
+  Investigate the reported flow where a double shift asks which reports are available but does not offer a way to select them. Explore independent Yes/No choices for each lunch, dinner, and whole-double sales report, followed by amounts for available reports, then the equivalent flow for tip reports. Do not require unavailable report forms; keep sales and tip coverage independent, preserve saved report data, and avoid double-counting totals. `?` Is this the best interaction, and how can it accommodate shifts that are not lunch or dinner? Coordinate with the shift-type idea below.
+- **Clarify entry, edit, and preview headings** · `shift-form` `design`
+  In a new-shift flow, keep the New shift heading and text through the full editable form rather than switching to Edit shift; editing a previously saved shift should retain Edit shift wording. Both flows should use preview-specific heading and text on the preview page.
+- **Simplify full shift entry fields** · `shift-form` `design` `a11y`
+  Review whether date, workplace, role, and meal period need separate cards in the full edit form; reduce redundant visual headings, legends, and labels without losing accessible grouping. Make workplace and role separate questions in guided entry. `?` Offer an explicit "No workplace" or "None" choice, and decide how role selection and saved unassigned shifts work with it.
+- **Separate double-shift editing from the calculated breakdown** · `shift-form` `history` `reports`
+  Show the whole-shift, shift 1, and shift 2 breakdown in preview and previous-shift detail, including calculated portions where appropriate. In the edit form, show inputs only for reports the user says are available (for example, hide dinner inputs when dinner is No), rather than auto-populating unavailable report forms with calculated values. Preserve entered values and existing coverage when changing selections; distinguish calculated amounts from reported amounts.
 - Replace `window.confirm` in the cancel and discard prompts with a styled dialog.
 
 ### Workplaces and settings
@@ -51,12 +61,14 @@ _Nothing is ready. Move the next Backlog item here once it is designed enough to
 - **Add configurable time display preferences** · `settings` `data`
   12-hour and 24-hour clocks, keeping stored times and historical records safe.
 - **Improve mobile text size and readability** · `settings` `a11y`
-  Try modest default increases first, then configurable Default, Large, and Larger sizes that respect browser font settings. Verify key phone views and dialogs at each size.
+  Investigate the reported discrepancy between oversized text in a desktop mobile emulator and unexpectedly small text on a phone. Review responsive font units, viewport behavior, and browser font settings before changing defaults; consider configurable Default, Large, and Larger sizes. Verify key views and dialogs on real phones and emulators, including zoom and accessibility settings.
 - **Improve transient notification feedback** · `design` `settings`
-  Dismissible notices with a visible countdown, sensible timeout, reduced-motion support, and Settings controls to adjust or disable them.
+  Move notices out of the page's content flow so they float above content; explore a persistent viewport-level overlay container, not necessarily a blocking full-screen dialog. Include dismissible notices, a visible countdown, sensible timeouts, reduced-motion support, and Settings controls to adjust or disable them. Keep errors visible and accessible, avoid obscuring controls, and coordinate actionable notices with shift deletion undo.
 
 ### History and reports
 
+- **Improve shift detail controls and deletion** · `history` `design` `a11y`
+  Add a Close button alongside the existing controls. Explore a responsive two-row toolbar: Delete, x of y, Edit on the first row; Previous, Close, Next on the second. Make sure it reflows on mobile and remains usable with keyboard and assistive technology. Require a confirmation dialog before deleting a shift; also explore an Undo action, potentially in the deletion notification, with clear timing and reliable restoration.
 - **Filter history by sales and tips ranges** · `history`
   Minimum and maximum filters with removable chips like the existing ones. Shifts with no report must not match a sales range. Account for the separate sales and tip coverage once split.
 - **Use icons beside labels** · `design` `a11y`
@@ -107,7 +119,9 @@ Plan these together; they share dashboard code. Start with the stat layout.
 - **Add an optional onboarding wizard** · `design`
   Builds on first-run workplace setup to cover appearance, formats, workplaces, and a first shift. Every step skippable.
 - **Add paystub tracking** · `data`
-  Paystub dates, pay-period details, gross/net pay, deductions, and notes; related to shifts or workplaces without an account.
+  Explore a Pay tab in place of Paystubs, with pay periods generated from workplace settings and paystub details attached to periods. Include paystub dates, gross/net pay, deductions, and notes, related to shifts or workplaces without an account. `?` Design a usable workflow for workplaces without pay-period settings, including whether periods can be entered manually and how later configuration affects existing records.
+- **Explore Work and Pay navigation** · `design` `workplaces` `data`
+  Consider separate Work and Pay tabs and whether workplace management should move from Settings to Work. Define what belongs in each tab and how users find workplace and role management before committing to a navigation change.
 - **Add thoughtful feedback and bug reporting** · `design`
   Report problems or request features without sharing shift or personal data unless the user chooses to.
 

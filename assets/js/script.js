@@ -2550,10 +2550,11 @@ function clearValidationErrors() {
 
 function renderDashboard() {
     applyDashboardPreferences();
-    const totalShifts = state.shifts.length;
-    const totalHours = state.shifts.reduce((sum, shift) => sum + getDurationMinutes(shift), 0);
-    const totalSales = state.shifts.reduce((sum, shift) => sum + getSalesTotal(shift), 0);
-    const totalTips = state.shifts.reduce((sum, shift) => sum + getNetTips(shift), 0);
+    const completeShifts = state.shifts.filter((shift) => !shift.isIncomplete);
+    const totalShifts = completeShifts.length;
+    const totalHours = completeShifts.reduce((sum, shift) => sum + getDurationMinutes(shift), 0);
+    const totalSales = completeShifts.reduce((sum, shift) => sum + getSalesTotal(shift), 0);
+    const totalTips = completeShifts.reduce((sum, shift) => sum + getNetTips(shift), 0);
 
     statEls.totalShifts.textContent = String(totalShifts);
     statEls.totalHours.textContent = formatDuration(totalHours);
@@ -2562,7 +2563,7 @@ function renderDashboard() {
 
     renderPeriodSummaries();
 
-    const recent = [...state.shifts].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 3);
+    const recent = state.shifts.filter((shift) => !shift.isIncomplete).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 3);
 
     if (recent.length === 0) {
         recentShiftsEl.replaceChildren(createEmptyState("No shifts logged yet. Add your first shift to get started."));
@@ -2759,7 +2760,7 @@ function renderPeriodSummaries() {
 }
 
 function renderPeriodSummary(container, fromDate, toDate) {
-    const shifts = state.shifts.filter((shift) => shift.date >= fromDate && shift.date <= toDate);
+    const shifts = state.shifts.filter((shift) => !shift.isIncomplete && shift.date >= fromDate && shift.date <= toDate);
     const hours = shifts.reduce((sum, shift) => sum + getDurationMinutes(shift), 0);
     const sales = shifts.reduce((sum, shift) => sum + getSalesTotal(shift), 0);
     const tips = shifts.reduce((sum, shift) => sum + getNetTips(shift), 0);

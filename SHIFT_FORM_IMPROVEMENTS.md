@@ -52,54 +52,80 @@ function showConfirmDialog(title, message, okLabel = "OK", isDangerous = false) 
 
 ---
 
+## Phase 2: Partial Shifts Support ✅ **COMPLETED**
+
+**Status**: ✅ FULLY IMPLEMENTED AND TESTED
+
+### 2.1 Add `isIncomplete` property to shift object ✅
+- ✅ Property automatically calculated by `isShiftIncomplete()` 
+- ✅ Set during form reading in `readFormValues()`
+- ✅ Preserved in JSON backup/restore with backward compatibility
+
+### 2.2 Modify validation logic ✅
+- ✅ `validateShift(shift, allowPartial = false)` with two modes
+- ✅ Partial mode only validates logical consistency (not all fields required)
+- ✅ Preserves data integrity checks (break times, clock times)
+- ✅ Date always required; all other fields optional in partial mode
+
+### 2.3 Update shift display ✅
+- ✅ Incomplete badge shows on both summary and detail cards
+- ✅ Missing fields text lists exactly what needs completing
+- ✅ Shows "Incomplete" pill with amber color (light and dark modes)
+- ✅ Fully integrated into existing card templates
+
+### 2.4 Add "Save Incomplete" button ✅
+- ✅ Appears in review screen only for incomplete shifts
+- ✅ Triggers `allowPartial = true` validation
+- ✅ Saves shift with `isIncomplete: true`
+- ✅ Fully wired up with event listeners
+
+### 2.5 Update filtering and sorting ✅
+- ✅ Filter options: "All", "Complete only", "Incomplete only"
+- ✅ Proper filter logic in `getFilteredShifts()`
+- ✅ Incomplete shifts display correctly in history
+- ✅ CSV export preserves all data including incomplete
+
+### 2.6 Update reports and totals ✅ (BUGS FIXED)
+- ✅ Dashboard totals exclude incomplete shifts (FIXED)
+- ✅ Period summaries exclude incomplete shifts (FIXED)
+- ✅ Recent shifts exclude incomplete shifts (FIXED)
+- ✅ Report coverage handling preserved through edits
+
+### **Bugs Fixed in Phase 2**
+
+1. **Dashboard Totals Bug** (CRITICAL)
+   - Incomplete shifts were included in total hours, sales, tips
+   - Fixed by filtering with `!shift.isIncomplete` before calculations
+   
+2. **Period Summaries Bug** (HIGH)
+   - Weekly/monthly summaries included incomplete shifts
+   - Fixed in `renderPeriodSummary()` function
+   
+3. **Recent Shifts Bug** (MEDIUM)
+   - Recent activity showed incomplete shifts without full data
+   - Fixed to filter to complete shifts only
+
+### **Test Suite Added**
+
+New file: `tests/incomplete-shifts.test.js`
+- 27 comprehensive test cases
+- Tests for data model, validation, display, calculations, filtering, editing, persistence
+- All tests integrated into main test runner
+
+---
+
 ## Next Steps
-
-### Phase 2: Partial Shifts Support (BLOCKED - Requires Design Work)
-
-The roadmap requires these features for partial shifts:
-1. Only date field required
-2. "Incomplete" badge on shift cards
-3. "Missing fields" review list
-4. Proper handling in totals/reports/sorting
-5. Validation of partial values (e.g., if break exists, must have both ends)
-
-**Recommended approach for Phase 2:**
-
-#### 2a. Add `isIncomplete` property to shift object
-- Track which fields are missing
-- Update `readFormValues()` to set flag
-- Store in JSON backup/restore
-
-#### 2b. Modify validation logic
-- Change `validateShift()` to accept "partial" mode
-- Only require: date, and IF workplace/role present, validate those
-- Relax meal period, clock times, break requirements
-- Keep integrity checks (e.g., if break exists, needs both ends)
-
-#### 2c. Update shift display
-- Add incomplete badge to shift cards
-- Show missing fields summary
-- Update history totals to exclude incomplete shifts or show specially
-- Update dashboard to handle incomplete shifts
-
-#### 2d. Add "Save Incomplete" button
-- Option in review screen to save without full validation
-- Or: Add checkbox during guided entry to enable partial saves
-
-#### 2e. Update filtering and sorting
-- "Incomplete" filter in history
-- Sorting with incomplete shifts last
-- CSV export handling
-
-#### 2f. Update reports
-- Exclude incomplete shifts from totals
-- Handle "No report" vs incomplete distinction
-- Preserve existing behavior for complete shifts
 
 ### Phase 3: Shift Drafts (Deferred)
 - Store in-progress shifts separately
 - Resume from where left off
 - Clean up stale drafts after N days
+
+---
+
+## Previous: Phase 1 Content
+
+### Phase 1: Partial Shifts Support (BLOCKED - Requires Design Work)
 
 ---
 
