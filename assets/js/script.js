@@ -1,4 +1,5 @@
 const STORAGE_KEY = "shift-ledger-shifts-v1";
+const SHIFT_DRAFT_KEY = `${STORAGE_KEY}-draft`;
 const SETTINGS_KEY = "shift-ledger-settings-v1";
 const VIEW_HISTORY_KEY = "shiftLedgerView";
 const SHIFT_GUARD_KEY = "shiftLedgerEntryGuard";
@@ -56,6 +57,7 @@ if (workplaceLoad.notice) {
 let formStatusTimeout = null;
 let formStatusExpiresAt = null;
 let shiftFormDirty = false;
+let shiftDraftSaved = false;
 // Undo/redo snapshots for the Edit phase of shift entry.
 const formHistory = { undo: [], redo: [], current: null };let shiftFormProgress = { workplace: false, details: false };
 let entryMode = null;
@@ -72,6 +74,7 @@ let entryReturnView = "previous-shifts";
 let shiftEntryHistoryDepth = 0;
 let shiftNavSwitching = false;
 let saveIncompleteRequested = false;
+let shiftDraftPromptOpen = false;
 
 const navButtons = document.querySelectorAll("[data-view]");
 const formStatus = document.getElementById("form-status");
@@ -377,7 +380,7 @@ function offerWaitingWorker(registration) {
 }
 
 function reloadForAppUpdate() {
-    if (!shiftFormDirty) {
+    if (!shiftFormDirty || hasRecoverableShiftDraft()) {
         performReload();
         return;
     }
@@ -406,7 +409,7 @@ function performReload() {
 }
 
 function guardUnsavedShiftChanges(event) {
-    if (!shiftFormDirty || allowUpdateReload) {
+    if (!shiftFormDirty || hasRecoverableShiftDraft() || allowUpdateReload) {
         return;
     }
 
@@ -449,6 +452,14 @@ function bindEvents() {
         form.dispatchEvent(new Event("submit"));
     });
     guidedCancelButton.addEventListener("click", cancelShiftEntry);
+    const shiftDraftDialog = document.getElementById("shift-draft-dialog");
+    document.getElementById("resume-shift-draft").addEventListener("click", resumeShiftDraft);
+    document.getElementById("discard-shift-draft").addEventListener("click", discardShiftDraft);
+    document.getElementById("dismiss-shift-draft").addEventListener("click", dismissShiftDraft);
+    shiftDraftDialog.addEventListener("cancel", (event) => {
+        event.preventDefault();
+        dismissShiftDraft();
+    });
     form.addEventListener("change", (event) => {
         if (![fields.workplace, fields.role, fields.job].includes(event.target)) {
             updateValidationErrors();
@@ -464,6 +475,8 @@ function bindEvents() {
     });
     form.addEventListener("change", maybeAutoAdvanceGuidedStep);
     form.addEventListener("change", recordFormHistory);
+    form.addEventListener("input", saveShiftDraft);
+    form.addEventListener("change", saveShiftDraft);
     document.getElementById("undo-edit").addEventListener("click", () => stepFormHistory(-1));
     document.getElementById("redo-edit").addEventListener("click", () => stepFormHistory(1));
     document.addEventListener("keydown", handleFormHistoryKeydown);
@@ -704,6 +717,10 @@ function showView(viewName, { historyAction = "push" } = {}) {
             }
         }
     });
+
+    if (viewChanged && viewName === "new-shift" && state.editingShiftId === null) {
+        promptToResumeShiftDraft();
+    }
 }
 
 function handlePopState(event) {
@@ -747,6 +764,10 @@ function handleShiftEntryBack() {
             "Cancel"
         ).then((confirmed) => {
             if (confirmed) {
+                if (!editing && !clearShiftDraft()) {
+                    stay();
+                    return;
+                }
                 resetForm();
                 shiftEntryHistoryDepth = 0;
                 window.history.back();
@@ -1599,6 +1620,225 @@ function getGuidedQuestionHeading(step) {
         || null;
 }
 
+function getShiftDraftControlKey(control) {
+    if (control.id) {
+        return `id:${control.id}`;
+    }
+    const report = control.closest("[data-report-period]");
+    if (!report) {
+        return null;
+    }
+    if (control.matches("[data-report-toggle]")) {
+        return `report:${report.dataset.reportPeriod}:enabled`;
+    }
+    const field = control.dataset.reportField;
+    return field ? `report:${report.dataset.reportPeriod}:${field}` : null;
+}
+
+function saveShiftDraft() {
+    if (!entryMode || state.editingShiftId !== null || !shiftFormDirty) {
+        return;
+    }
+
+    const values = {};
+    getHistoryControls().forEach((control) => {
+        const key = getShiftDraftControlKey(control);
+        if (key) {
+            values[key] = control.type === "checkbox" || control.type === "radio"
+                ? control.checked
+                : control.value;
+        }
+    });
+
+    const draft = {
+        version: 1,
+        mode: entryMode,
+        values,
+        notes: [...notesList.querySelectorAll(".note-input")]
+            .map((input) => input.value)
+            .filter((value) => value.trim() !== ""),
+        step: {
+            id: guidedStep.element?.id || "",
+            index: Number.isInteger(guidedStep.index) ? guidedStep.index : 0,
+            review: guidedStep.review === true,
+        },
+    };
+
+    try {
+        localStorage.setItem(SHIFT_DRAFT_KEY, JSON.stringify(draft));
+        shiftDraftSaved = true;
+    } catch (error) {
+        shiftDraftSaved = false;
+        console.error("Unable to save shift draft:", error);
+        setStatus("Unable to save the unfinished shift locally. Your browser storage may be full.", true);
+    }
+}
+
+function hasRecoverableShiftDraft() {
+    return Boolean(entryMode) && state.editingShiftId === null && shiftDraftSaved;
+}
+
+function readShiftDraft() {
+    let raw;
+    try {
+        raw = localStorage.getItem(SHIFT_DRAFT_KEY);
+    } catch (error) {
+        console.error("Unable to read saved shift draft:", error);
+        setStatus("Unable to read the saved shift draft from this browser.", true);
+        return null;
+    }
+    if (raw === null) {
+        return null;
+    }
+
+    try {
+        const draft = JSON.parse(raw);
+        const valuesAreValid = draft?.values
+            && typeof draft.values === "object"
+            && !Array.isArray(draft.values)
+            && Object.values(draft.values).every((value) => typeof value === "string" || typeof value === "boolean");
+        const stepIsValid = draft?.step
+            && typeof draft.step === "object"
+            && typeof draft.step.id === "string"
+            && Number.isInteger(draft.step.index)
+            && draft.step.index >= 0
+            && typeof draft.step.review === "boolean";
+        if (draft?.version !== 1
+            || !["guided", "manual"].includes(draft.mode)
+            || !valuesAreValid
+            || !Array.isArray(draft.notes)
+            || !draft.notes.every((note) => typeof note === "string")
+            || !stepIsValid) {
+            throw new Error("Saved shift draft has an unsupported format.");
+        }
+        return { draft, corrupt: false };
+    } catch (error) {
+        console.error("Unable to read saved shift draft:", error);
+        setStatus("The saved shift draft is unreadable. You can discard it or leave it for later.", true);
+        return { draft: null, corrupt: true };
+    }
+}
+
+function clearShiftDraft({ quiet = false } = {}) {
+    try {
+        localStorage.removeItem(SHIFT_DRAFT_KEY);
+        shiftDraftSaved = false;
+        return true;
+    } catch (error) {
+        console.error("Unable to clear saved shift draft:", error);
+        if (!quiet) {
+            setStatus("Unable to clear the saved shift draft from this browser.", true);
+        }
+        return false;
+    }
+}
+
+function promptToResumeShiftDraft() {
+    if (shiftDraftPromptOpen || state.editingShiftId !== null) {
+        return;
+    }
+    const saved = readShiftDraft();
+    if (!saved) {
+        return;
+    }
+
+    const dialog = document.getElementById("shift-draft-dialog");
+    const resumeButton = document.getElementById("resume-shift-draft");
+    const message = document.getElementById("shift-draft-message");
+    resumeButton.disabled = saved.corrupt;
+    message.textContent = saved.corrupt
+        ? "This saved draft can't be resumed, but you can discard it or leave it for later."
+        : "A saved draft is stored separately from your shifts and is not included in history or totals.";
+    shiftDraftPromptOpen = true;
+    dialog.showModal();
+    (saved.corrupt ? document.getElementById("discard-shift-draft") : resumeButton).focus();
+}
+
+function restoreShiftDraft(draft) {
+    resetForm();
+    setEntryMode(draft.mode);
+
+    const workplaceValue = draft.values[`id:${fields.workplace.id}`];
+    if (typeof workplaceValue === "string") {
+        fields.workplace.value = workplaceValue;
+        fields.workplace.dataset.previousValue = fields.workplace.value;
+        renderRoleOptions();
+    }
+
+    const unavailableFields = [];
+    getHistoryControls().forEach((control) => {
+        const key = getShiftDraftControlKey(control);
+        if (!key || !Object.hasOwn(draft.values, key)) {
+            return;
+        }
+        const value = draft.values[key];
+        if (control.type === "checkbox" || control.type === "radio") {
+            control.checked = value;
+        } else {
+            control.value = value;
+            if (control.tagName === "SELECT" && value !== "" && control.value !== value) {
+                unavailableFields.push(control.closest("label")?.querySelector("span")?.textContent || control.id);
+            }
+        }
+    });
+    setNoteRows(draft.notes);
+    delete fields.role.dataset.autoSelected;
+    fields.role.dataset.previousValue = fields.role.value;
+    fields.job.dataset.previousValue = fields.job.value;
+    updateMealPeriodFields();
+    updateShiftFormProgression();
+
+    if (draft.mode === "guided") {
+        const steps = getGuidedSteps();
+        const savedIndex = steps.findIndex((step) => step.id === draft.step.id);
+        const index = savedIndex >= 0
+            ? savedIndex
+            : Math.min(draft.step.index, steps.length);
+        guidedStep = draft.step.review && shiftFormProgress.details
+            ? { element: null, index: steps.length, review: true }
+            : { element: steps[index] || null, index };
+    }
+
+    shiftFormDirty = true;
+    shiftDraftSaved = true;
+    resetFormHistory();
+    syncFormHistory();
+    updateShiftFormProgression();
+    if (unavailableFields.length > 0) {
+        setStatus(`Some draft selections are no longer available: ${unavailableFields.join(", ")}. Review them before saving.`, true);
+    }
+    focusGuidedStep();
+}
+
+function resumeShiftDraft() {
+    const saved = readShiftDraft();
+    if (!saved?.draft) {
+        return;
+    }
+    shiftDraftPromptOpen = false;
+    document.getElementById("shift-draft-dialog").close();
+    restoreShiftDraft(saved.draft);
+}
+
+function discardShiftDraft() {
+    if (!clearShiftDraft()) {
+        return;
+    }
+    shiftDraftPromptOpen = false;
+    document.getElementById("shift-draft-dialog").close();
+    resetForm();
+    document.getElementById("entry-mode-title").focus({ preventScroll: true });
+}
+
+function dismissShiftDraft() {
+    if (!shiftDraftPromptOpen) {
+        return;
+    }
+    shiftDraftPromptOpen = false;
+    document.getElementById("shift-draft-dialog").close();
+    leaveShiftEntry();
+}
+
 // Leave entry via an on-screen button and drop the history entries entry pushed,
 // so a later back press doesn't land on a stale New Shift screen.
 function leaveShiftEntry() {
@@ -1621,7 +1861,8 @@ function cancelShiftEntry() {
         "Your entries will be discarded.",
         "Cancel"
     ).then((confirmed) => {
-        if (confirmed) {
+        if (confirmed
+            && (state.editingShiftId !== null || clearShiftDraft())) {
             leaveShiftEntry();
         }
     });
@@ -1835,6 +2076,7 @@ function resetForm(shouldClearStatus = true) {
     form.reset();
     resetFormHistory();
     shiftFormDirty = false;
+    shiftDraftSaved = false;
     shiftFormProgress = { workplace: false, details: false };
     entryMode = null;
     shiftReviewing = false;
@@ -1864,6 +2106,7 @@ function resetForm(shouldClearStatus = true) {
 
 function populateForm(shift) {
     shiftFormDirty = false;
+    shiftDraftSaved = false;
     shiftReviewing = false;
     shiftFormProgress = { workplace: true, details: true };
     state.editingShiftId = shift.id;
@@ -2108,14 +2351,21 @@ function handleFormSubmit(event) {
             state.shifts.push(shift);
         }
 
+        const isNewShift = state.editingShiftId === null;
         const saved = persistShifts();
+        const draftCleared = saved && (!isNewShift || clearShiftDraft({ quiet: true }));
         renderDashboard();
         renderPreviousShifts();
         const successMessage = state.editingShiftId !== null ? "Shift updated." : "Shift saved.";
         resetForm(false);
         showView("dashboard");
         if (saved) {
-            setStatus(successMessage);
+            setStatus(
+                draftCleared ? successMessage : "Shift saved, but the unfinished draft could not be cleared.",
+                !draftCleared,
+            );
+        } else {
+            setStatus("The shift could not be saved. Your unfinished draft remains available.", true);
         }
     } catch (error) {
         setStatus(error.message, true);

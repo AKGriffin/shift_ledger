@@ -114,12 +114,20 @@ New file: `tests/incomplete-shifts.test.js`
 
 ---
 
+## Phase 3: Unfinished Shift Drafts ✅ **COMPLETED**
+
+- One in-progress shift is auto-saved locally on form input and change.
+- Draft form values, guided/manual mode, notes, and double-shift reports are preserved.
+- Starting shift entry offers Resume, Discard, or Not now; Escape keeps the draft and exits.
+- Drafts remain separate from saved shifts and are excluded from history, totals, backups, and CSV.
+- Drafts do not expire automatically; a successful save clears the draft.
+- Editing or canceling an already-saved shift does not remove a separate new-shift draft.
+- A successfully stored new-shift draft survives app reloads without a redundant unsaved-changes warning.
+- Added focused coverage in `tests/shift-drafts.test.js`.
+
 ## Next Steps
 
-### Phase 3: Shift Drafts (Deferred)
-- Store in-progress shifts separately
-- Resume from where left off
-- Clean up stale drafts after N days
+- Review the remaining Ready and Backlog items in `ROADMAP.md`.
 
 ---
 

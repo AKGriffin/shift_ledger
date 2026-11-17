@@ -1,6 +1,7 @@
 import "./shift-math.test.js";
 import "./layout.test.js";
 import "./shift-form.test.js";
+import "./shift-drafts.test.js";
 import "./incomplete-shifts.test.js";
 import "./double-shifts.test.js";
 import "./history.test.js";

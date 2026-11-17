@@ -1,4 +1,5 @@
 export const SHIFT_STORAGE_KEY = "shift-ledger-shifts-v1";
+export const SHIFT_DRAFT_STORAGE_KEY = `${SHIFT_STORAGE_KEY}-draft`;
 export const SETTINGS_STORAGE_KEY = "shift-ledger-settings-v1";
 export const RECOVERY_STORAGE_KEY = "shift-ledger-shifts-v1-recovery";
 export const WORKPLACES_STORAGE_KEY = "shift-ledger-workplaces-v1";
@@ -102,6 +103,7 @@ async function runWithApp({ width = 1200, height = 1000, shifts, settings, workp
     const consoleErrors = [];
     const previous = {
         shifts: localStorage.getItem(SHIFT_STORAGE_KEY),
+        shiftDraft: localStorage.getItem(SHIFT_DRAFT_STORAGE_KEY),
         settings: localStorage.getItem(SETTINGS_STORAGE_KEY),
         workplaces: localStorage.getItem(WORKPLACES_STORAGE_KEY),
         preWorkplaces: localStorage.getItem(PRE_WORKPLACES_STORAGE_KEY),
@@ -112,6 +114,7 @@ async function runWithApp({ width = 1200, height = 1000, shifts, settings, workp
     frame.style.cssText = `position:fixed;left:-${width + 100}px;top:0;width:${width}px;height:${height}px;`;
 
     localStorage.removeItem(SHIFT_STORAGE_KEY);
+    localStorage.removeItem(SHIFT_DRAFT_STORAGE_KEY);
     localStorage.removeItem(SETTINGS_STORAGE_KEY);
     localStorage.removeItem(PRE_WORKPLACES_STORAGE_KEY);
     localStorage.removeItem(`${WORKPLACES_STORAGE_KEY}-recovery`);
@@ -170,6 +173,7 @@ async function runWithApp({ width = 1200, height = 1000, shifts, settings, workp
     } finally {
         frame.remove();
         restoreItem(SHIFT_STORAGE_KEY, previous.shifts);
+        restoreItem(SHIFT_DRAFT_STORAGE_KEY, previous.shiftDraft);
         restoreItem(SETTINGS_STORAGE_KEY, previous.settings);
         restoreItem(RECOVERY_STORAGE_KEY, previousRecovery);
         restoreItem(WORKPLACES_STORAGE_KEY, previous.workplaces);
@@ -207,7 +211,9 @@ function createHarness(frame, consoleErrors) {
     const openView = (name, { entryMode = "manual" } = {}) => {
         element(name === "new-shift" ? "#open-new-shift" : `.main-nav [data-view="${name}"]`).click();
         const chooser = entryMode && name === "new-shift" && doc.getElementById(`choose-${entryMode}`);
-        if (chooser && !doc.getElementById("entry-mode-chooser").hidden) {
+        if (chooser
+            && !doc.getElementById("entry-mode-chooser").hidden
+            && !doc.getElementById("shift-draft-dialog").open) {
             chooser.click();
         }
     };
@@ -254,6 +260,10 @@ function createHarness(frame, consoleErrors) {
         saveShift,
         change,
         savedShifts: () => JSON.parse(localStorage.getItem(SHIFT_STORAGE_KEY) || "[]"),
+        savedDraft: () => {
+            const raw = localStorage.getItem(SHIFT_DRAFT_STORAGE_KEY);
+            return raw === null ? null : JSON.parse(raw);
+        },
         savedSettings: () => JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY) || "{}"),
         savedWorkplaces: () => JSON.parse(localStorage.getItem(WORKPLACES_STORAGE_KEY) || "null"),
     };

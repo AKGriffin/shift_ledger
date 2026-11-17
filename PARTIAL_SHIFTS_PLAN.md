@@ -377,13 +377,12 @@ When editing incomplete shift:
 
 ## Future Enhancements
 
-1. **Shift Drafts**: Store in-progress shifts separately (separate feature)
-2. **Auto-save**: Periodically save incomplete shifts
-3. **Resume Flow**: "Resume incomplete shift" button in entry
-4. **Incomplete Alerts**: In dashboard or settings
-5. **Analytics**: Track how many incomplete shifts get completed vs deleted
-6. **Mobile Quick Entry**: Minimal form for quick incomplete saves
-7. **Templates**: Pre-fill from previous complete shifts
+1. **Incomplete Alerts**: In dashboard or settings
+2. **Analytics**: Track how many incomplete shifts get completed vs deleted
+3. **Mobile Quick Entry**: Minimal form for quick incomplete saves
+4. **Templates**: Pre-fill from previous complete shifts
+
+Shift drafts are implemented separately: one locally auto-saved draft can be resumed or discarded when starting shift entry. It stays separate from saved shifts and does not expire. See the Done section in [ROADMAP.md](ROADMAP.md).
 
 ---
 

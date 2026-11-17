@@ -66,7 +66,7 @@ describe("Incomplete shifts - form validation", () => {
         expect(missingFields.hidden).toBe(false);
         expect(missingFields.textContent).toContain("Missing:");
         // Should list some of the missing required fields
-        expect(missingFields.textContent).toMatch(/(Meal period|Clock in|Clock out|Job)/);
+        expect(/(Meal period|Clock in|Clock out|Job)/.test(missingFields.textContent)).toBe(true);
     }));
 
     test("requires both break times even in incomplete shifts", () => withApp(({ openView, element, submitForm, fire, savedShifts }) => {
@@ -113,7 +113,7 @@ describe("Incomplete shifts - display and calculations", () => {
         openView("previous-shifts");
         const hourDisplay = element(".summary-hours");
         // Should show dash or empty for incomplete hours
-        expect(hourDisplay.textContent).not.toMatch(/\d+h/);
+        expect(/\d+h/.test(hourDisplay.textContent)).toBe(false);
     }));
 
     test("incomplete shifts are excluded from dashboard totals", () => withApp(({ openView, elements, savedShifts, element, fire }) => {
@@ -136,7 +136,7 @@ describe("Incomplete shifts - display and calculations", () => {
         openView("dashboard");
         const totalHours = element(".dashboard-total-hours");
         // Should show 6 hours (16:00 to 22:00) from complete shift only
-        expect(totalHours.textContent).toMatch(/6/);
+        expect(/6/.test(totalHours.textContent)).toBe(true);
     }));
 });
 

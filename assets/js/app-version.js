@@ -1,1 +1,1 @@
-globalThis.SHIFT_LEDGER_VERSION = "v120";
+globalThis.SHIFT_LEDGER_VERSION = "v121";

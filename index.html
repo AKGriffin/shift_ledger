@@ -724,6 +724,20 @@
             </div>
         </dialog>
 
+        <dialog id="shift-draft-dialog" class="history-filter-dialog" aria-labelledby="shift-draft-title" aria-describedby="shift-draft-message">
+            <div class="filter-dialog-header">
+                <div>
+                    <h3 id="shift-draft-title">Unfinished shift draft</h3>
+                    <p id="shift-draft-message"></p>
+                </div>
+            </div>
+            <div class="filter-dialog-actions">
+                <button type="button" id="dismiss-shift-draft" class="ghost-button">Not now</button>
+                <button type="button" id="discard-shift-draft" class="danger-button">Discard draft</button>
+                <button type="button" id="resume-shift-draft" class="primary-button">Resume draft</button>
+            </div>
+        </dialog>
+
         <dialog id="name-dialog" class="history-filter-dialog" aria-labelledby="name-dialog-title">
             <form id="name-form" novalidate>
                 <div class="filter-dialog-header">
