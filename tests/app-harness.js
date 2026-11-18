@@ -287,9 +287,13 @@ function createHarness(frame, consoleErrors) {
                     report.querySelector(`[data-report-field="${key}"]`).checked = true;
                 }
             });
+            const editor = report.querySelector(".report-editor:not([hidden])");
+            if (editor) win.closeReportEditor(report);
         }
     };
     const submitForm = () => {
+        const editor = doc.querySelector(".report-editor:not([hidden])");
+        if (editor) win.closeReportEditor(editor.closest("[data-report-period]"));
         fire(element("#shift-form"), "submit");
         // A valid submit lands on the review step; submitting again saves.
         if (!element("#shift-review").hidden) {

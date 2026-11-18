@@ -109,6 +109,7 @@ const weekDateRange = document.getElementById("week-date-range");
 const monthDateRange = document.getElementById("month-date-range");
 const doubleReportTemplate = document.getElementById("double-report-template");
 const flexibleReportList = document.getElementById("flexible-report-list");
+const reportEditorSnapshots = new WeakMap();
 const workedPeriodList = document.getElementById("worked-period-list");
 const workedPeriodTemplate = workedPeriodList.firstElementChild.cloneNode(true);
 const reportPeriods = [
@@ -483,6 +484,25 @@ function bindEvents() {
     cancelFormButton.addEventListener("click", cancelShiftEntry);
     document.getElementById("cancel-review").addEventListener("click", cancelShiftEntry);
     document.getElementById("edit-shift").addEventListener("click", editShiftFromReview);
+    document.getElementById("review-add-report").addEventListener("click", () => {
+        editShiftFromReview();
+        if (entryMode === "guided") {
+            guidedStep = { element: null, index: getGuidedSteps().length, review: true };
+            updateShiftFormProgression();
+        }
+        document.getElementById("add-flexible-report").click();
+    });
+    document.getElementById("review-report-breakdown").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-review-report]");
+        if (!button) return;
+        editShiftFromReview();
+        if (entryMode === "guided") {
+            guidedStep = { element: null, index: getGuidedSteps().length, review: true };
+            updateShiftFormProgression();
+        }
+        const node = [...flexibleReportList.children].find((item) => item.dataset.reportPeriod === button.dataset.reviewReport);
+        if (node) openReportEditor(node, false);
+    });
     document.getElementById("save-incomplete-shift").addEventListener("click", () => {
         saveIncompleteRequested = true;
         form.dispatchEvent(new Event("submit"));
@@ -529,7 +549,8 @@ function bindEvents() {
     document.getElementById("template-use-times").addEventListener("change", updateTemplateDefaultFields);
     document.getElementById("template-use-break").addEventListener("change", updateTemplateDefaultFields);
     document.getElementById("add-flexible-report").addEventListener("click", () => {
-        addFlexibleReport();
+        const node = addFlexibleReport();
+        openReportEditor(node, true);
         updateMealPeriodFields();
         updateFlexibleReportSummary();
         markShiftFormDirty();
@@ -544,8 +565,11 @@ function bindEvents() {
         markShiftFormDirty();
         recordFormHistory();
         saveShiftDraft();
+        document.getElementById("add-flexible-report").disabled = false;
     });
+    flexibleReportList.addEventListener("click", handleReportEditorClick);
     flexibleReportList.addEventListener("input", updateFlexibleReportSummary);
+    flexibleReportList.addEventListener("change", handleReportEditorChange);
     flexibleReportList.addEventListener("change", () => {
         updateFlexibleReportInputs();
         updateFlexibleReportSummary();
@@ -1631,14 +1655,53 @@ function renderEntryMode() {
 }
 
 function showShiftReview(shift) {
-    const detail = buildShiftCardNode(shift).querySelector(".shift-card");
+    const card = buildShiftCardNode(shift);
+    const summary = card.querySelector(".shift-summary");
+    summary.removeAttribute("aria-haspopup");
+    summary.tabIndex = -1;
+    const detail = card.querySelector(".shift-card");
     detail.querySelector(".card-header-side")?.remove();
     detail.querySelector(".card-actions")?.remove();
     // Reuse the shift-detail styling so the preview matches the opened shift card.
-    const preview = document.createElement("div");
+    const preview = document.createElement("details");
     preview.className = "shift-detail-dialog shift-review-detail";
-    preview.append(detail);
-    document.getElementById("shift-review-card").replaceChildren(preview);
+    const detailLabel = document.createElement("summary");
+    detailLabel.textContent = "Shift details";
+    preview.append(detailLabel, detail);
+    document.getElementById("shift-review-card").replaceChildren(summary, preview);
+    const breakdown = document.getElementById("review-report-breakdown");
+    breakdown.replaceChildren();
+    const whole = shift.reports.find((report) => report.coverage === "whole");
+    shift.reports.forEach((report, index) => {
+        const row = document.createElement("li");
+        const text = document.createElement("span");
+        const source = { reports: [{ ...report, coverage: "part" }] };
+        let treatment = report.coverage === "reference" ? "reference only"
+            : report.coverage === "whole" ? "whole-shift override"
+                : report.afterWhole ? "added"
+                    : whole ? "included in whole-shift total"
+                    : "added";
+        if (report.coverage === "part" && !report.afterWhole && whole && !whole.strictWhole) {
+            const fallback = [];
+            if (whole.noTips && !report.noTips) fallback.push("tips");
+            if (whole.noSales && !report.noSales) fallback.push("sales");
+            if (fallback.length) treatment += `; ${fallback.join(" and ")} added where whole report is missing`;
+        }
+        text.textContent = `${report.label || `Report ${index + 1}`} · ${treatment} · Tips ${formatReportAmount(source, getNetTips(source), "tips")} · Sales ${formatReportAmount(source, getSalesTotal(source), "sales")}`;
+        const edit = document.createElement("button");
+        edit.type = "button";
+        edit.className = "secondary-button";
+        edit.dataset.reviewReport = report.id;
+        edit.textContent = "Edit";
+        edit.setAttribute("aria-label", `Edit ${report.label || `report ${index + 1}`}`);
+        row.append(text, edit);
+        breakdown.appendChild(row);
+    });
+    if (!shift.reports.length) {
+        const row = document.createElement("li");
+        row.textContent = "No reports added.";
+        breakdown.appendChild(row);
+    }
     
     // Show incomplete warning if applicable
     const incompletWarning = document.getElementById("shift-incomplete-warning");
@@ -2010,6 +2073,10 @@ function cancelShiftEntry() {
 }
 
 function moveGuidedStep(direction) {
+    if (direction > 0 && flexibleReportList.querySelector(".report-editor:not([hidden])")) {
+        setStatus("Finish or cancel the open report first.", true);
+        return;
+    }
     const steps = getGuidedSteps();
     let current = guidedStep.review
         ? steps.length
@@ -2290,6 +2357,7 @@ function populateForm(shift) {
             node.querySelector('[data-report-field="label"]').value = report.label;
             node.querySelector('[data-report-field="coverage"]').value = report.coverage;
             node.querySelector('[data-report-field="strictWhole"]').checked = report.strictWhole === true;
+            node.querySelector('[data-report-field="afterWhole"]').checked = report.afterWhole === true;
             node.querySelector('[data-report-field="noSales"]').checked = report.noSales === true;
             node.querySelector('[data-report-field="noTips"]').checked = report.noTips === true;
             reportAmountFields.forEach((field) => {
@@ -2475,7 +2543,11 @@ function handleFormHistoryKeydown(event) {
 function handleFormSubmit(event) {
     event.preventDefault();
 
-    if (entryMode === "guided" && !getEditingShift() && !guidedStep.review && guidedStep.element) {
+    if (!shiftReviewing && flexibleReportList.querySelector(".report-editor:not([hidden])")) {
+        setStatus("Finish or cancel the open report first.", true);
+        return;
+    }
+    if (!shiftReviewing && entryMode === "guided" && !getEditingShift() && !guidedStep.review && guidedStep.element) {
         moveGuidedStep(1);
         return;
     }
@@ -2997,11 +3069,13 @@ function renderPreviousShifts() {
 
     if (fromDate && toDate && fromDate > toDate) {
         historyStatus.textContent = "The start date must be on or before the end date.";
+        historyStatus.removeAttribute("aria-label");
         shiftList.replaceChildren();
         return;
     }
 
-    historyStatus.textContent = filtered.length === 1 ? "1 shift" : `${filtered.length} shifts`;
+    historyStatus.textContent = String(filtered.length);
+    historyStatus.setAttribute("aria-label", filtered.length === 1 ? "1 shift" : `${filtered.length} shifts`);
 
     if (filtered.length === 0) {
         shiftList.replaceChildren(createEmptyState("No shifts match the current filters."));
@@ -3030,18 +3104,35 @@ function buildShiftCardNode(shift) {
         : `${weekday}, ${formatDate(shift.date)}`;
     summary.querySelector(".summary-job").textContent = [shift.job, getWorkplaceName(shift.workplaceId)].filter(Boolean).join(" · ");
     summary.querySelector(".summary-meal").textContent = getShiftLabel(shift);
+    const period = shift.mealPeriod === "Double" || getWorkedPeriodLabels(shift).length > 1
+        ? "double" : getShiftLabel(shift).toLowerCase();
+    if (["lunch", "dinner", "double"].includes(period)) {
+        summary.querySelector(".summary-meal").dataset.period = period;
+    }
     
     // Handle incomplete badge
     const summaryIncompleteBadge = summary.querySelector(".summary-incomplete");
     summaryIncompleteBadge.hidden = !shift.isIncomplete;
     
     const summaryStatus = summary.querySelector(".summary-status");
-    const summaryStatusText = getReportStatus(shift);
+    const reports = Array.isArray(shift.reports) ? shift.reports : [];
+    const parts = reports.filter((report) => report.coverage === "part").length;
+    const whole = reports.some((report) => report.coverage === "whole");
+    const summaryStatusText = parts && whole
+        ? `${parts} ${parts === 1 ? "report" : "reports"} + whole-shift summary`
+        : getReportStatus(shift);
     summaryStatus.textContent = summaryStatusText;
     summaryStatus.hidden = !summaryStatusText;
     summary.querySelector(".summary-hours").textContent = formatDuration(getDurationMinutes(shift));
     summary.querySelector(".summary-sales").textContent = formatReportAmount(shift, getSalesTotal(shift), "sales");
     summary.querySelector(".summary-tips").textContent = formatReportAmount(shift, getNetTips(shift), "tips");
+    const minutes = getDurationMinutes(shift);
+    const sales = getSalesTotal(shift);
+    const tips = getNetTips(shift);
+    summary.querySelector(".summary-hourly").textContent = hasTipReport(shift) && minutes > 0
+        ? `${formatCurrency(tips * 60 / minutes)}/hr` : "—";
+    summary.querySelector(".summary-tip-percent").textContent = hasTipReport(shift) && hasSalesReport(shift) && sales > 0
+        ? `${(tips / sales * 100).toFixed(1)}%` : "—";
     summary.setAttribute("aria-label", `View shift details: ${summary.querySelector(".summary-date").textContent}, ${summary.querySelector(".summary-job").textContent}`);
     card.querySelector(".card-date").textContent = formatDate(shift.date);
     card.querySelector(".card-meal").textContent = getShiftLabel(shift);
@@ -3597,6 +3688,8 @@ function normalizeImportedShift(shift, index) {
                     || ids.has(report.id) || typeof report.label !== "string"
                     || !["part", "whole", "reference"].includes(report.coverage)
                     || (report.strictWhole !== undefined && typeof report.strictWhole !== "boolean")
+                    || (report.afterWhole !== undefined && typeof report.afterWhole !== "boolean")
+                    || (report.afterWhole === true && report.coverage !== "part")
                     || (report.strictWhole === true && report.coverage !== "whole")) {
                     throw new Error(`Backup shift ${index + 1} has invalid flexible report data.`);
                 }
@@ -3604,6 +3697,7 @@ function normalizeImportedShift(shift, index) {
                 if (report.coverage === "whole") wholeCount += 1;
                 const normalizedReport = { id: report.id, label: report.label, coverage: report.coverage };
                 if (report.strictWhole === true) normalizedReport.strictWhole = true;
+                if (report.afterWhole === true) normalizedReport.afterWhole = true;
                 reportAmountFields.forEach((field) => {
                     if (!Object.hasOwn(report, field)) {
                         return;
@@ -4797,8 +4891,19 @@ function addFlexibleReport(id) {
     const label = document.createElement("label");
     label.className = "field";
     label.innerHTML = '<span>Report label (optional)</span><input type="text" data-report-field="label" placeholder="e.g. Breakfast">';
+    const presets = document.createElement("div");
+    presets.className = "report-label-presets";
+    ["Lunch", "Dinner", "Bar", "Whole Shift"].forEach((value) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "secondary-button";
+        button.dataset.reportPreset = value;
+        button.textContent = value;
+        presets.appendChild(button);
+    });
     const coverage = document.createElement("label");
     coverage.className = "field";
+    coverage.hidden = true;
     coverage.innerHTML = '<span>Report covers</span><select data-report-field="coverage"><option value="part">One separate period</option><option value="whole">The whole shift</option><option value="reference">Reference only (not counted)</option></select>';
     const remove = document.createElement("button");
     remove.type = "button";
@@ -4806,13 +4911,67 @@ function addFlexibleReport(id) {
     remove.dataset.removeReport = "";
     remove.textContent = "Remove report";
     const availability = document.createElement("div");
-    availability.innerHTML = '<label data-role-capability="tipReport"><input type="checkbox" data-report-field="noTips"> No tip report</label> <label data-role-capability="tracksSales"><input type="checkbox" data-report-field="noSales"> No sales report</label>';
+    availability.hidden = true;
+    availability.innerHTML = '<label data-role-capability="tipReport"><input type="checkbox" data-report-field="noTips"> No tip report</label> <label data-role-capability="tracksSales"><input type="checkbox" data-report-field="noSales"> No sales report</label><input type="checkbox" data-report-field="afterWhole">';
     const strict = document.createElement("label");
     strict.dataset.strictWholeControl = "";
     strict.innerHTML = '<input type="checkbox" data-report-field="strictWhole"> Use only this report for totals, even if sales or tips are missing';
-    header.append(label, coverage, availability, strict, remove);
+    strict.hidden = true;
+    header.append(label, presets, coverage, availability, strict);
     node.querySelector(".double-report-toggle").replaceWith(header);
     node.querySelector("[data-report-fields]").disabled = false;
+    const editor = document.createElement("div");
+    editor.className = "report-editor";
+    const editorHead = document.createElement("div");
+    editorHead.className = "report-editor-head";
+    const title = document.createElement("h4");
+    title.textContent = "Enter numbers";
+    editorHead.append(title, remove);
+    const toggles = document.createElement("div");
+    toggles.className = "report-inclusion";
+    toggles.innerHTML = '<label data-role-capability="tipReport"><input type="checkbox" data-include-report="tips" checked> Include Tips</label><label data-role-capability="tracksSales"><input type="checkbox" data-include-report="sales" checked> Include Sales</label>';
+    const fieldset = node.querySelector("[data-report-fields]");
+    fieldset.querySelectorAll('input[type="number"]').forEach((input) => {
+        input.inputMode = "decimal";
+        const wrapper = document.createElement("span");
+        wrapper.className = "currency-input";
+        const prefix = document.createElement("span");
+        prefix.setAttribute("aria-hidden", "true");
+        prefix.textContent = "$";
+        input.before(wrapper);
+        wrapper.append(prefix, input);
+    });
+    const entry = document.createElement("div");
+    entry.dataset.reportEntry = "";
+    entry.append(editorHead, header, toggles, fieldset);
+    const next = document.createElement("button");
+    next.type = "button";
+    next.dataset.reportNext = "";
+    next.className = "primary-button";
+    next.textContent = "Next";
+    const cancel = document.createElement("button");
+    cancel.type = "button";
+    cancel.dataset.reportCancel = "";
+    cancel.className = "ghost-button";
+    cancel.textContent = "Cancel";
+    entry.append(next, cancel);
+    const scope = document.createElement("div");
+    scope.dataset.reportScope = "";
+    scope.hidden = true;
+    scope.innerHTML = `<h4>How should we count this report?</h4>
+        <label><input type="radio" value="part"> <strong>Add to my earlier shift</strong><br><span>This slip is only for the period I just worked.</span></label>
+        <label><input type="radio" value="whole"> <strong>Replace my earlier shift</strong><br><span>This slip is a combined total for the whole day.</span></label>
+        <label data-reference-choice hidden><input type="radio" value="reference"> <strong>Keep as reference</strong><br><span>This report is saved but not counted.</span></label>
+        <p data-scope-note role="status"></p>
+        <button type="button" class="secondary-button" data-scope-back>Back</button>
+        <button type="button" class="primary-button" data-scope-next>Preview</button>`;
+    scope.querySelectorAll('input[type="radio"]').forEach((input) => { input.name = `scope-${id}`; });
+    editor.append(entry, scope);
+    const summary = document.createElement("div");
+    summary.className = "report-summary";
+    summary.innerHTML = '<strong data-report-summary></strong><button type="button" class="secondary-button" data-edit-report>Edit</button>';
+    node.append(summary, editor);
+    editor.hidden = true;
     flexibleReportList.appendChild(node);
     updateFlexibleReportNames();
     return node;
@@ -4822,7 +4981,148 @@ function updateFlexibleReportNames() {
     [...flexibleReportList.children].forEach((node, index) => {
         node.setAttribute("aria-label", `Report ${index + 1}`);
         node.querySelector("[data-remove-report]").setAttribute("aria-label", `Remove report ${index + 1}`);
+        const label = node.querySelector('[data-report-field="label"]').value.trim();
+        node.querySelector("[data-report-summary]").textContent = label || `Report ${index + 1}`;
     });
+}
+
+function openReportEditor(node, isNew) {
+    const active = flexibleReportList.querySelector(".report-editor:not([hidden])");
+    if (active && active !== node.querySelector(".report-editor")) {
+        setStatus("Finish or cancel the current report first.", true);
+        return;
+    }
+    const controls = [...node.querySelectorAll("[data-report-field]")];
+    reportEditorSnapshots.set(node, {
+        isNew,
+        values: controls.map((control) => control.type === "checkbox" ? control.checked : control.value),
+    });
+    node.querySelector(".report-summary").hidden = true;
+    node.querySelector(".report-editor").hidden = false;
+    node.querySelector("[data-report-entry]").hidden = false;
+    node.querySelector("[data-report-scope]").hidden = true;
+    node.querySelector("[data-reference-choice]").hidden =
+        node.querySelector('[data-report-field="coverage"]').value !== "reference";
+    node.querySelectorAll("[data-report-scope] input").forEach((input) => { input.checked = false; });
+    node.querySelector("[data-remove-report]").hidden = isNew;
+    const continuingGuidedEntry = entryMode === "guided" && !getEditingShift() && !guidedStep.review;
+    node.querySelector("[data-report-next]").textContent = continuingGuidedEntry ? "Continue" : "Next";
+    node.querySelector("[data-scope-next]").textContent = continuingGuidedEntry ? "Continue" : "Preview";
+    document.getElementById("add-flexible-report").disabled = true;
+    updateFlexibleReportInputs();
+    node.querySelector('[data-report-field="label"]').focus();
+}
+
+function closeReportEditor(node, cancel = false) {
+    const snapshot = reportEditorSnapshots.get(node);
+    if (cancel && snapshot?.isNew) {
+        node.remove();
+    } else {
+        if (cancel && snapshot) {
+            node.querySelectorAll("[data-report-field]").forEach((control, index) => {
+                if (control.type === "checkbox") control.checked = snapshot.values[index];
+                else control.value = snapshot.values[index];
+            });
+        }
+        node.querySelector(".report-editor").hidden = true;
+        node.querySelector(".report-summary").hidden = false;
+    }
+    reportEditorSnapshots.delete(node);
+    document.getElementById("add-flexible-report").disabled = false;
+    updateFlexibleReportNames();
+    updateFlexibleReportInputs();
+    updateFlexibleReportSummary();
+    markShiftFormDirty();
+    recordFormHistory();
+    saveShiftDraft();
+}
+
+function previewAfterReport(node) {
+    closeReportEditor(node);
+    if (entryMode === "guided" && !getEditingShift() && !guidedStep.review) {
+        moveGuidedStep(1);
+        return;
+    }
+    const shift = readFormValues();
+    const issues = validateShift(shift, isShiftIncomplete(shift));
+    if (issues.length) {
+        showValidationErrors(issues);
+        return;
+    }
+    showShiftReview(shift);
+}
+
+function handleReportEditorClick(event) {
+    const node = event.target.closest("[data-report-period]");
+    if (!node) return;
+    const button = event.target.closest("button");
+    if (!button) return;
+    if (button.hasAttribute("data-edit-report")) {
+        openReportEditor(node, false);
+    } else if (button.hasAttribute("data-report-preset")) {
+        const input = node.querySelector('[data-report-field="label"]');
+        input.value = button.dataset.reportPreset;
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+    } else if (button.hasAttribute("data-report-cancel")) {
+        closeReportEditor(node, true);
+    } else if (button.hasAttribute("data-report-next")) {
+        const invalid = [...node.querySelectorAll('input[type="number"]')]
+            .find((input) => input.willValidate && !input.validity.valid);
+        if (invalid) {
+            invalid.reportValidity();
+            return;
+        }
+        if (flexibleReportList.children.length === 1) {
+            previewAfterReport(node);
+        } else {
+            node.querySelector("[data-report-entry]").hidden = true;
+            node.querySelector("[data-report-scope]").hidden = false;
+        }
+    } else if (button.hasAttribute("data-scope-back")) {
+        node.querySelector("[data-report-entry]").hidden = false;
+        node.querySelector("[data-report-scope]").hidden = true;
+    } else if (button.hasAttribute("data-scope-next")) {
+        const choice = node.querySelector("[data-report-scope] input:checked");
+        if (!choice) {
+            node.querySelector("[data-scope-note]").textContent = "Choose how to count this report.";
+            return;
+        }
+        if (choice.value === "part") {
+            const previousWhole = [...flexibleReportList.children].some((other) => other !== node
+                && other.querySelector('[data-report-field="coverage"]').value === "whole");
+            node.querySelector('[data-report-field="afterWhole"]').checked = previousWhole;
+        } else if (choice.value === "whole") {
+            [...flexibleReportList.children].filter((other) => other !== node).forEach((other) => {
+                const coverage = other.querySelector('[data-report-field="coverage"]');
+                other.querySelector('[data-report-field="afterWhole"]').checked = false;
+                if (coverage.value === "whole") {
+                    coverage.value = "reference";
+                    other.querySelector('[data-report-field="strictWhole"]').checked = false;
+                }
+            });
+            node.querySelector('[data-report-field="afterWhole"]').checked = false;
+        }
+        node.querySelector('[data-report-field="coverage"]').value = choice.value;
+        previewAfterReport(node);
+    }
+}
+
+function handleReportEditorChange(event) {
+    const node = event.target.closest("[data-report-period]");
+    if (!node) return;
+    if (event.target.matches("[data-include-report]")) {
+        const field = event.target.dataset.includeReport === "tips" ? "noTips" : "noSales";
+        node.querySelector(`[data-report-field="${field}"]`).checked = !event.target.checked;
+        updateFlexibleReportInputs();
+        updateFlexibleReportSummary();
+        saveShiftDraft();
+    }
+    if (event.target.matches("[data-report-scope] input")) {
+        node.querySelector("[data-scope-note]").textContent = event.target.value === "part"
+            ? "We'll add this report to your shift total."
+            : event.target.value === "reference" ? "This report will be saved but not counted."
+                : "We'll use this combined total instead of earlier partial reports so nothing is double-counted.";
+    }
 }
 
 function readFlexibleReports() {
@@ -4837,6 +5137,9 @@ function readFlexibleReports() {
         };
         if (report.coverage === "whole" && node.querySelector('[data-report-field="strictWhole"]').checked) {
             report.strictWhole = true;
+        }
+        if (report.coverage === "part" && node.querySelector('[data-report-field="afterWhole"]').checked) {
+            report.afterWhole = true;
         }
         reportAmountFields.forEach((field) => {
             const value = node.querySelector(`[data-report-field="${field}"]`).value;
@@ -4871,7 +5174,12 @@ function updateFlexibleReportInputs() {
     [...flexibleReportList.children].forEach((node) => {
         const noSales = node.querySelector('[data-report-field="noSales"]').checked;
         const noTips = node.querySelector('[data-report-field="noTips"]').checked;
-        node.querySelector("[data-strict-whole-control]").hidden = node.querySelector('[data-report-field="coverage"]').value !== "whole";
+        node.querySelector('[data-include-report="sales"]').checked = !noSales;
+        node.querySelector('[data-include-report="tips"]').checked = !noTips;
+        node.querySelector('[aria-label="Sales"]').hidden = noSales || !selectedRoleCapabilities().tracksSales;
+        const capabilities = selectedRoleCapabilities();
+        node.querySelector('[aria-label="Tips"]').hidden = noTips
+            || !(capabilities.receivesTips || capabilities.tipsOut || capabilities.receivesTipOut);
         reportAmountFields.forEach((field) => {
             node.querySelector(`[data-report-field="${field}"]`).disabled = salesAmountFields.includes(field)
                 ? noSales : noTips;
@@ -4880,6 +5188,7 @@ function updateFlexibleReportInputs() {
 }
 
 function updateFlexibleReportSummary() {
+    updateFlexibleReportNames();
     const summary = document.getElementById("flexible-report-summary");
     const calculation = document.getElementById("flexible-report-calculation");
     calculation.replaceChildren();

@@ -235,7 +235,8 @@ describe("Previous shifts", () => {
 
         expect(elements(".shift-card")).toHaveLength(1);
         expect(element(".card-job").textContent).toBe("Expo");
-        expect(element("#history-status").textContent).toBe("1 shift");
+        expect(element("#history-status").textContent).toBe("1");
+        expect(element("#history-status").getAttribute("aria-label")).toBe("1 shift");
     }));
 
     test("reports an invalid date range instead of listing shifts", () => withApp({ shifts: seededShifts() }, ({ element, elements, openView, change }) => {

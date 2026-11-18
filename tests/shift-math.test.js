@@ -3,6 +3,35 @@ import { describe, expect, test } from "./assert.js";
 const { getAutoGratuity, getDurationMinutes, getFinancialBreakdown, getNetTips, getSalesTotal, hasReport, hasSalesReport, hasTipReport, inferMissingReport, toMinutes } = window.ShiftMath;
 
 describe("report coverage", () => {
+    test("adds later reports to a whole report without counting its earlier parts twice", () => {
+        const reports = [
+            { coverage: "part", foodSales: 30, ccTips: 5 },
+            { coverage: "whole", foodSales: 100, ccTips: 20 },
+            { coverage: "part", afterWhole: true, foodSales: 50, ccTips: 10 },
+        ];
+        expect(getSalesTotal({ reports })).toBe(150);
+        expect(getNetTips({ reports })).toBe(30);
+        expect(inferMissingReport(reports).report.foodSales).toBe(70);
+    });
+
+    test("counts later reports when a strict whole report is missing that category", () => {
+        const reports = [
+            { coverage: "whole", strictWhole: true, noSales: true, ccTips: 20 },
+            { coverage: "part", afterWhole: true, foodSales: 50, ccTips: 10 },
+        ];
+        expect(getSalesTotal({ reports })).toBe(50);
+        expect(getNetTips({ reports })).toBe(30);
+    });
+
+    test("includes later periods in separate-report calculations after removing the whole report", () => {
+        const reports = [
+            { coverage: "part", foodSales: 30, ccTips: 5 },
+            { coverage: "part", afterWhole: true, foodSales: 50, ccTips: 10 },
+        ];
+        expect(getSalesTotal({ reports })).toBe(80);
+        expect(inferMissingReport(reports).report.foodSales).toBe(80);
+    });
+
     test("covers sales and tips independently on single shifts", () => {
         const noSales = { mealPeriod: "Dinner", noSales: true, foodSales: 99, ccTips: 20, tipsPaidOut: 5 };
         expect(hasSalesReport(noSales)).toBe(false);

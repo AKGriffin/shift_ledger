@@ -2,6 +2,80 @@ import { describe, expect, test } from "./assert.js";
 import { makeShift, PRE_FLEXIBLE_REPORTS_STORAGE_KEY, SHIFT_STORAGE_KEY, withApp } from "./app-harness.js";
 
 describe("Single-shift report coverage", () => {
+    test("guides a report from entry to preview, then asks how to count the next report", () => withApp((app) => {
+        app.openView("new-shift");
+        app.fillForm({ date: "2026-10-23", mealPeriod: "Dinner", job: "Server", clockIn: "16:00", clockOut: "22:00" });
+        app.element("#add-flexible-report").click();
+        let report = app.element("#flexible-report-list .double-report");
+        report.querySelector('[data-report-preset="Lunch"]').click();
+        report.querySelector('[data-report-field="foodSales"]').value = "100";
+        report.querySelector('[data-report-field="ccTips"]').value = "20";
+        report.querySelector("[data-report-next]").click();
+        expect(app.element("#shift-review").hidden).toBe(false);
+        expect(app.element("#review-report-breakdown").textContent).toContain("Lunch");
+        app.element("#review-add-report").click();
+        report = app.element("#flexible-report-list").lastElementChild;
+        report.querySelector('[data-report-field="foodSales"]').value = "250";
+        report.querySelector('[data-report-field="ccTips"]').value = "40";
+        report.querySelector("[data-report-next]").click();
+        expect(report.querySelector("[data-report-scope]").hidden).toBe(false);
+        const whole = report.querySelector('[data-report-scope] input[value="whole"]');
+        whole.checked = true;
+        app.fire(whole, "change");
+        report.querySelector("[data-scope-next]").click();
+        expect(app.element("#shift-review-card .summary-sales").textContent).toBe("$250.00");
+        app.fire(app.element("#shift-form"), "submit");
+        expect(app.savedShifts()[0].reports.map((item) => item.coverage)).toEqual(["part", "whole"]);
+    }));
+
+    test("adds a later period after an existing whole without losing prior reports", () => withApp({
+        shifts: [makeShift({ reports: [
+            { id: "generic-1", label: "Lunch", coverage: "part", foodSales: 30, ccTips: 5 },
+            { id: "generic-2", label: "Whole", coverage: "whole", foodSales: 100, ccTips: 20 },
+        ] })],
+    }, (app) => {
+        app.openView("previous-shifts");
+        app.element(".edit-shift").click();
+        app.element("#add-flexible-report").click();
+        const report = app.element("#flexible-report-list").lastElementChild;
+        report.querySelector('[data-report-field="foodSales"]').value = "50";
+        report.querySelector('[data-report-field="ccTips"]').value = "10";
+        report.querySelector("[data-report-next]").click();
+        const add = report.querySelector('[data-report-scope] input[value="part"]');
+        add.checked = true;
+        app.fire(add, "change");
+        report.querySelector("[data-scope-next]").click();
+        expect(app.element("#shift-review-card .summary-sales").textContent).toBe("$150.00");
+        app.fire(app.element("#shift-form"), "submit");
+        expect(app.savedShifts()[0].reports[2].afterWhole).toBe(true);
+        app.openView("previous-shifts");
+        expect(app.element("#summary-total-sales").textContent).toBe("$150.00");
+        app.element(".edit-shift").click();
+        expect(app.element('#flexible-report-list [data-report-field="afterWhole"]:checked')).toBeTruthy();
+    }));
+
+    test("keeps a replaced whole report as reference only", () => withApp({
+        shifts: [makeShift({ reports: [
+            { id: "generic-1", label: "Earlier total", coverage: "whole", foodSales: 100, ccTips: 20 },
+        ] })],
+    }, (app) => {
+        app.openView("previous-shifts");
+        app.element(".edit-shift").click();
+        app.element("#add-flexible-report").click();
+        const report = app.element("#flexible-report-list").lastElementChild;
+        report.querySelector('[data-report-field="foodSales"]').value = "200";
+        report.querySelector('[data-report-field="ccTips"]').value = "30";
+        report.querySelector("[data-report-next]").click();
+        const whole = report.querySelector('[data-report-scope] input[value="whole"]');
+        whole.checked = true;
+        app.fire(whole, "change");
+        report.querySelector("[data-scope-next]").click();
+        expect(app.element("#shift-review-card .summary-sales").textContent).toBe("$200.00");
+        app.fire(app.element("#shift-form"), "submit");
+        expect(app.savedShifts()[0].reports.map((item) => item.coverage)).toEqual(["reference", "whole"]);
+        expect(app.savedShifts()[0].reports[0].foodSales).toBe(100);
+    }));
+
     const check = ({ fire }, box) => {
         box.checked = true;
         fire(box, "change");
@@ -408,6 +482,7 @@ describe("Double-shift report entry", () => {
         fillForm({ date: "2026-10-23", mealPeriod: "Double", clockIn: "10:00", clockOut: "22:00" });
         fire(element("#shift-meal-period"), "change");
         element("#add-flexible-report").click();
+        harness.win.closeReportEditor(element("#flexible-report-list").firstElementChild);
         element("#add-flexible-report").click();
         const [part, whole] = element("#flexible-report-list").children;
         const set = (node, field, value, event = "input") => {
@@ -490,6 +565,7 @@ describe("Double-shift report entry", () => {
         harness.fillForm({ date: "2026-10-23", mealPeriod: "Double", clockIn: "10:00", clockOut: "22:00" });
         harness.fire(harness.element("#shift-meal-period"), "change");
         harness.element("#add-flexible-report").click();
+        harness.win.closeReportEditor(harness.element("#flexible-report-list").firstElementChild);
         harness.element("#add-flexible-report").click();
         [...harness.element("#flexible-report-list").children].forEach((node) => {
             const select = node.querySelector('[data-report-field="coverage"]');

@@ -121,10 +121,12 @@ describe("Mobile navigation", () => {
             expect(element(`#${view}`).querySelectorAll("h1")).toHaveLength(1);
             expect(element(`#${view} .view-heading`)).toBeTruthy();
             expect(heading.closest(".panel")).toBe(null);
-            const [eyebrow, copy] = [".eyebrow", "p:not(.eyebrow)"].map((part) => element(`#${view} .view-heading ${part}`).getBoundingClientRect());
-            expect(heading.getBoundingClientRect().top).toBeGreaterThan(eyebrow.top);
-            expect(copy.top).toBeGreaterThan(heading.getBoundingClientRect().top);
-            expect(Math.round(copy.left)).toBe(Math.round(eyebrow.left));
+            if (view !== "previous-shifts") {
+                const [eyebrow, copy] = [".eyebrow", "p:not(.eyebrow)"].map((part) => element(`#${view} .view-heading ${part}`).getBoundingClientRect());
+                expect(heading.getBoundingClientRect().top).toBeGreaterThan(eyebrow.top);
+                expect(copy.top).toBeGreaterThan(heading.getBoundingClientRect().top);
+                expect(Math.round(copy.left)).toBe(Math.round(eyebrow.left));
+            }
             if (expectedTop === undefined) {
                 expectedTop = header.getBoundingClientRect().top;
             } else {
@@ -240,7 +242,7 @@ describe("New shift layout", () => {
         expect(element("#form-title").closest(".panel")).toBe(null);
     }));
 
-    test("flows the form in one vertical column on a wide screen", () => withApp({ width: 1400, height: 1000 }, (harness) => {
+    test("flows the form in one column with paired report inputs on a wide screen", () => withApp({ width: 1400, height: 1000 }, (harness) => {
         const { element, elements } = harness;
         revealShiftDetails(harness);
 
@@ -249,13 +251,6 @@ describe("New shift layout", () => {
         const selectors = [
             "#shift-date", "#shift-other-label", "#shift-clock-in", "#shift-clock-out",
             "#shift-break-start", "#shift-break-end",
-            '#flexible-report-list [data-report-field="ccTips"]',
-            '#flexible-report-list [data-report-field="cashTips"]',
-            '#flexible-report-list [data-report-field="autoGratuity"]',
-            '#flexible-report-list [data-report-field="tipsPaidOut"]',
-            '#flexible-report-list [data-report-field="bawSales"]',
-            '#flexible-report-list [data-report-field="foodSales"]',
-            '#flexible-report-list [data-report-field="additionalSales"]',
         ];
         const lefts = selectors.map((selector) => rect(selector).left);
 
@@ -293,7 +288,7 @@ describe("New shift layout", () => {
         expect(element("#shift-job").closest("fieldset")).not.toBe(workplaceCard);
     }));
 
-    test("stacks the inputs inside each sub card", () => withApp({ width: 1400, height: 1000 }, (harness) => {
+    test("pairs related report inputs inside the report editor", () => withApp({ width: 1400, height: 1000 }, (harness) => {
         const { element } = harness;
         revealShiftDetails(harness);
 
@@ -302,7 +297,7 @@ describe("New shift layout", () => {
         expect(top("#shift-clock-out")).toBeGreaterThan(top("#shift-clock-in"));
         element("#add-flexible-report").click();
         expect(top('#flexible-report-list [data-report-field="cashTips"]'))
-            .toBeGreaterThan(top('#flexible-report-list [data-report-field="ccTips"]'));
+            .toBe(top('#flexible-report-list [data-report-field="ccTips"]'));
         expect(top('#flexible-report-list [data-report-field="autoGratuity"]'))
             .toBeGreaterThan(top('#flexible-report-list [data-report-field="cashTips"]'));
         expect(top('#flexible-report-list [data-report-field="tipOutReceived"]'))
@@ -319,13 +314,13 @@ describe("New shift layout", () => {
         expect(top("#break-card-title")).toBeGreaterThan(top("#shift-clock-out"));
         element("#add-flexible-report").click();
         expect(top('#flexible-report-list [data-report-field="foodSales"]'))
-            .toBeGreaterThan(top('#flexible-report-list [data-report-field="bawSales"]'));
+            .toBe(top('#flexible-report-list [data-report-field="bawSales"]'));
         expect(top('#flexible-report-list [data-report-field="liquorSales"]'))
             .toBeGreaterThan(top('#flexible-report-list [data-report-field="foodSales"]'));
         expect(top('#flexible-report-list [data-report-field="naBevSales"]'))
-            .toBeGreaterThan(top('#flexible-report-list [data-report-field="liquorSales"]'));
+            .toBe(top('#flexible-report-list [data-report-field="liquorSales"]'));
         expect(top('#flexible-report-list [data-report-field="tipsPaidOut"]'))
-            .toBeGreaterThan(top('#flexible-report-list [data-report-field="autoGratuity"]'));
+            .toBe(top('#flexible-report-list [data-report-field="autoGratuity"]'));
         expect(doc.documentElement.scrollWidth).toBeLessThanOrEqual(win.innerWidth);
     }));
 

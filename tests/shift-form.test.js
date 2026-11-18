@@ -539,7 +539,7 @@ describe("Guided and manual entry", () => {
         coverage.value = "reference";
         harness.fire(coverage, "change");
         expect(report.querySelector('[data-report-field="ccTips"]').disabled).toBe(false);
-        element("#guided-next").click();
+        report.querySelector("[data-report-next]").click();
         expect(element("#guided-question").textContent).toContain("Do you have notes");
     }));
 
@@ -664,7 +664,7 @@ describe("Guided and manual entry", () => {
         const foodSales = element('#flexible-report-list [data-report-field="foodSales"]');
         foodSales.value = "75";
         harness.fire(foodSales, "input");
-        element("#guided-next").click();
+        element("#flexible-report-list [data-report-next]").click();
         expect(element("#guided-question").textContent).toContain("Do you have notes");
         expect(element("#single-report-fields").hidden).toBe(true);
         advanceGuidedToReview(harness);
@@ -708,7 +708,7 @@ describe("Guided and manual entry", () => {
         report.querySelector('[data-report-field="coverage"]').value = "whole";
         report.querySelector('[data-report-field="foodSales"]').value = "125";
         report.querySelector('[data-report-field="noTips"]').checked = true;
-        element("#guided-next").click();
+        report.querySelector("[data-report-next]").click();
         advanceGuidedToReview(harness);
         expect(element("#guided-question").textContent).toContain("Edit your shift");
         expect(report.querySelector('[data-report-field="label"]').value).toBe("Combined closeout");
@@ -719,14 +719,14 @@ describe("Guided and manual entry", () => {
         expect(element("#review-shift").hidden).toBe(false);
     }));
 
-    test("report editor is visible when guided entry first reaches review", () => withApp((harness) => {
+    test("completed reports remain available when guided entry reaches review", () => withApp((harness) => {
         const { element } = harness;
         chooseMode(harness, "guided");
         advanceGuidedUntil(harness, "reports do you have");
         element("#add-flexible-report").click();
         const report = element("#flexible-report-list .double-report");
         report.querySelector('[data-report-field="label"]').value = "Evening";
-        element("#guided-next").click();
+        report.querySelector("[data-report-next]").click();
         advanceGuidedToReview(harness);
 
         expect(element("#guided-question").textContent).toContain("Edit your shift");

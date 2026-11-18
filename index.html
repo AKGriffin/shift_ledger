@@ -378,7 +378,7 @@
                         <section id="double-report-fields" data-guided-step data-guided-prompt="What reports do you have for this shift?" aria-labelledby="double-report-heading">
                             <h3 id="double-report-heading">Reports</h3>
                             <div id="flexible-reports">
-                                <p>Add any separate reports, one whole-shift report, or reference-only reports. Reports are independent of worked-period labels.</p>
+                                <p>Enter numbers from your POS checkout slip.</p>
                                 <div id="flexible-report-list" class="double-report-list"></div>
                                 <button type="button" class="secondary-button" id="add-flexible-report">+ Add report</button>
                                 <p id="flexible-report-summary" role="status"></p>
@@ -432,10 +432,15 @@
                             <p>You can save it now and fill in the details later, or go back and add more information.</p>
                         </div>
                         <div id="shift-review-card"></div>
+                        <section aria-labelledby="report-breakdown-heading">
+                            <h3 id="report-breakdown-heading">How this was calculated</h3>
+                            <ul id="review-report-breakdown" class="review-report-breakdown"></ul>
+                        </section>
                         <div class="form-actions">
-                            <button type="button" id="edit-shift" class="secondary-button">Edit</button>
-                            <button type="button" id="save-incomplete-shift" class="secondary-button" hidden>Save incomplete</button>
                             <button type="submit" id="save-shift" class="primary-button">Save shift</button>
+                            <button type="button" id="review-add-report" class="secondary-button">+ Add Another Report</button>
+                            <button type="button" id="edit-shift" class="secondary-button">Edit shift</button>
+                            <button type="button" id="save-incomplete-shift" class="secondary-button" hidden>Save incomplete</button>
                             <button type="button" id="cancel-review" class="ghost-button">Cancel</button>
                         </div>
                     </section>
@@ -445,21 +450,19 @@
             <section id="previous-shifts" class="view is-hidden">
                 <header class="history-page-heading view-header">
                     <div class="view-heading">
-                        <p class="eyebrow">Your work</p>
-                        <h1>Shifts</h1>
-                        <p>Add a new shift or review and filter your saved shifts.</p>
+                        <div class="history-title-row">
+                            <h1>Shifts</h1>
+                            <span id="history-status" class="history-status" role="status" aria-live="polite"></span>
+                            <button type="button" id="open-history-filters" class="secondary-button"
+                                aria-haspopup="dialog" aria-controls="history-filter-dialog" aria-expanded="false">
+                                Sort &amp; filter <span id="active-filter-count" class="filter-count" hidden></span>
+                            </button>
+                        </div>
                     </div>
                     <div class="view-header-actions">
                         <button type="button" id="open-new-shift" class="primary-button" data-view="new-shift">＋ New shift</button>
                     </div>
                 </header>
-                <div class="history-toolbar">
-                    <p id="history-status" class="history-status" role="status" aria-live="polite"></p>
-                    <button type="button" id="open-history-filters" class="secondary-button"
-                        aria-haspopup="dialog" aria-controls="history-filter-dialog" aria-expanded="false">
-                        Sort &amp; filter <span id="active-filter-count" class="filter-count" hidden></span>
-                    </button>
-                </div>
                 <ul id="active-filters" class="active-filters" aria-label="Active filters" hidden></ul>
                 <dialog id="history-filter-dialog" class="history-filter-dialog" aria-labelledby="history-filter-title">
                     <div class="filter-dialog-header">
@@ -982,19 +985,19 @@
 
         <nav class="mobile-bottom-nav" aria-label="Quick navigation">
             <button type="button" class="mobile-bottom-nav-button" data-view="dashboard">
-                <span aria-hidden="true">⌂</span>
+                <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V21H3z"></path><path class="nav-icon-detail" d="M9 21v-7h6v7"></path></svg>
                 <small>Dashboard</small>
             </button>
             <button type="button" class="mobile-bottom-nav-button" data-view="previous-shifts">
-                <span aria-hidden="true">≡</span>
+                <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path class="nav-icon-detail" d="M7 3v4m10-4v4M3 10h18"></path></svg>
                 <small>Shifts</small>
             </button>
             <button type="button" class="mobile-bottom-nav-button" data-view="paystubs">
-                <span aria-hidden="true">$</span>
+                <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18l-3-2-4 2-4-2-3 2z"></path><path class="nav-icon-detail" d="M9 8h6M9 12h6M9 16h4"></path></svg>
                 <small>Paystubs</small>
             </button>
             <button type="button" class="mobile-bottom-nav-button" data-view="settings">
-                <span aria-hidden="true">⚙</span>
+                <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 3 5 0 .6 2.4 2 .8 2.1-1.2 2.5 4.3-1.8 1.7v2l1.8 1.7-2.5 4.3-2.1-1.2-2 .8-.6 2.4h-5l-.6-2.4-2-.8-2.1 1.2-2.5-4.3L4.1 13v-2L2.3 9.3l2.5-4.3 2.1 1.2 2-.8z"></path><circle class="nav-icon-detail" cx="12" cy="12" r="3"></circle></svg>
                 <small>Settings</small>
             </button>
         </nav>
@@ -1014,11 +1017,10 @@
                 </span>
             </span>
             <span class="shift-summary-metrics">
-                <span class="summary-metric"><small>Hours</small><strong class="summary-hours"></strong></span>
-                <span class="summary-metric"><small>Sales</small><strong class="summary-sales"></strong></span>
-                <span class="summary-metric"><small>Net tips</small><strong class="summary-tips"></strong></span>
+                <span class="summary-metric"><small>Hours</small><strong class="summary-hours"></strong><span class="summary-hourly"></span></span>
+                <span class="summary-metric"><small>Sales</small><strong class="summary-sales"></strong><span class="summary-tip-percent"></span></span>
             </span>
-            <span class="summary-chevron" aria-hidden="true">&#8250;</span>
+            <span class="summary-primary"><span class="summary-primary-tip"><small>Net tips</small><strong class="summary-tips"></strong></span><span class="summary-chevron" aria-hidden="true">&#8250;</span></span>
         </button>
         <dialog class="history-filter-dialog shift-detail-dialog" aria-label="Shift details">
         <article class="shift-card">
@@ -1112,37 +1114,22 @@
                 <div class="report-details-grid">
                     <section class="report-data-group" role="group" aria-label="Tips" data-role-capability="tipReport">
                         <h4>Tips</h4>
-                        <div class="report-field-subgroup" data-role-capability="receivesTips">
-                            <h5>Earned</h5>
-                            <div class="report-field-grid">
-                                <label class="field"><span>CC tips</span><input type="number" min="0" step="0.01" value="0" data-report-field="ccTips"></label>
-                                <label class="field"><span>Cash tips</span><input type="number" min="0" step="0.01" value="0" data-report-field="cashTips"></label>
-                                <label class="field"><span>Auto-gratuity</span><input type="number" min="0" step="0.01" value="0" data-report-field="autoGratuity"></label>
-                            </div>
-                        </div>
-                        <div class="report-field-subgroup" data-role-capability="tipOut">
-                            <h5>Tip out</h5>
-                            <div class="report-field-grid">
-                                <label class="field" data-role-capability="tipsOut"><span>Tips paid out</span><input type="number" min="0" step="0.01" value="0" data-report-field="tipsPaidOut"></label>
-                                <label class="field" data-role-capability="receivesTipOut"><span>Tip out received</span><input type="number" min="0" step="0.01" value="0" data-report-field="tipOutReceived"></label>
-                            </div>
+                        <div class="report-field-grid">
+                            <label class="field" data-role-capability="receivesTips"><span>CC tips</span><input type="number" min="0" step="0.01" value="0" data-report-field="ccTips"></label>
+                            <label class="field" data-role-capability="receivesTips"><span>Cash tips</span><input type="number" min="0" step="0.01" value="0" data-report-field="cashTips"></label>
+                            <label class="field" data-role-capability="receivesTips"><span>Auto-gratuity</span><input type="number" min="0" step="0.01" value="0" data-report-field="autoGratuity"></label>
+                            <label class="field" data-role-capability="tipsOut"><span>Tip out</span><input type="number" min="0" step="0.01" value="0" data-report-field="tipsPaidOut"></label>
+                            <label class="field" data-role-capability="receivesTipOut"><span>Tip out received</span><input type="number" min="0" step="0.01" value="0" data-report-field="tipOutReceived"></label>
                         </div>
                     </section>
                     <section class="report-data-group" role="group" aria-label="Sales" data-role-capability="tracksSales">
                         <h4>Sales</h4>
-                        <div class="report-field-subgroup">
-                            <div class="report-field-grid">
+                        <div class="report-field-grid">
                                 <label class="field"><span>Beer &amp; wine</span><input type="number" min="0" step="0.01" value="0" data-report-field="bawSales"></label>
                                 <label class="field"><span>Food</span><input type="number" min="0" step="0.01" value="0" data-report-field="foodSales"></label>
                                 <label class="field"><span>Liquor</span><input type="number" min="0" step="0.01" value="0" data-report-field="liquorSales"></label>
                                 <label class="field"><span>NA beverage</span><input type="number" min="0" step="0.01" value="0" data-report-field="naBevSales"></label>
-                            </div>
-                        </div>
-                        <div class="report-field-subgroup">
-                            <h5>Additional sales</h5>
-                            <div class="report-field-grid">
                                 <label class="field"><span>Additional</span><input type="number" min="0" step="0.01" value="0" data-report-field="additionalSales"></label>
-                            </div>
                         </div>
                     </section>
                 </div>

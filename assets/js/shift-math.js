@@ -19,7 +19,7 @@
                 throw new Error("A shift can have only one whole-shift report.");
             }
             if (whole.length === 1 && (!missingFlag || whole[0][missingFlag] !== true || whole[0].strictWhole === true)) {
-                return whole;
+                return [...whole, ...shift.reports.filter((report) => report.coverage === "part" && report.afterWhole === true)];
             }
             return shift.reports.filter((report) => report.coverage === "part");
         }
@@ -199,7 +199,8 @@
 
         function inferGenericReport(reports) {
             const whole = reports.filter((report) => report.coverage === "whole");
-            const parts = reports.filter((report) => report.coverage === "part");
+            const parts = reports.filter((report) => report.coverage === "part"
+                && (whole.length === 0 || report.afterWhole !== true));
             if (whole.length > 1) {
                 throw new Error("A shift can have only one whole-shift report.");
             }
