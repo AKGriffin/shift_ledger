@@ -219,13 +219,15 @@ function createHarness(frame, consoleErrors) {
 
     const openView = (name, { entryMode = "manual" } = {}) => {
         element(name === "new-shift" ? "#open-new-shift" : `.main-nav [data-view="${name}"]`).click();
-        const chooser = entryMode && name === "new-shift" && doc.getElementById(`choose-${entryMode}`);
-        if (chooser
-            && !doc.getElementById("entry-mode-chooser").hidden
-            && !doc.getElementById("shift-draft-dialog").open) {
-            chooser.click();
+        // New entry always starts guided; "manual" jumps straight to the edit phase for form-level tests.
+        if (entryMode === "manual"
+            && name === "new-shift"
+            && !doc.getElementById("shift-draft-dialog").open
+            && !state_hasEditingShift()) {
+            win.setEntryMode("manual");
         }
     };
+    const state_hasEditingShift = () => doc.getElementById("form-title").textContent !== "New Shift";
     const fillForm = (values) => {
         Object.entries(values).forEach(([key, value]) => {
             const id = FIELD_IDS[key];

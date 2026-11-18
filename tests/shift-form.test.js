@@ -121,8 +121,7 @@ describe("Guided and manual entry", () => {
     const activeGuidedQuestion = (harness) => harness.element("#shift-entry-fields .guided-step-question");
 
     function chooseMode(harness, mode) {
-        harness.openView("new-shift", { entryMode: null });
-        harness.element(`#choose-${mode}`).click();
+        harness.openView("new-shift", { entryMode: mode });
     }
 
     function answerGuidedStep(harness) {
@@ -248,6 +247,18 @@ describe("Guided and manual entry", () => {
         expect(harness.element("#guided-question").textContent).not.toContain("lunch, dinner, or double");
     }));
 
+    test("suggests previously used custom labels without duplicates", () => withApp({
+        shifts: [makeShift({ mealPeriod: "Other", shiftLabel: "Banquet" }), makeShift({ mealPeriod: "Other", shiftLabel: "banquet" })],
+    }, (harness) => {
+        chooseMode(harness, "manual");
+        harness.change("#shift-meal-period", "Other");
+        const values = harness.elements("#shift-label-suggestions option").map((option) => option.value);
+        expect(harness.element("#shift-other-label").getAttribute("list")).toBe("shift-label-suggestions");
+        expect(values[0]).toBe("Banquet");
+        expect(values.filter((value) => value.toLowerCase() === "banquet")).toHaveLength(1);
+        expect(values).toContain("Brunch");
+    }));
+
     test("saves and restores a custom single-shift label", () => withApp((harness) => {
         harness.openView("new-shift");
         harness.fillForm({ date: "2026-10-23", mealPeriod: "Other", clockIn: "22:00", clockOut: "06:00" });
@@ -262,43 +273,26 @@ describe("Guided and manual entry", () => {
         expect(harness.element("#shift-other-label").value).toBe("Overnight");
     }));
 
-    test("asks for an entry mode each time and offers Cancel before entry starts", () => withApp({
+    test("new entry starts with the guided questions and offers Cancel", () => withApp({
         width: 390,
         height: 800,
     }, async ({ element, openView, win, doc, respondToConfirmDialog }) => {
         openView("new-shift", { entryMode: null });
         expect(doc.querySelector("#clear-form")).toBe(null);
+        expect(doc.querySelector("#entry-mode-chooser")).toBe(null);
         expect(doc.querySelector("#switch-entry-mode")).toBe(null);
-        expect(element("#entry-mode-chooser").hidden).toBe(false);
-        expect(element("#shift-entry-fields").hidden).toBe(true);
-        expect(element("#review-shift").hidden).toBe(false);
-        expect(element("#form-actions").hidden).toBe(true);
-        expect(element("#close-entry-mode").hidden).toBe(false);
-        const chooserBounds = element("#entry-mode-chooser").getBoundingClientRect();
-        expect(chooserBounds.bottom <= win.innerHeight).toBe(true);
-        expect(win.innerHeight - chooserBounds.bottom < 40).toBe(true);
+        expect(element("#shift-entry-fields").hidden).toBe(false);
+        expect(element("#guided-controls").hidden).toBe(false);
+        expect(element("#guided-progress").textContent).toContain("Step 1");
+        expect(element("#guided-cancel").hidden).toBe(false);
         expect(element("#new-shift .view-header").getBoundingClientRect().top < 100).toBe(true);
         expect(element(".mobile-bottom-nav").getBoundingClientRect().height).toBe(0);
 
-        element("#choose-manual").click();
-        expect(element("#entry-mode-chooser").hidden).toBe(true);
-        expect(element("#shift-entry-fields").hidden).toBe(false);
-        expect(element("#form-actions").hidden).toBe(false);
-        expect(element("#review-shift").hidden).toBe(false);
-        expect(element("#cancel-form").hidden).toBe(false);
-        expect(element("#shift-review").hidden).toBe(true);
-        expect(element("#guided-cancel").hidden).toBe(true);
-
-        element("#cancel-form").click();
+        element("#guided-cancel").click();
         await respondToConfirmDialog(true);
         expect(element("#new-shift").classList.contains("is-visible")).toBe(false);
         expect(element("#previous-shifts").classList.contains("is-visible")
             || element("#dashboard").classList.contains("is-visible")).toBe(true);
-
-        openView("new-shift", { entryMode: null });
-        element("#close-entry-mode").click();
-        expect(element("#new-shift").classList.contains("is-visible")).toBe(false);
-        expect(element("#dashboard").classList.contains("is-visible")).toBe(true);
     }));
 
     test("manual entry uses the same Edit screen as guided once the role is chosen", () => withApp((harness) => {
@@ -566,19 +560,16 @@ describe("Guided and manual entry", () => {
         element("#guided-cancel").click();
         await harness.respondToConfirmDialog(true);
         expect(element("#new-shift").classList.contains("is-visible")).toBe(false);
-        expect(element("#entry-mode-chooser").hidden).toBe(false);
         expect(element("#shift-entry-fields").hidden).toBe(true);
         expect(element("#shift-date").value).toBe("");
         expect(element("#guided-controls").hidden).toBe(true);
     }));
 
-    test("Back on the first guided step returns to the entry mode choice", () => withApp((harness) => {
+    test("Back on the first guided step leaves entry without a prompt when nothing was entered", () => withApp((harness) => {
         const { element } = harness;
         chooseMode(harness, "guided");
         element("#guided-back").click();
-        expect(element("#new-shift").classList.contains("is-visible")).toBe(true);
-        expect(element("#entry-mode-chooser").hidden).toBe(false);
-        expect(element("#guided-controls").hidden).toBe(true);
+        expect(element("#new-shift").classList.contains("is-visible")).toBe(false);
     }));
 
     test("guided notes ask yes or no first and review as no when blank", () => withApp((harness) => {
@@ -762,7 +753,7 @@ describe("Guided and manual entry", () => {
         expect(savedShifts()).toHaveLength(0);
     }));
 
-    test("back gesture steps back through guided questions without leaving or discarding", () => withApp((harness) => {
+    test("back gesture steps back through guided questions without leaving or discarding", () => withApp(async (harness) => {
         const { element, win } = harness;
         const back = () => win.dispatchEvent(new win.PopStateEvent("popstate", { state: { shiftLedgerView: "new-shift" } }));
         chooseMode(harness, "guided");
@@ -778,8 +769,10 @@ describe("Guided and manual entry", () => {
         expect(win.history.state.shiftLedgerEntryGuard).toBe(true);
 
         back();
-        expect(element("#entry-mode-chooser").hidden).toBe(false);
+        await harness.respondToConfirmDialog(false);
+        expect(element("#guided-progress").textContent).toContain("Step 1 of");
         expect(element("#new-shift").classList.contains("is-visible")).toBe(true);
+        expect(element("#shift-date").value).toBe("2026-10-20");
     }));
 
     test("back gesture on the review step returns to the edit step", () => withApp((harness) => {
@@ -904,8 +897,7 @@ describe("Guided and manual entry", () => {
         element(".main-nav [data-view=\"previous-shifts\"]").click();
         element(".edit-shift").click();
 
-        expect(element("#entry-mode-chooser").hidden).toBe(true);
-        expect(doc.querySelector("#entry-mode-bar")).toBe(null);
+        expect(doc.querySelector("#entry-mode-chooser")).toBe(null);
         expect(element("#shift-entry-fields").hidden).toBe(false);
     }));
 });

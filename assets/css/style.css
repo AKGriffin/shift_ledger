@@ -1414,7 +1414,6 @@ form {
 #form-actions[hidden],
 #guided-controls[hidden],
 #guided-buttons[hidden],
-#entry-mode-chooser[hidden],
 #save-shift[hidden],
 #guided-next[hidden],
 #guided-break-question[hidden],
@@ -1429,46 +1428,6 @@ form {
 [data-report-inputs="sales"][hidden],
 .guided-off {
     display: none !important;
-}
-
-.entry-mode-chooser h2 {
-    margin: 0 0 12px;
-    font-size: 1.1rem;
-}
-
-.entry-mode-options {
-    display: grid;
-    gap: 12px;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-}
-
-.entry-mode-option {
-    display: grid;
-    gap: 4px;
-    padding: 16px;
-    border: 1px solid var(--border, currentColor);
-    border-radius: 12px;
-    background: transparent;
-    color: inherit;
-    font: inherit;
-    text-align: left;
-    cursor: pointer;
-    min-height: 44px;
-}
-
-:root[data-style="minimalist"] .entry-mode-option {
-    border: 2px solid var(--entry-option-border);
-    background: var(--entry-option-background);
-}
-
-:root[data-style="minimalist"] .entry-mode-option:hover,
-:root[data-style="minimalist"] .entry-mode-option:focus-visible {
-    border-color: var(--primary);
-}
-
-:root[data-style="minimalist"] #close-entry-mode {
-    border-color: var(--entry-option-border);
-    background: var(--entry-option-background);
 }
 
 .guided-controls {
@@ -1657,7 +1616,6 @@ form {
     gap: 16px;
 }
 
-#entry-mode-chooser,
 .shift-form:not(.is-guided) #shift-entry-fields,
 .shift-form.is-guided:not(.is-guided-review) #guided-controls {
     margin-top: auto;
@@ -2636,12 +2594,6 @@ main:focus,
 
     .view {
         padding-top: 8px;
-    }
-
-    #entry-mode-chooser {
-        display: grid;
-        gap: 12px;
-        padding-bottom: 12px;
     }
 
     .mobile-bottom-nav {

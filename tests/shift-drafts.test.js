@@ -64,19 +64,19 @@ describe("Unfinished shift drafts", () => {
         harness.element("#resume-shift-draft").click();
 
         expect(harness.element("#shift-draft-dialog").open).toBe(false);
-        expect(harness.element("#entry-mode-chooser").hidden).toBe(true);
+        expect(harness.doc.querySelector("#entry-mode-chooser")).toBe(null);
         expect(harness.element("#shift-date").value).toBe("2026-10-28");
         expect(harness.savedDraft().values["id:shift-date"]).toBe("2026-10-28");
     }));
 
-    test("discard removes the draft and starts with an empty mode chooser", () => withApp((harness) => {
+    test("discard removes the draft and restarts the guided questions empty", () => withApp((harness) => {
         createDraft(harness);
         reopenDraftPrompt(harness);
         harness.element("#discard-shift-draft").click();
 
         expect(harness.element("#shift-draft-dialog").open).toBe(false);
         expect(harness.savedDraft()).toBeNull();
-        expect(harness.element("#entry-mode-chooser").hidden).toBe(false);
+        expect(harness.element("#guided-progress").textContent).toContain("Step 1");
         expect(harness.element("#shift-date").value).toBe("");
     }));
 

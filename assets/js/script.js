@@ -89,7 +89,6 @@ const form = document.getElementById("shift-form");
 const formTitle = document.getElementById("form-title");
 const cancelFormButton = document.getElementById("cancel-form");
 const guidedCancelButton = document.getElementById("guided-cancel");
-const closeEntryModeButton = document.getElementById("close-entry-mode");
 const shiftList = document.getElementById("shift-list");
 const sortBySelect = document.getElementById("sort-by");
 const filterJobSelect = document.getElementById("filter-job");
@@ -438,9 +437,6 @@ function bindEvents() {
     form.addEventListener("change", markShiftFormDirty);
     form.addEventListener("input", updateShiftFormProgression);
     form.addEventListener("change", updateShiftFormProgression);
-    document.getElementById("choose-guided").addEventListener("click", () => setEntryMode("guided"));
-    document.getElementById("choose-manual").addEventListener("click", () => setEntryMode("manual"));
-    closeEntryModeButton.addEventListener("click", closeNewShiftEntry);
     document.getElementById("guided-back").addEventListener("click", () => moveGuidedStep(-1));
     document.getElementById("guided-next").addEventListener("click", () => moveGuidedStep(1));
     cancelFormButton.addEventListener("click", cancelShiftEntry);
@@ -734,6 +730,9 @@ function showView(viewName, { historyAction = "push" } = {}) {
     });
 
     if (viewChanged && viewName === "new-shift" && state.editingShiftId === null) {
+        if (!entryMode) {
+            setEntryMode("guided");
+        }
         promptToResumeShiftDraft();
     }
 }
@@ -1493,7 +1492,6 @@ function renderEntryMode() {
     const guided = chosen === "guided";
     const reviewing = shiftReviewing && Boolean(chosen);
     const container = document.getElementById("shift-entry-fields");
-    document.getElementById("entry-mode-chooser").hidden = Boolean(chosen);
     container.hidden = reviewing || (!chosen && !editing);
     document.getElementById("shift-review").hidden = !reviewing;
     form.classList.toggle("is-guided", Boolean(chosen));
@@ -1875,7 +1873,7 @@ function discardShiftDraft() {
     shiftDraftPromptOpen = false;
     document.getElementById("shift-draft-dialog").close();
     resetForm();
-    document.getElementById("entry-mode-title").focus({ preventScroll: true });
+    setEntryMode("guided");
 }
 
 function dismissShiftDraft() {
@@ -1897,10 +1895,6 @@ function leaveShiftEntry() {
     if (unwind) {
         window.history.go(-unwind);
     }
-}
-
-function closeNewShiftEntry() {
-    leaveShiftEntry();
 }
 
 function cancelShiftEntry() {
@@ -1925,10 +1919,12 @@ function moveGuidedStep(direction) {
         current = Math.min(guidedStep.index, steps.length);
     }
     if (direction < 0 && current === 0) {
-        resetForm();
-        const chooserTitle = document.getElementById("entry-mode-title");
-        chooserTitle.tabIndex = -1;
-        chooserTitle.focus({ preventScroll: true });
+        if (shiftFormDirty) {
+            cancelShiftEntry();
+        } else {
+            clearShiftDraft({ quiet: true });
+            leaveShiftEntry();
+        }
         return;
     }
     if (direction > 0 && current < steps.length) {
@@ -4742,12 +4738,32 @@ function capabilityForField(field, capabilities) {
     return true;
 }
 
+function updateShiftLabelSuggestions() {
+    const defaults = ["Brunch", "Overnight", "Late night", "Catering", "Event"];
+    const used = (state.shifts || []).map((shift) => shift.shiftLabel).filter(Boolean);
+    const seen = new Set();
+    const options = [...used, ...defaults].filter((label) => {
+        const key = label.toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+    document.getElementById("shift-label-suggestions").replaceChildren(...options.map((label) => {
+        const option = document.createElement("option");
+        option.value = label;
+        return option;
+    }));
+}
+
 function updateMealPeriodFields() {
     const isDouble = fields.mealPeriod.value === "Double";
     const capabilities = selectedRoleCapabilities();
     const hasTipFields = capabilities.receivesTips || capabilities.tipsOut || capabilities.receivesTipOut;
     const hasReports = capabilities.tracksSales || hasTipFields;
     document.getElementById("shift-other-label-control").hidden = fields.mealPeriod.value !== "Other";
+    if (fields.mealPeriod.value === "Other") {
+        updateShiftLabelSuggestions();
+    }
     document.querySelectorAll("[data-role-capability]").forEach((element) => {
         const capability = element.dataset.roleCapability;
         const enabled = capability === "tipReport"

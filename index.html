@@ -155,20 +155,6 @@
                 </header>
 
                 <form id="shift-form" class="shift-form" novalidate>
-                    <section id="entry-mode-chooser" class="entry-mode-chooser" aria-labelledby="entry-mode-title">
-                        <h2 id="entry-mode-title">How do you want to enter this shift?</h2>
-                        <div class="entry-mode-options">
-                            <button type="button" id="choose-guided" class="entry-mode-option">
-                                <strong>Guided</strong>
-                                <span>One question at a time, with Back and Next.</span>
-                            </button>
-                            <button type="button" id="choose-manual" class="entry-mode-option">
-                                <strong>Manual</strong>
-                                <span>Every field for your workplace and role on one page.</span>
-                            </button>
-                        </div>
-                        <button type="button" id="close-entry-mode" class="ghost-button">Cancel</button>
-                    </section>
                     <div id="guided-controls" class="guided-controls" hidden>
                         <p id="guided-progress" aria-live="polite"></p>
                         <p id="guided-question" class="guided-question" tabindex="-1"></p>
@@ -227,7 +213,8 @@
                                     </label>
                                     <label class="field" id="shift-other-label-control" hidden>
                                         <span>Shift label (optional)</span>
-                                        <input type="text" id="shift-other-label" placeholder="e.g. Brunch">
+                                        <input type="text" id="shift-other-label" list="shift-label-suggestions" autocomplete="off" placeholder="e.g. Brunch">
+                                        <datalist id="shift-label-suggestions"></datalist>
                                     </label>
                                     <label class="field" id="shift-job-field">
                                         <span>Job</span>
