@@ -64,6 +64,33 @@ describe("Settings page", () => {
 });
 
 describe("CSV export", () => {
+    test("exports single flexible reports as JSON while retaining legacy amount columns", () => withApp({
+        shifts: [makeShift({ foodSales: 125, reports: [
+            { id: "generic-1", label: "Dinner", coverage: "whole", strictWhole: true, foodSales: 125 },
+        ] })],
+    }, async ({ element, win, openView }) => {
+        let blob;
+        const create = win.URL.createObjectURL;
+        const click = win.HTMLAnchorElement.prototype.click;
+        win.URL.createObjectURL = (value) => { blob = value; return "blob:test"; };
+        win.HTMLAnchorElement.prototype.click = () => {};
+        try {
+            openView("settings");
+            element("#export-csv").click();
+            const [header, row] = (await blob.text()).split("\r\n").map((line) => (
+                [...line.matchAll(/"((?:[^"]|"")*)"/g)].map((match) => match[1].replace(/""/g, '"'))
+            ));
+            expect(row[header.indexOf("Food sales")]).toBe("125");
+            expect(row[header.indexOf("Dinner Food Sales")]).toBe("125");
+            const reports = JSON.parse(row[header.indexOf("Flexible reports (JSON)")]);
+            expect(reports[0].coverage).toBe("whole");
+            expect(reports[0].foodSales).toBe(125);
+        } finally {
+            win.URL.createObjectURL = create;
+            win.HTMLAnchorElement.prototype.click = click;
+        }
+    }));
+
     test("keeps migrated report details in their columns and flexible JSON", () => withApp({
         shifts: [makeShift({ mealPeriod: "Double", reports: {
             lunch: { foodSales: 100 },
@@ -353,6 +380,16 @@ describe("Data reliability", () => {
         })] }), false);
         expect(app.element("#form-status").textContent).toContain("multiple whole-shift reports");
         expect(app.savedShifts()).toHaveLength(1);
+        expect(app.savedShifts()[0].job).toBe("Existing");
+    }));
+
+    test("rejects invalid worked periods without replacing saved shifts", () => withApp({
+        shifts: [makeShift({ job: "Existing" })],
+        expectConsoleErrors: true,
+    }, async (app) => {
+        app.openView("settings");
+        await restore(app, JSON.stringify({ shifts: [makeShift({ workedPeriods: ["Lunch", 42] })] }), false);
+        expect(app.element("#form-status").textContent).toContain("invalid worked periods");
         expect(app.savedShifts()[0].job).toBe("Existing");
     }));
 

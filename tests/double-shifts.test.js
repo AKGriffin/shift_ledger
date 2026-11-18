@@ -2,34 +2,68 @@ import { describe, expect, test } from "./assert.js";
 import { makeShift, PRE_FLEXIBLE_REPORTS_STORAGE_KEY, SHIFT_STORAGE_KEY, withApp } from "./app-harness.js";
 
 describe("Single-shift report coverage", () => {
-    const check = ({ element, fire }, id) => {
-        const box = element(id);
+    const check = ({ fire }, box) => {
         box.checked = true;
         fire(box, "change");
     };
-    const markNoReport = (harness) => {
-        check(harness, "#shift-no-sales-report");
-        check(harness, "#shift-no-tips-report");
+    const addReport = (harness) => {
+        harness.element("#add-flexible-report").click();
+        return harness.element("#flexible-report-list").firstElementChild;
     };
 
-    test("lets a single shift be saved with no report and disables its amount fields", () => withApp((harness) => {
+    test("keeps two worked periods independent from a single whole-shift report", () => withApp((harness) => {
+        harness.openView("new-shift");
+        harness.fillForm({
+            date: "2026-10-23",
+            job: "Server",
+            clockIn: "16:00",
+            clockOut: "22:00",
+            workedPeriods: ["Lunch", "Dinner"],
+        });
+        const report = addReport(harness);
+        report.querySelector('[data-report-field="label"]').value = "Combined closeout";
+        report.querySelector('[data-report-field="coverage"]').value = "whole";
+        report.querySelector('[data-report-field="foodSales"]').value = "450";
+        harness.submitForm();
+
+        const [saved] = harness.savedShifts();
+        expect(saved.workedPeriods).toEqual(["Lunch", "Dinner"]);
+        expect(saved.mealPeriod).toBe("Double");
+        expect(saved.reports).toHaveLength(1);
+        expect(saved.reports[0].coverage).toBe("whole");
+        expect(saved.foodSales).toBe(450);
+        harness.openView("previous-shifts");
+        expect(harness.element(".card-meal").textContent).toBe("Lunch, Dinner");
+    }));
+
+    test("distinguishes no reports from a zero-valued report on a single shift", () => withApp((harness) => {
         const { fillForm, openView, submitForm, savedShifts } = harness;
         openView("new-shift");
-        fillForm({ date: "2026-10-23", mealPeriod: "Dinner", job: "Server", clockIn: "16:00", clockOut: "22:00", foodSales: 150 });
-        markNoReport(harness);
-        expect([...harness.elements("[data-report-inputs] input[type='number']")].every((input) => input.disabled)).toBe(true);
+        fillForm({ date: "2026-10-23", mealPeriod: "Dinner", job: "Server", clockIn: "16:00", clockOut: "22:00" });
         submitForm();
 
         const [saved] = savedShifts();
         expect(saved.noReport).toBe(true);
         expect(saved.foodSales).toBe(0);
+        expect(saved.reports).toEqual([]);
+
+        harness.openView("new-shift");
+        fillForm({ date: "2026-10-24", mealPeriod: "Dinner", job: "Server", clockIn: "16:00", clockOut: "22:00" });
+        const zero = addReport(harness);
+        zero.querySelector('[data-report-field="coverage"]').value = "whole";
+        submitForm();
+        expect(savedShifts()[1].reports).toHaveLength(1);
+        expect(savedShifts()[1].reports[0].foodSales).toBe(0);
+        expect(savedShifts()[1].noReport).toBeUndefined();
     }));
 
     test("saves a shift with tips but no sales report", () => withApp((harness) => {
         const { fillForm, openView, submitForm, savedShifts } = harness;
         openView("new-shift");
-        fillForm({ date: "2026-10-23", mealPeriod: "Dinner", job: "Server", clockIn: "16:00", clockOut: "22:00", foodSales: 150, ccTips: 30 });
-        check(harness, "#shift-no-sales-report");
+        fillForm({ date: "2026-10-23", mealPeriod: "Dinner", job: "Server", clockIn: "16:00", clockOut: "22:00" });
+        const report = addReport(harness);
+        check(harness, report.querySelector('[data-report-field="noSales"]'));
+        report.querySelector('[data-report-field="ccTips"]').value = "30";
         submitForm();
 
         const [saved] = savedShifts();
@@ -37,13 +71,18 @@ describe("Single-shift report coverage", () => {
         expect(saved.noReport).toBeUndefined();
         expect(saved.foodSales).toBe(0);
         expect(saved.ccTips).toBe(30);
+        expect(saved.reports[0].noSales).toBe(true);
+        expect(saved.reports[0].noTips).toBeUndefined();
     }));
 
     test("saves a shift with sales but no tip report", () => withApp((harness) => {
         const { fillForm, openView, submitForm, savedShifts } = harness;
         openView("new-shift");
-        fillForm({ date: "2026-10-23", mealPeriod: "Dinner", job: "Server", clockIn: "16:00", clockOut: "22:00", foodSales: 150, ccTips: 30 });
-        check(harness, "#shift-no-tips-report");
+        fillForm({ date: "2026-10-23", mealPeriod: "Dinner", job: "Server", clockIn: "16:00", clockOut: "22:00" });
+        const report = addReport(harness);
+        check(harness, report.querySelector('[data-report-field="noTips"]'));
+        report.querySelector('[data-report-field="foodSales"]').value = "150";
+        report.querySelector('[data-report-field="ccTips"]').value = "30";
         submitForm();
 
         const [saved] = savedShifts();
@@ -76,19 +115,19 @@ describe("Single-shift report coverage", () => {
         expect(reported.querySelector(".card-report-status").hidden).toBe(true);
     }));
 
-    test("restores the no-report choices when editing and resets after cancelling", () => withApp({
+    test("restores per-report availability when editing and resets after cancelling", () => withApp({
         shifts: [makeShift({ noTips: true })],
     }, async ({ element, openView, respondToConfirmDialog }) => {
         openView("previous-shifts");
         element(".edit-shift").click();
-        expect(element("#shift-no-tips-report").checked).toBe(true);
-        expect(element("#shift-no-sales-report").checked).toBe(false);
+        expect(element('#flexible-report-list [data-report-field="noTips"]').checked).toBe(true);
+        expect(element('#flexible-report-list [data-report-field="noSales"]').checked).toBe(false);
 
         element("#cancel-form").click();
         await respondToConfirmDialog(true);
         openView("new-shift");
         expect(element("#shift-no-tips-report").checked).toBe(false);
-        expect([...element("#single-report-fields").querySelectorAll("input")].every((input) => !input.disabled)).toBe(true);
+        expect(element("#flexible-report-list").children).toHaveLength(0);
     }));
 
     test("hides the no-report choices for doubles", () => withApp(({ element, fire, openView }) => {
@@ -122,6 +161,105 @@ describe("Single-shift report coverage", () => {
 });
 
 describe("Legacy double-report migration", () => {
+    test("migrates legacy singles while preserving zero, absent amounts, missing flags, and editable totals", () => {
+        const missing = makeShift({ id: 401, foodSales: 0, ccTips: 25 });
+        delete missing.bawSales;
+        const noSales = makeShift({ id: 402, noSales: true, foodSales: 90, ccTips: 30 });
+        const original = [missing, noSales];
+        return withApp({ shifts: original }, (harness) => {
+            const [zero, unavailable] = harness.savedShifts();
+            expect(JSON.parse(localStorage.getItem(PRE_FLEXIBLE_REPORTS_STORAGE_KEY))).toEqual(original);
+            expect(zero.reports).toHaveLength(1);
+            expect(zero.reports[0].coverage).toBe("whole");
+            expect(zero.reports[0].strictWhole).toBe(true);
+            expect(zero.reports[0].foodSales).toBe(0);
+            expect(Object.hasOwn(zero.reports[0], "bawSales")).toBe(false);
+            expect(unavailable.reports[0].noSales).toBe(true);
+            expect(unavailable.noSales).toBe(true);
+            expect(unavailable.reports[0].ccTips).toBe(30);
+
+            harness.openView("previous-shifts");
+            const zeroCard = harness.element('.shift-card[data-shift-id="401"]');
+            const missingCard = harness.element('.shift-card[data-shift-id="402"]');
+            expect(zeroCard.querySelector(".card-sales").textContent).toBe("$0.00");
+            expect(missingCard.querySelector(".card-sales").textContent).toBe("No report");
+            zeroCard.querySelector(".edit-shift").click();
+            harness.submitForm();
+            expect(Object.hasOwn(harness.savedShifts()[0].reports[0], "bawSales")).toBe(false);
+            expect(harness.savedShifts()[0].reports[0].foodSales).toBe(0);
+        });
+    });
+
+    test("edits imported multi-report singles without collapsing their flexible reports", () => withApp(async (harness) => {
+        const reports = [
+            { id: "generic-1", label: "Breakfast", coverage: "part", foodSales: 20 },
+            { id: "generic-2", label: "All day", coverage: "whole", foodSales: 100 },
+            { id: "generic-3", label: "Register copy", coverage: "reference", foodSales: 120 },
+        ];
+        harness.openView("settings");
+        const input = harness.element("#backup-file");
+        const transfer = new harness.win.DataTransfer();
+        transfer.items.add(new harness.win.File([JSON.stringify([
+            makeShift({ id: 403, reports }),
+        ])], "multi-report-single.json", { type: "application/json" }));
+        input.files = transfer.files;
+        harness.fire(input, "change");
+        await harness.respondToConfirmDialog(true);
+
+        expect(harness.savedShifts()[0].reports.map((report) => report.coverage))
+            .toEqual(["part", "whole", "reference"]);
+        expect(harness.savedShifts()[0].foodSales).toBe(100);
+        harness.openView("previous-shifts");
+        harness.element(".edit-shift").click();
+        const reportAmount = harness.element('#flexible-report-list [data-report-field="foodSales"]');
+        expect(reportAmount.value).toBe("20.00");
+        harness.submitForm();
+        const edited = harness.savedShifts()[0];
+        expect(edited.reports.map((report) => report.coverage))
+            .toEqual(["part", "whole", "reference"]);
+        expect(harness.savedShifts()[0].reports).toHaveLength(3);
+    }));
+
+    test("imports legacy singles as whole reports without turning missing amounts into zero", () => withApp(async (harness) => {
+        const legacy = makeShift({ id: 404, foodSales: 0 });
+        delete legacy.bawSales;
+        harness.openView("settings");
+        const input = harness.element("#backup-file");
+        const transfer = new harness.win.DataTransfer();
+        transfer.items.add(new harness.win.File([JSON.stringify([legacy])], "legacy-single.json", {
+            type: "application/json",
+        }));
+        input.files = transfer.files;
+        harness.fire(input, "change");
+        await harness.respondToConfirmDialog(true);
+
+        const [restored] = harness.savedShifts();
+        expect(restored.reports).toHaveLength(1);
+        expect(restored.reports[0].coverage).toBe("whole");
+        expect(restored.reports[0].foodSales).toBe(0);
+        expect(Object.hasOwn(restored.reports[0], "bawSales")).toBe(false);
+    }));
+
+    test("does not replace legacy single data when its migration backup cannot be written", () => withApp({
+        expectConsoleErrors: true,
+    }, (harness) => {
+        const raw = JSON.stringify([makeShift({ foodSales: 75 })]);
+        localStorage.setItem(SHIFT_STORAGE_KEY, raw);
+        const storage = harness.win.Storage.prototype;
+        const original = storage.setItem;
+        storage.setItem = function failBackup(key, value) {
+            if (key === PRE_FLEXIBLE_REPORTS_STORAGE_KEY) throw new Error("Storage unavailable");
+            return original.call(this, key, value);
+        };
+        try {
+            harness.win.eval("loadShifts()");
+            expect(harness.win.eval("shiftStorageWriteBlocked")).toBe(true);
+            expect(localStorage.getItem(SHIFT_STORAGE_KEY)).toBe(raw);
+        } finally {
+            storage.setItem = original;
+        }
+    }));
+
     test("preserves disagreeing whole reports and part totals through editing", () => {
         const original = [makeShift({ mealPeriod: "Double", reports: {
             lunch: { foodSales: 100, ccTips: 20 },

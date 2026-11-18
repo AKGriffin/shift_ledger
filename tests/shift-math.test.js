@@ -32,6 +32,25 @@ describe("report coverage", () => {
         expect(getFinancialBreakdown(shift).foodSales).toBe(0);
     });
 
+    test("treats a flexible reports array as authoritative over legacy top-level flags and totals", () => {
+        const reported = {
+            mealPeriod: "Dinner",
+            reports: [{ id: "generic-1", label: "Dinner", coverage: "whole", foodSales: 0, ccTips: 12 }],
+            noReport: true,
+            foodSales: 99,
+            ccTips: 99,
+        };
+        expect(hasReport(reported)).toBe(true);
+        expect(hasSalesReport(reported)).toBe(true);
+        expect(hasTipReport(reported)).toBe(true);
+        expect(getSalesTotal(reported)).toBe(0);
+        expect(getNetTips(reported)).toBe(12);
+
+        const noReports = { mealPeriod: "Dinner", reports: [], foodSales: 99 };
+        expect(hasReport(noReports)).toBe(false);
+        expect(getSalesTotal(noReports)).toBe(0);
+    });
+
     test("tells a zero-value report apart from no report on doubles", () => {
         const zero = { lunch: { foodSales: 0 }, dinner: null, whole: null };
         expect(hasReport({ mealPeriod: "Double", reports: zero })).toBe(true);

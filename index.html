@@ -197,25 +197,22 @@
 
                     <div id="shift-details" class="shift-form-details progressive-section" hidden>
                         <div class="form-context-grid">
-                            <fieldset data-guided-step data-guided-prompt="Was this a lunch, dinner, or double shift, or another kind?">
-                                <legend>General</legend>
+                            <fieldset data-guided-step data-guided-prompt="Which worked periods should be attached to this shift?">
+                                <legend>Worked periods</legend>
+                                <input type="hidden" id="shift-meal-period" value="">
                                 <div class="form-grid">
-                                    <label class="field">
-                                        <span>Meal period</span>
-                                        <select id="shift-meal-period" aria-describedby="shift-meal-period-error" required>
-                                            <option value="">Select</option>
-                                            <option value="Lunch">Lunch</option>
-                                            <option value="Dinner">Dinner</option>
-                                            <option value="Double">Double</option>
-                                            <option value="Other">Other</option>
-                                        </select>
-                                        <span class="field-error" id="shift-meal-period-error" hidden></span>
-                                    </label>
-                                    <label class="field" id="shift-other-label-control" hidden>
-                                        <span>Shift label (optional)</span>
-                                        <input type="text" id="shift-other-label" list="shift-label-suggestions" autocomplete="off" placeholder="e.g. Brunch">
-                                        <datalist id="shift-label-suggestions"></datalist>
-                                    </label>
+                                    <div id="worked-period-list" class="worked-period-list">
+                                        <div class="worked-period-row" data-worked-period-id="worked-period-1">
+                                            <label class="field">
+                                                <span>Worked period</span>
+                                                <input type="text" id="shift-other-label" data-worked-period list="shift-label-suggestions" autocomplete="off" placeholder="e.g. Lunch, Brunch, or Overnight" aria-describedby="shift-meal-period-error">
+                                            </label>
+                                            <button type="button" class="secondary-button" data-remove-worked-period aria-label="Remove worked period 1" disabled>Remove period</button>
+                                        </div>
+                                    </div>
+                                    <datalist id="shift-label-suggestions"></datalist>
+                                    <button type="button" class="secondary-button" id="add-worked-period">+ Add worked period</button>
+                                    <span class="field-error" id="shift-meal-period-error" hidden></span>
                                     <label class="field" id="shift-job-field">
                                         <span>Job</span>
                                         <select id="shift-job" aria-describedby="shift-job-error" required>
@@ -274,7 +271,7 @@
 
                         <p id="role-no-reports-note" class="field-hint" hidden>This role doesn't track sales or tip reports, so this shift is saved without them.</p>
 
-                        <div id="single-report-fields" class="form-report-grid">
+                        <div id="single-report-fields" class="form-report-grid" hidden>
                         <fieldset id="guided-sales-card" data-role-capability="tracksSales">
                             <legend>Sales</legend>
                             <label id="shift-no-sales-report-control" class="report-toggle">
@@ -378,10 +375,10 @@
                         </fieldset>
                         </div>
 
-                        <section id="double-report-fields" data-guided-step data-guided-prompt="Which reports do you have for this double shift?" hidden aria-labelledby="double-report-heading">
-                            <h3 id="double-report-heading">Which reports do you have?</h3>
+                        <section id="double-report-fields" data-guided-step data-guided-prompt="What reports do you have for this shift?" aria-labelledby="double-report-heading">
+                            <h3 id="double-report-heading">Reports</h3>
                             <div id="flexible-reports">
-                                <p>Add separate, non-overlapping reports or one whole-shift report. Labels are optional.</p>
+                                <p>Add any separate reports, one whole-shift report, or reference-only reports. Reports are independent of worked-period labels.</p>
                                 <div id="flexible-report-list" class="double-report-list"></div>
                                 <button type="button" class="secondary-button" id="add-flexible-report">+ Add report</button>
                                 <p id="flexible-report-summary" role="status"></p>

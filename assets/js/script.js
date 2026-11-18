@@ -77,6 +77,7 @@ let shiftEntryHistoryDepth = 0;
 let shiftNavSwitching = false;
 let saveIncompleteRequested = false;
 let shiftDraftPromptOpen = false;
+let nextWorkedPeriodNumber = 2;
 
 const navButtons = document.querySelectorAll("[data-view]");
 const formStatus = document.getElementById("form-status");
@@ -108,6 +109,8 @@ const weekDateRange = document.getElementById("week-date-range");
 const monthDateRange = document.getElementById("month-date-range");
 const doubleReportTemplate = document.getElementById("double-report-template");
 const flexibleReportList = document.getElementById("flexible-report-list");
+const workedPeriodList = document.getElementById("worked-period-list");
+const workedPeriodTemplate = workedPeriodList.firstElementChild.cloneNode(true);
 const reportPeriods = [
     ["lunch", "Lunch", "lunch"],
     ["dinner", "Dinner", "dinner"],
@@ -123,6 +126,7 @@ const fields = {
     date: document.getElementById("shift-date"),
     mealPeriod: document.getElementById("shift-meal-period"),
     shiftLabel: document.getElementById("shift-other-label"),
+    workedPeriods: document.getElementById("shift-other-label"),
     job: document.getElementById("shift-job"),
     workplace: document.getElementById("shift-workplace"),
     role: document.getElementById("shift-role"),
@@ -191,6 +195,38 @@ function syncAppHeight() {
 syncAppHeight();
 ["resize", "orientationchange", "pageshow", "load"].forEach((eventName) => {
     window.addEventListener(eventName, syncAppHeight);
+});
+document.getElementById("add-worked-period").addEventListener("click", () => {
+    addWorkedPeriod();
+    markShiftFormDirty();
+    recordFormHistory();
+    saveShiftDraft();
+    updateValidationErrors();
+});
+workedPeriodList.addEventListener("click", (event) => {
+    if (!event.target.matches("[data-remove-worked-period]")) return;
+    const row = event.target.closest("[data-worked-period-id]");
+    const rows = [...workedPeriodList.children];
+    if (rows.length === 1) {
+        row.querySelector("input").value = "";
+        delete row.querySelector("input").dataset.legacyValue;
+    } else {
+        row.remove();
+    }
+    fields.mealPeriod.value = "";
+    updateWorkedPeriodFields();
+    markShiftFormDirty();
+    recordFormHistory();
+    saveShiftDraft();
+    updateValidationErrors();
+});
+workedPeriodList.addEventListener("input", (event) => {
+    if (event.target.matches("[data-worked-period]")) {
+        delete event.target.dataset.legacyValue;
+        markShiftFormDirty();
+        saveShiftDraft();
+        updateValidationErrors();
+    }
 });
 window.visualViewport?.addEventListener("resize", syncAppHeight);
 [100, 400, 1000].forEach((delay) => window.setTimeout(syncAppHeight, delay));
@@ -433,6 +469,11 @@ function bindEvents() {
 
     window.addEventListener("popstate", handlePopState);
     form.addEventListener("submit", handleFormSubmit);
+    form.addEventListener("input", (event) => {
+        if (event.target.matches("[data-worked-period]")) {
+            fields.mealPeriod.value = "";
+        }
+    });
     form.addEventListener("input", markShiftFormDirty);
     form.addEventListener("change", markShiftFormDirty);
     form.addEventListener("input", updateShiftFormProgression);
@@ -482,6 +523,7 @@ function bindEvents() {
         appUpdateDialog.close();
     });
     fields.mealPeriod.addEventListener("change", updateMealPeriodFields);
+    fields.mealPeriod.addEventListener("change", handleLegacyMealPeriodChange);
     document.getElementById("shift-no-sales-report").addEventListener("change", updateMealPeriodFields);
     document.getElementById("shift-no-tips-report").addEventListener("change", updateMealPeriodFields);
     document.getElementById("template-use-times").addEventListener("change", updateTemplateDefaultFields);
@@ -1275,6 +1317,7 @@ function renderWorkplaceFields() {
     document.getElementById("shift-workplace-field").hidden = !mode;
     document.getElementById("shift-job-field").hidden = mode;
     if (!mode) {
+        updateShiftLabelSuggestions();
         return;
     }
 
@@ -1293,6 +1336,7 @@ function renderWorkplaceFields() {
     fillSelect(fields.workplace, options, current);
     fields.workplace.dataset.initialized = "true";
     fields.workplace.dataset.previousValue = fields.workplace.value;
+    updateShiftLabelSuggestions();
     renderRoleOptions();
     updateShiftFormProgression();
 }
@@ -1669,6 +1713,7 @@ function saveShiftDraft() {
         version: 1,
         mode: entryMode,
         values,
+        workedPeriodIds: [...workedPeriodList.children].map((row) => row.dataset.workedPeriodId),
         notes: [...notesList.querySelectorAll(".note-input")]
             .map((input) => input.value)
             .filter((value) => value.trim() !== ""),
@@ -1721,6 +1766,9 @@ function readShiftDraft() {
         if (draft?.version !== 1
             || !["guided", "manual"].includes(draft.mode)
             || !valuesAreValid
+            || (Object.hasOwn(draft, "workedPeriodIds")
+                && (!Array.isArray(draft.workedPeriodIds)
+                    || !draft.workedPeriodIds.every((id) => typeof id === "string" && /^worked-period-\d+$/.test(id))))
             || !Array.isArray(draft.notes)
             || !draft.notes.every((note) => typeof note === "string")
             || !stepIsValid) {
@@ -1801,6 +1849,23 @@ function restoreShiftDraft(draft) {
     const reportIds = [...new Set(Object.keys(values)
         .map((key) => /^report:(generic-[^:]+):/.exec(key)?.[1])
         .filter(Boolean))];
+    const workedPeriodIds = Array.isArray(draft.workedPeriodIds)
+        ? draft.workedPeriodIds
+        : [
+            ...(Object.hasOwn(values, "id:shift-other-label") ? ["worked-period-1"] : []),
+            ...Object.keys(values).map((key) => /^id:(worked-period-\d+)$/.exec(key)?.[1]).filter(Boolean),
+        ];
+    restoreWorkedPeriodIds(workedPeriodIds);
+    const legacyMealPeriod = values["id:shift-meal-period"];
+    const hasLegacySingleFields = Object.keys(values).some((key) => (
+        /^id:shift-(?:food-sales|baw-sales|liquor-sales|na-sales|additional-sales|cc-tips|cash-tips|auto-gratuity|tip-out-paid|tip-out-received|no-sales-report|no-tips-report|has-sales-report-no|has-tips-report-no)$/.test(key)
+    ));
+    const restoringLegacySingle = reportIds.length === 0
+        && hasLegacySingleFields
+        && legacyMealPeriod !== "Double";
+    if (restoringLegacySingle) {
+        reportIds.push("generic-1");
+    }
     reportIds.forEach((id) => addFlexibleReport(id));
 
     const workplaceValue = values[`id:${fields.workplace.id}`];
@@ -1826,6 +1891,40 @@ function restoreShiftDraft(draft) {
             }
         }
     });
+    if (!Array.isArray(draft.workedPeriodIds)
+        && !Object.keys(values).some((key) => /^id:worked-period-\d+$/.test(key))
+        && !fields.workedPeriods.value.trim()
+        && ["Lunch", "Dinner"].includes(legacyMealPeriod)) {
+        fields.workedPeriods.value = legacyMealPeriod;
+    }
+    if (restoringLegacySingle) {
+        const node = flexibleReportList.querySelector('[data-report-period="generic-1"]');
+        const legacyFields = {
+            foodSales: "shift-food-sales",
+            bawSales: "shift-baw-sales",
+            liquorSales: "shift-liquor-sales",
+            naBevSales: "shift-na-sales",
+            additionalSales: "shift-additional-sales",
+            ccTips: "shift-cc-tips",
+            cashTips: "shift-cash-tips",
+            autoGratuity: "shift-auto-gratuity",
+            tipsPaidOut: "shift-tip-out-paid",
+            tipOutReceived: "shift-tip-out-received",
+        };
+        node.querySelector('[data-report-field="label"]').value = fields.workedPeriods.value.trim()
+            || (legacyMealPeriod === "Other" ? values["id:shift-other-label"] || "" : legacyMealPeriod || "");
+        node.querySelector('[data-report-field="coverage"]').value = "whole";
+        node.querySelector('[data-report-field="strictWhole"]').checked = true;
+        Object.entries(legacyFields).forEach(([field, id]) => {
+            if (typeof values[`id:${id}`] === "string") {
+                node.querySelector(`[data-report-field="${field}"]`).value = values[`id:${id}`];
+            }
+        });
+        node.querySelector('[data-report-field="noSales"]').checked = values["id:shift-no-sales-report"] === true
+            || values["id:shift-has-sales-report-no"] === true;
+        node.querySelector('[data-report-field="noTips"]').checked = values["id:shift-no-tips-report"] === true
+            || values["id:shift-has-tips-report-no"] === true;
+    }
     setNoteRows(draft.notes);
     delete fields.role.dataset.autoSelected;
     fields.role.dataset.previousValue = fields.role.value;
@@ -1965,9 +2064,6 @@ function maybeAutoAdvanceGuidedStep(event) {
     }
 
     const step = guidedStep.element;
-    if (event.target === fields.mealPeriod && fields.mealPeriod.value === "Other") {
-        return;
-    }
     const isBreakChoice = event.target.matches('input[name="guided-had-break"]');
     const isNoReportChoice = event.target.matches("#shift-no-sales-report, #shift-no-tips-report")
         && event.target.checked;
@@ -2011,7 +2107,6 @@ function applyRoleTemplate() {
     const template = match.role.template;
     let filled = 0;
     [
-        [fields.mealPeriod, template.mealPeriod],
         [fields.clockIn, template.useTimes === false ? "" : template.clockIn],
         [fields.clockOut, template.useTimes === false ? "" : template.clockOut],
         [fields.breakStart, template.useBreak === false ? "" : template.breakStart],
@@ -2022,6 +2117,15 @@ function applyRoleTemplate() {
             filled += 1;
         }
     });
+    if (template.mealPeriod && !fields.mealPeriod.value) {
+        fields.mealPeriod.value = template.mealPeriod;
+        if (["Lunch", "Dinner"].includes(template.mealPeriod)
+            && !getWorkedPeriodValues().length) {
+            fields.workedPeriods.value = template.mealPeriod;
+            fields.workedPeriods.dataset.legacyValue = template.mealPeriod;
+        }
+        filled += 1;
+    }
     if (filled > 0) {
         updateMealPeriodFields();
         markShiftFormDirty();
@@ -2122,6 +2226,7 @@ async function addRoleFromShift() {
 function resetForm(shouldClearStatus = true) {
     form.reset();
     flexibleReportList.replaceChildren();
+    resetWorkedPeriods();
     resetFormHistory();
     shiftFormDirty = false;
     shiftDraftSaved = false;
@@ -2141,10 +2246,11 @@ function resetForm(shouldClearStatus = true) {
     document.getElementById("shift-role-hint").textContent = "";
     formTitle.textContent = "New Shift";
     Object.values(fields).forEach((field) => {
-        if (field.tagName === "INPUT" || field.tagName === "TEXTAREA") {
+        if (field && (field.tagName === "INPUT" || field.tagName === "TEXTAREA")) {
             field.value = field.defaultValue || "";
         }
     });
+    updateWorkedPeriodFields();
 
     clearValidationErrors();
     if (shouldClearStatus) {
@@ -2160,12 +2266,9 @@ function populateForm(shift) {
     state.editingShiftId = shift.id;
     fields.date.value = shift.date || "";
     fields.mealPeriod.value = shift.mealPeriod || "";
-    fields.shiftLabel.value = shift.shiftLabel || "";
-    const single = shift.mealPeriod !== "Double";
-    document.getElementById("shift-no-sales-report").checked = single
-        && (shift.noReport === true || shift.noSales === true);
-    document.getElementById("shift-no-tips-report").checked = single
-        && (shift.noReport === true || shift.noTips === true);
+    setWorkedPeriods(getWorkedPeriodLabels(shift));
+    document.getElementById("shift-no-sales-report").checked = !hasSalesReport(shift);
+    document.getElementById("shift-no-tips-report").checked = !hasTipReport(shift);
     updateMealPeriodFields();
     fields.workplace.value = "";
     fields.role.value = "";
@@ -2179,16 +2282,6 @@ function populateForm(shift) {
     fields.breakEnd.value = shift.breakEnd || "";
     const hadBreak = Boolean(shift.breakStart || shift.breakEnd);
     form.querySelector(`input[name="guided-had-break"][value="${hadBreak ? "yes" : "no"}"]`).checked = true;
-    fields.foodSales.value = formatInputAmount(shift.foodSales);
-    fields.bawSales.value = formatInputAmount(shift.bawSales);
-    fields.liquorSales.value = formatInputAmount(shift.liquorSales);
-    fields.naSales.value = formatInputAmount(shift.naBevSales);
-    fields.additionalSales.value = formatInputAmount(shift.additionalSales);
-    fields.ccTips.value = formatInputAmount(shift.ccTips);
-    fields.cashTips.value = formatInputAmount(shift.cashTips);
-    fields.autoGratuity.value = formatInputAmount(shift.autoGratuity);
-    fields.tipOutPaid.value = formatInputAmount(shift.tipsPaidOut);
-    fields.tipOutReceived.value = formatInputAmount(shift.tipOutReceived);
     setNoteRows(getNotes(shift));
     if (Array.isArray(shift.reports)) {
         flexibleReportList.replaceChildren();
@@ -2223,7 +2316,7 @@ function markShiftFormDirty() {
 function getHistoryControls() {
     return [...document.querySelectorAll(
         "#shift-entry-fields input, #shift-entry-fields select, #shift-entry-fields textarea:not(.note-input)",
-    )];
+    )].filter((control) => !control.closest("#single-report-fields"));
 }
 
 function isFormHistoryActive() {
@@ -2235,6 +2328,7 @@ function captureFormSnapshot() {
     const controls = getHistoryControls();
     return {
         reportIds: [...flexibleReportList.children].map((node) => node.dataset.reportPeriod),
+        workedPeriodIds: [...workedPeriodList.children].map((row) => row.dataset.workedPeriodId),
         values: controls.map((control) => (
             control.type === "checkbox" || control.type === "radio" ? control.checked : control.value
         )),
@@ -2271,7 +2365,9 @@ function recordFormHistory(event) {
         formHistory.current = snapshot;
         return;
     }
-    const content = ({ values, notes, reportIds }) => JSON.stringify({ values, notes, reportIds });
+    const content = ({ values, notes, reportIds, workedPeriodIds }) => JSON.stringify({
+        values, notes, reportIds, workedPeriodIds,
+    });
     if (content(snapshot) === content(formHistory.current)) {
         return;
     }
@@ -2284,6 +2380,7 @@ function recordFormHistory(event) {
 function applyFormSnapshot(snapshot) {
     flexibleReportList.replaceChildren();
     (snapshot.reportIds || []).forEach((id) => addFlexibleReport(id));
+    restoreWorkedPeriodIds(snapshot.workedPeriodIds);
     const controls = getHistoryControls();
     if (controls.length !== snapshot.values.length) {
         return;
@@ -2436,30 +2533,36 @@ function handleFormSubmit(event) {
 
 function readFormValues() {
     const editing = getEditingShift();
+    const workedPeriods = getWorkedPeriodValues();
+    const legacyDouble = editing?.mealPeriod === "Double" && !Array.isArray(editing.workedPeriods);
+    const preserveLegacyDouble = legacyDouble || editing?.legacyDoubleDesignation === true;
+    const mealPeriod = preserveLegacyDouble
+        ? "Double"
+        : fields.mealPeriod.value === "Double" && !workedPeriods.length
+            ? "Double"
+            : getMealPeriodCompatibilityValue(workedPeriods);
     const baseline = {
+        ...(editing || {}),
         id: state.editingShiftId ?? createShiftId(),
         date: fields.date.value.trim(),
-        mealPeriod: fields.mealPeriod.value,
-        ...(fields.mealPeriod.value === "Other" && fields.shiftLabel.value.trim()
-            ? { shiftLabel: fields.shiftLabel.value.trim() } : {}),
+        mealPeriod,
+        workedPeriods,
+        ...(preserveLegacyDouble ? { legacyDoubleDesignation: true } : {}),
         job: fields.job.value,
         clockIn: fields.clockIn.value,
         clockOut: fields.clockOut.value,
         breakStart: fields.breakStart.value,
         breakEnd: fields.breakEnd.value,
-        foodSales: toNumber(fields.foodSales.value),
-        bawSales: toNumber(fields.bawSales.value),
-        liquorSales: toNumber(fields.liquorSales.value),
-        naBevSales: toNumber(fields.naSales.value),
-        additionalSales: toNumber(fields.additionalSales.value),
-        ccTips: toNumber(fields.ccTips.value),
-        cashTips: toNumber(fields.cashTips.value),
-        autoGratuity: toNumber(fields.autoGratuity.value),
-        tipsPaidOut: toNumber(fields.tipOutPaid.value),
-        tipOutReceived: toNumber(fields.tipOutReceived.value),
         notes: readNotes(),
     };
+    if (workedPeriods.length === 1 && mealPeriod === "Other") {
+        baseline.shiftLabel = workedPeriods[0];
+    } else if (!preserveLegacyDouble) {
+        delete baseline.shiftLabel;
+    }
 
+    delete baseline.workplaceId;
+    delete baseline.roleId;
     if (isWorkplaceMode()) {
         const match = findRole(fields.role.value);
         const workplace = state.workplaces.workplaces.find((entry) => entry.id === fields.workplace.value);
@@ -2476,52 +2579,24 @@ function readFormValues() {
     }
 
     const capabilities = selectedRoleCapabilities();
-    const hasTipFields = capabilities.receivesTips || capabilities.tipsOut || capabilities.receivesTipOut;
-    if (baseline.mealPeriod !== "Double") {
-        const oldNoSales = editing && (editing.noReport === true || editing.noSales === true);
-        const oldNoTips = editing && (editing.noReport === true || editing.noTips === true);
-        const noSales = !capabilities.tracksSales
-            ? Boolean(editing ? oldNoSales : true)
-            : document.getElementById("shift-no-sales-report").checked;
-        const noTips = !hasTipFields
-            ? Boolean(editing ? oldNoTips : true)
-            : document.getElementById("shift-no-tips-report").checked;
-        const fieldCapabilities = {
-            foodSales: capabilities.tracksSales,
-            bawSales: capabilities.tracksSales,
-            liquorSales: capabilities.tracksSales,
-            naBevSales: capabilities.tracksSales,
-            additionalSales: capabilities.tracksSales,
-            ccTips: capabilities.receivesTips,
-            cashTips: capabilities.receivesTips,
-            autoGratuity: capabilities.receivesTips,
-            tipsPaidOut: capabilities.tipsOut,
-            tipOutReceived: capabilities.receivesTipOut,
-        };
-        Object.entries(fieldCapabilities).forEach(([field, available]) => {
-            if (!available) {
-                baseline[field] = editing && Object.hasOwn(editing, field) ? editing[field] : "";
-            } else if ((salesAmountFields.includes(field) && noSales)
-                || (tipAmountFields.includes(field) && noTips)) {
-                baseline[field] = 0;
-            }
-        });
-        if (noSales && noTips) {
-            baseline.noReport = true;
-        } else if (noSales) {
-            baseline.noSales = true;
-        } else if (noTips) {
-            baseline.noTips = true;
-        }
-    }
-
-    if (baseline.mealPeriod === "Double") {
-        reportAmountFields.forEach((field) => {
-            baseline[field] = editing && Object.hasOwn(editing, field) && !capabilityForField(field, capabilities)
-                ? editing[field]
-                : capabilityForField(field, capabilities) ? 0 : "";
-        });
-        baseline.reports = readFlexibleReports();
+    baseline.reports = readFlexibleReports();
+    const breakdown = getFinancialBreakdown({ ...baseline, noReport: false, noSales: false, noTips: false });
+    reportAmountFields.forEach((field) => {
+        baseline[field] = capabilityForField(field, capabilities)
+            ? breakdown[field]
+            : editing && Object.hasOwn(editing, field) ? editing[field] : "";
+    });
+    delete baseline.noReport;
+    delete baseline.noSales;
+    delete baseline.noTips;
+    const hasSales = hasSalesReport(baseline);
+    const hasTips = hasTipReport(baseline);
+    if (!hasSales && !hasTips) {
+        baseline.noReport = true;
+    } else if (!hasSales) {
+        baseline.noSales = true;
+    } else if (!hasTips) {
+        baseline.noTips = true;
     }
 
     baseline.isIncomplete = isShiftIncomplete(baseline);
@@ -2574,7 +2649,9 @@ function validateShift(shift, allowPartial = false) {
         return issues;
     }
 
-    if (!shift.mealPeriod) issues.push({ field: "mealPeriod", message: "Meal period is required." });
+    if (!hasWorkedPeriodOrLegacyDouble(shift)) {
+        issues.push({ field: "workedPeriods", message: "Add at least one worked period." });
+    }
     if (!shift.clockIn) issues.push({ field: "clockIn", message: "Clock in is required." });
     if (!shift.clockOut) issues.push({ field: "clockOut", message: "Clock out is required." });
 
@@ -2659,7 +2736,7 @@ function getIncompleteFields(shift) {
         missing.push("Job");
     }
 
-    if (!shift.mealPeriod) missing.push("Meal period");
+    if (!hasWorkedPeriodOrLegacyDouble(shift)) missing.push("Worked period");
     if (!shift.clockIn) missing.push("Clock in");
     if (!shift.clockOut) missing.push("Clock out");
 
@@ -2782,6 +2859,9 @@ function revealGuidedField(input) {
 }
 
 function getValidationErrorId(field, input) {
+    if (field === "workedPeriods") {
+        return "shift-meal-period-error";
+    }
     if (field === "hadBreak") {
         return "shift-had-break-error";
     }
@@ -2870,9 +2950,7 @@ function renderDashboard() {
         const date = document.createElement("strong");
         date.textContent = formatDate(shift.date);
         const description = document.createElement("span");
-        description.textContent = shift.mealPeriod === "Double"
-            ? `${shift.job} · Double · ${getDoubleReportStatus(shift)}`
-            : `${shift.job} · ${getShiftLabel(shift)}${getRecentReportNote(shift)}`;
+        description.textContent = `${shift.job} · ${getShiftLabel(shift)}${getRecentReportNote(shift)}`;
         details.append(date, description);
 
         const metrics = document.createElement("div");
@@ -3243,7 +3321,7 @@ function exportShiftsCsv() {
         "Tip out received", "Net tips", "Report coverage",
         ...reportPeriods.flatMap(([, label]) => reportAmountFields.map((field) => `${label} ${formatReportFieldName(field)}`)),
         "Notes",
-        "Shift label", "Flexible reports (JSON)",
+        "Shift label", "Worked periods (JSON)", "Flexible reports (JSON)",
     ];
     const rows = shifts.map((shift) => {
         const isDouble = shift.mealPeriod === "Double";
@@ -3272,6 +3350,7 @@ function exportShiftsCsv() {
             ))),
             getNotes(shift).join(" | "),
             shift.shiftLabel || "",
+            JSON.stringify(getWorkedPeriodLabels(shift)),
             Array.isArray(shift.reports) ? JSON.stringify(shift.reports) : "",
         ];
     });
@@ -3414,10 +3493,53 @@ function convertLegacyReports(reports) {
         });
 }
 
+function createSingleFlexibleReport(shift, existing = null, source = shift, capabilities = null) {
+    const report = {
+        id: existing?.id || "generic-1",
+        label: existing?.label || (shift.mealPeriod === "Other" ? shift.shiftLabel || "Other" : shift.mealPeriod || "Shift"),
+        coverage: existing?.coverage || "whole",
+    };
+    if (existing?.strictWhole === true || !existing) {
+        report.strictWhole = true;
+    }
+    const noSales = shift.noReport === true || shift.noSales === true;
+    const noTips = shift.noReport === true || shift.noTips === true;
+    reportAmountFields.forEach((field) => {
+        const missingReport = salesAmountFields.includes(field) ? noSales : noTips;
+        if (existing && capabilities && !capabilityForField(field, capabilities)) {
+            if (Object.hasOwn(existing, field)) {
+                report[field] = existing[field];
+            }
+            return;
+        }
+        if (existing && missingReport) {
+            if (Object.hasOwn(existing, field)) {
+                report[field] = existing[field];
+            }
+            return;
+        }
+        if (Object.hasOwn(source, field) && Object.hasOwn(shift, field)) {
+            report[field] = shift[field];
+        }
+    });
+    if (noSales) {
+        report.noSales = true;
+    }
+    if (noTips) {
+        report.noTips = true;
+    }
+    return report;
+}
+
 function normalizeImportedShift(shift, index) {
     if (!shift || typeof shift !== "object" || Array.isArray(shift)
         || typeof shift.date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(shift.date)) {
         throw new Error(`Backup shift ${index + 1} is missing a valid date.`);
+    }
+    if (Object.hasOwn(shift, "workedPeriods")
+        && (!Array.isArray(shift.workedPeriods)
+            || !shift.workedPeriods.every((label) => typeof label === "string" && label.trim()))) {
+        throw new Error(`Backup shift ${index + 1} has invalid worked periods.`);
     }
 
     // For backward compatibility: old backups require these fields
@@ -3450,6 +3572,10 @@ function normalizeImportedShift(shift, index) {
         id: typeof shift.id === "number" && Number.isFinite(shift.id) ? shift.id : createShiftId(),
     };
     amountFields.forEach((field) => {
+        if (!Object.hasOwn(shift, field)) {
+            normalized[field] = 0;
+            return;
+        }
         if (shift[field] === "") {
             normalized[field] = "";
             return;
@@ -3479,6 +3605,9 @@ function normalizeImportedShift(shift, index) {
                 const normalizedReport = { id: report.id, label: report.label, coverage: report.coverage };
                 if (report.strictWhole === true) normalizedReport.strictWhole = true;
                 reportAmountFields.forEach((field) => {
+                    if (!Object.hasOwn(report, field)) {
+                        return;
+                    }
                     if (report[field] === "") {
                         normalizedReport[field] = "";
                         return;
@@ -3514,6 +3643,9 @@ function normalizeImportedShift(shift, index) {
                 }
                 const normalizedReport = {};
                 reportAmountFields.forEach((field) => {
+                    if (!Object.hasOwn(report, field)) {
+                        return;
+                    }
                     if (report[field] === "") {
                         normalizedReport[field] = "";
                         return;
@@ -3545,28 +3677,50 @@ function normalizeImportedShift(shift, index) {
     });
 
     const single = shift.mealPeriod !== "Double";
+    if (Array.isArray(normalized.reports)) {
+        const reportsForTotals = { ...normalized };
+        delete reportsForTotals.noReport;
+        delete reportsForTotals.noSales;
+        delete reportsForTotals.noTips;
+        const hasSales = hasSalesReport(reportsForTotals);
+        const hasTips = hasTipReport(reportsForTotals);
+        const breakdown = getFinancialBreakdown(reportsForTotals);
+        reportAmountFields.forEach((field) => {
+            normalized[field] = breakdown[field];
+        });
+        delete normalized.noReport;
+        delete normalized.noSales;
+        delete normalized.noTips;
+        if (!hasSales && !hasTips) normalized.noReport = true;
+        else if (!hasSales) normalized.noSales = true;
+        else if (!hasTips) normalized.noTips = true;
+    }
     const noSales = single && (shift.noReport === true || shift.noSales === true);
     const noTips = single && (shift.noReport === true || shift.noTips === true);
-    delete normalized.noReport;
-    delete normalized.noSales;
-    delete normalized.noTips;
-    if (noSales && noTips) {
-        normalized.noReport = true;
-    } else if (noSales) {
-        normalized.noSales = true;
-    } else if (noTips) {
-        normalized.noTips = true;
-    }
-    salesAmountFields.filter(() => noSales).concat(tipAmountFields.filter(() => noTips)).forEach((field) => {
-        if (normalized[field] !== "") {
-            normalized[field] = 0;
+    if (!Array.isArray(normalized.reports)) {
+        delete normalized.noReport;
+        delete normalized.noSales;
+        delete normalized.noTips;
+        if (noSales && noTips) {
+            normalized.noReport = true;
+        } else if (noSales) {
+            normalized.noSales = true;
+        } else if (noTips) {
+            normalized.noTips = true;
         }
-    });
+        salesAmountFields.filter(() => noSales).concat(tipAmountFields.filter(() => noTips)).forEach((field) => {
+            if (normalized[field] !== "") {
+                normalized[field] = 0;
+            }
+        });
+    }
 
     if (normalized.mealPeriod === "Double" && !Object.hasOwn(normalized, "reports")) {
         normalized.reports = convertLegacyReports({ whole: Object.fromEntries(
             reportAmountFields.map((field) => [field, normalized[field]])
         ) });
+    } else if (single && !Array.isArray(normalized.reports)) {
+        normalized.reports = [createSingleFlexibleReport(normalized, null, shift)];
     }
     return normalized;
 }
@@ -3772,7 +3926,29 @@ function createWorkplaceItem(workplace) {
         roles.append(roleItem);
     });
 
-    item.append(head, summary, createItemSummary(formatWorkplaceDates(workplace)), roles, createActionButton(
+    const labelSettings = document.createElement("div");
+    labelSettings.className = "workplace-label-settings";
+    const labelField = document.createElement("label");
+    labelField.className = "field workplace-label-field";
+    const labelTitle = document.createElement("span");
+    labelTitle.textContent = "Worked-period suggestions";
+    const labelInput = document.createElement("textarea");
+    labelInput.rows = 2;
+    labelInput.dataset.workplaceLabels = workplace.id;
+    labelInput.value = (workplace.labelSuggestions || []).join("\n");
+    labelInput.setAttribute("aria-label", `Worked-period suggestions at ${workplace.name}`);
+    const labelHint = document.createElement("span");
+    labelHint.className = "field-hint";
+    labelHint.textContent = "Separate labels with commas or new lines. Each can be up to 60 characters.";
+    labelField.append(labelTitle, labelInput, labelHint);
+    labelSettings.append(labelField, createActionButton(
+        `Save shift labels for ${workplace.name}`,
+        "Save labels",
+        { action: "save-labels", kind: "workplace", id: workplace.id },
+        "secondary-button"
+    ));
+
+    item.append(head, summary, createItemSummary(formatWorkplaceDates(workplace)), roles, labelSettings, createActionButton(
         `Add role to ${workplace.name}`,
         "Add role",
         { action: "add-role", kind: "workplace", id: workplace.id },
@@ -4136,6 +4312,16 @@ async function handleWorkplaceAction(event) {
         }
         result = commitWorkplaces((draft) => window.Workplaces.setDates(draft, id, dates.value));
         message = `Saved dates for ${entry.name}.`;
+    } else if (action === "save-labels") {
+        const labelInput = button.closest(".workplace-item").querySelector("[data-workplace-labels]");
+        const parsed = window.Workplaces.parseLabelSuggestions(labelInput.value);
+        if (parsed.error) {
+            setStatus(parsed.error, true);
+            labelInput.focus();
+            return;
+        }
+        result = commitWorkplaces((draft) => window.Workplaces.setLabelSuggestions(draft, id, parsed.labels));
+        message = `Saved shift labels for ${entry.name}.`;
     } else if (action === "archive" || action === "unarchive") {
         const archived = action === "archive";
         result = commitWorkplaces((draft) => window.Workplaces.setArchived(draft, kind, id, archived));
@@ -4565,8 +4751,7 @@ function loadShifts() {
         }
         const shifts = dedupeShiftIds(valid);
         const needsMigration = parsed.some((record) => record && typeof record === "object"
-            && ((record.reports && !Array.isArray(record.reports))
-                || (record.mealPeriod === "Double" && !Object.hasOwn(record, "reports"))));
+            && !Array.isArray(record.reports));
         if (needsMigration && skipped === 0) {
             try {
                 let backupKey = PRE_FLEXIBLE_REPORTS_KEY;
@@ -4655,18 +4840,28 @@ function readFlexibleReports() {
         }
         reportAmountFields.forEach((field) => {
             const value = node.querySelector(`[data-report-field="${field}"]`).value;
-            report[field] = capabilityForField(field, capabilities)
-                ? toNumber(value)
-                : old && Object.hasOwn(old, field) ? old[field] : "";
+            if (!capabilityForField(field, capabilities)) {
+                if (old && Object.hasOwn(old, field)) {
+                    report[field] = old[field];
+                }
+            } else if (old && value === "" && !Object.hasOwn(old, field)) {
+                return;
+            } else if (old && value === "" && old[field] === "") {
+                report[field] = "";
+            } else {
+                report[field] = toNumber(value);
+            }
         });
         const noSales = capabilities.tracksSales
             ? node.querySelector('[data-report-field="noSales"]').checked : old ? old.noSales === true : true;
         const hasTipFields = capabilities.receivesTips || capabilities.tipsOut || capabilities.receivesTipOut;
         const noTips = hasTipFields
             ? node.querySelector('[data-report-field="noTips"]').checked : old ? old.noTips === true : true;
-        if (noSales) report.noSales = true;
-        if (noTips) {
-            report.noTips = true;
+        if (noSales || (old && Object.hasOwn(old, "noSales"))) {
+            report.noSales = noSales;
+        }
+        if (noTips || (old && Object.hasOwn(old, "noTips"))) {
+            report.noTips = noTips;
         }
         return report;
     });
@@ -4690,6 +4885,10 @@ function updateFlexibleReportSummary() {
     calculation.replaceChildren();
     calculation.hidden = true;
     const reports = readFlexibleReports();
+    if (!reports.length) {
+        summary.textContent = "No reports added. A zero-valued report is recorded separately from no report.";
+        return;
+    }
     if (reports.filter((report) => report.coverage === "whole").length > 1) {
         summary.textContent = "Choose only one whole-shift report.";
         return;
@@ -4739,11 +4938,13 @@ function capabilityForField(field, capabilities) {
 }
 
 function updateShiftLabelSuggestions() {
-    const defaults = ["Brunch", "Overnight", "Late night", "Catering", "Event"];
-    const used = (state.shifts || []).map((shift) => shift.shiftLabel).filter(Boolean);
+    const defaults = ["Lunch", "Dinner", "Brunch", "Overnight", "Late night", "Catering", "Event"];
+    const used = (state.shifts || []).map((shift) => shift.shiftLabel)
+        .filter((label) => typeof label === "string" && label.trim());
+    const workplace = state.workplaces.workplaces.find((entry) => entry.id === fields.workplace.value);
     const seen = new Set();
-    const options = [...used, ...defaults].filter((label) => {
-        const key = label.toLowerCase();
+    const options = [...used, ...(workplace?.labelSuggestions || []), ...defaults].filter((label) => {
+        const key = label.trim().toLowerCase();
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
@@ -4755,15 +4956,154 @@ function updateShiftLabelSuggestions() {
     }));
 }
 
+function getWorkedPeriodValues() {
+    const labels = [...workedPeriodList.querySelectorAll("[data-worked-period]")]
+        .map((input) => input.value.trim())
+        .filter(Boolean);
+    if (labels.length) {
+        return labels;
+    }
+    if (fields.mealPeriod.value === "Double") {
+        return [];
+    }
+    if (fields.mealPeriod.value === "Other") {
+        const label = fields.shiftLabel.value.trim();
+        return label ? [label] : [];
+    }
+    return ["Lunch", "Dinner"].includes(fields.mealPeriod.value) ? [fields.mealPeriod.value] : [];
+}
+
+function getWorkedPeriodLabels(shift) {
+    if (Array.isArray(shift.workedPeriods)) {
+        return shift.workedPeriods.filter((label) => typeof label === "string" && label.trim())
+            .map((label) => label.trim());
+    }
+    if (!shift.mealPeriod || shift.mealPeriod === "Double") {
+        return [];
+    }
+    if (shift.mealPeriod === "Other") {
+        return typeof shift.shiftLabel === "string" && shift.shiftLabel.trim()
+            ? [shift.shiftLabel.trim()] : ["Other"];
+    }
+    return [shift.mealPeriod];
+}
+
+function getMealPeriodCompatibilityValue(periods) {
+    if (periods.length > 1) {
+        return "Double";
+    }
+    if (!periods.length) {
+        return "";
+    }
+    const label = periods[0];
+    return ["Lunch", "Dinner"].includes(label) ? label : "Other";
+}
+
+function hasWorkedPeriodOrLegacyDouble(shift) {
+    if (Array.isArray(shift.workedPeriods)) {
+        return shift.workedPeriods.some((label) => typeof label === "string" && label.trim())
+            || (shift.mealPeriod === "Double" && shift.workedPeriods.length === 0);
+    }
+    return Boolean(shift.mealPeriod);
+}
+
+function updateWorkedPeriodFields() {
+    const first = workedPeriodList.querySelector("[data-worked-period]");
+    fields.workedPeriods = first;
+    fields.shiftLabel = first;
+    const onlyRow = workedPeriodList.children.length === 1;
+    workedPeriodList.querySelectorAll("[data-worked-period]").forEach((input, index) => {
+        input.setAttribute("aria-label", `Worked period ${index + 1}`);
+        const row = input.closest("[data-worked-period-id]");
+        const remove = row.querySelector("[data-remove-worked-period]");
+        remove.setAttribute("aria-label", `Remove worked period ${index + 1}`);
+        remove.disabled = onlyRow;
+    });
+}
+
+function addWorkedPeriod(id = "") {
+    if (!id) {
+        while ([...workedPeriodList.children].some((row) => row.dataset.workedPeriodId === `worked-period-${nextWorkedPeriodNumber}`)) {
+            nextWorkedPeriodNumber += 1;
+        }
+        id = `worked-period-${nextWorkedPeriodNumber}`;
+        nextWorkedPeriodNumber += 1;
+    }
+    const row = workedPeriodTemplate.cloneNode(true);
+    const input = row.querySelector("[data-worked-period]");
+    const suffix = id === "worked-period-1" ? "" : id.replace("worked-period-", "");
+    row.dataset.workedPeriodId = id;
+    input.id = suffix ? `worked-period-${suffix}` : "shift-other-label";
+    input.value = "";
+    delete input.dataset.legacyValue;
+    row.querySelector("[data-remove-worked-period]").disabled = false;
+    workedPeriodList.appendChild(row);
+    const number = Number(suffix);
+    if (number) {
+        nextWorkedPeriodNumber = Math.max(nextWorkedPeriodNumber, number + 1);
+    }
+    updateWorkedPeriodFields();
+    return row;
+}
+
+function restoreWorkedPeriodIds(ids = []) {
+    workedPeriodList.replaceChildren();
+    nextWorkedPeriodNumber = 1;
+    if (!ids.length) {
+        addWorkedPeriod("worked-period-1");
+        updateWorkedPeriodFields();
+        return;
+    }
+    ids.forEach((id) => addWorkedPeriod(id));
+    updateWorkedPeriodFields();
+}
+
+function resetWorkedPeriods(periods = []) {
+    workedPeriodList.replaceChildren();
+    nextWorkedPeriodNumber = 1;
+    const labels = Array.isArray(periods) ? periods : [];
+    if (!labels.length) {
+        const row = addWorkedPeriod("worked-period-1");
+        row.querySelector("[data-remove-worked-period]").disabled = true;
+        nextWorkedPeriodNumber = 2;
+        return;
+    }
+    labels.forEach((label, index) => {
+        const row = addWorkedPeriod(`worked-period-${index + 1}`);
+        row.querySelector("[data-worked-period]").value = label;
+    });
+    updateWorkedPeriodFields();
+}
+
+function setWorkedPeriods(periods = []) {
+    resetWorkedPeriods(periods);
+}
+
+function handleLegacyMealPeriodChange() {
+    const input = workedPeriodList.querySelector("[data-worked-period]");
+    if (!input) return;
+    const legacyValue = input.dataset.legacyValue;
+    if (legacyValue) {
+        input.value = "";
+        delete input.dataset.legacyValue;
+    }
+    const hasLabels = [...workedPeriodList.querySelectorAll("[data-worked-period]")]
+        .some((period) => period.value.trim());
+    if (["Lunch", "Dinner"].includes(fields.mealPeriod.value) && !hasLabels) {
+        input.value = fields.mealPeriod.value;
+        input.dataset.legacyValue = fields.mealPeriod.value;
+    }
+    updateValidationErrors();
+}
+
 function updateMealPeriodFields() {
-    const isDouble = fields.mealPeriod.value === "Double";
     const capabilities = selectedRoleCapabilities();
     const hasTipFields = capabilities.receivesTips || capabilities.tipsOut || capabilities.receivesTipOut;
     const hasReports = capabilities.tracksSales || hasTipFields;
-    document.getElementById("shift-other-label-control").hidden = fields.mealPeriod.value !== "Other";
-    if (fields.mealPeriod.value === "Other") {
-        updateShiftLabelSuggestions();
-    }
+    workedPeriodList.querySelectorAll("[data-worked-period]").forEach((input) => {
+        input.setAttribute("list", "shift-label-suggestions");
+    });
+    updateShiftLabelSuggestions();
     document.querySelectorAll("[data-role-capability]").forEach((element) => {
         const capability = element.dataset.roleCapability;
         const enabled = capability === "tipReport"
@@ -4775,8 +5115,8 @@ function updateMealPeriodFields() {
     });
     const note = document.getElementById("role-no-reports-note");
     note.hidden = hasReports;
-    note.textContent = "This role has no report or tip fields enabled. This shift is saved without a report.";
-    document.getElementById("single-report-fields").hidden = isDouble || !hasReports;
+    note.textContent = "This role has no sales or tip fields enabled. You can still save reference reports or leave reports empty.";
+    document.getElementById("single-report-fields").hidden = true;
     [
         ["shift-no-sales-report", "sales"],
         ["shift-no-tips-report", "tips"],
@@ -4787,7 +5127,7 @@ function updateMealPeriodFields() {
         });
     });
     updateGuidedSalesReport();
-    document.getElementById("double-report-fields").hidden = !isDouble || !hasReports;
+    document.getElementById("double-report-fields").hidden = false;
     updateFlexibleReportInputs();
 }
 
@@ -4797,10 +5137,26 @@ function getRecentReportNote(shift) {
 }
 
 function getShiftLabel(shift) {
-    return shift.mealPeriod === "Other" && shift.shiftLabel ? shift.shiftLabel : shift.mealPeriod;
+    const periods = getWorkedPeriodLabels(shift);
+    if (periods.length) return periods.join(", ");
+    return shift.mealPeriod === "Double" ? "Double" : shift.mealPeriod || "Shift";
 }
 
 function getReportStatus(shift) {
+    if (Array.isArray(shift.reports)) {
+        if (!shift.reports.length) {
+            return "No sales or tip report";
+        }
+        if (shift.reports.some((report) => report.coverage !== "reference")
+            && !hasSalesReport(shift) && !hasTipReport(shift)) {
+            return "No sales or tip report";
+        }
+        const status = getDoubleReportStatus(shift);
+        if (status === "Whole-shift report") {
+            return "";
+        }
+        return status.replace(/^Whole-shift report; /, "");
+    }
     if (shift.mealPeriod === "Double") {
         return getDoubleReportStatus(shift);
     }
@@ -4827,14 +5183,14 @@ function getDoubleReportStatus(shift) {
 
     if (Array.isArray(shift.reports)) {
         const count = shift.reports.filter((report) => report.coverage === "part").length;
-        if (!shift.reports.length) return "No sales or tip reports";
+        if (!shift.reports.length) return "No sales or tip report";
         const whole = shift.reports.find((report) => report.coverage === "whole");
         if (!whole) return count
             ? `${count} separate ${count === 1 ? "report" : "reports"}`
             : "Reference reports only";
         const notes = [];
-        if (whole.noSales) notes.push(hasSalesReport(shift) ? "sales from separate periods only" : "no sales report");
-        if (whole.noTips) notes.push(hasTipReport(shift) ? "tips from separate periods only" : "no tip report");
+        if (whole.noSales) notes.push(hasSalesReport(shift) ? "sales from separate periods only" : "No sales report");
+        if (whole.noTips) notes.push(hasTipReport(shift) ? "tips from separate periods only" : "No tip report");
         return ["Whole-shift report", ...notes].join("; ");
     }
     const reports = shift.reports || {};
@@ -4935,5 +5291,5 @@ function toNumber(value) {
 }
 
 function formatInputAmount(value) {
-    return value === "" ? "" : Number(value || 0).toFixed(2);
+    return value === "" || value === undefined || value === null ? "" : Number(value || 0).toFixed(2);
 }

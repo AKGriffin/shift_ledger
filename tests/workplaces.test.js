@@ -54,6 +54,23 @@ describe("Workplaces data module", () => {
         expect(Workplaces.validateName("x".repeat(61), data.workplaces, "workplace")).toContain("60");
     });
 
+    test("normalizes workplace label suggestions and validates edits", () => {
+        const data = sampleData();
+        data.workplaces[0].labelSuggestions = ["  Brunch  ", "brunch", "", "Late   Night"];
+        expect(Workplaces.normalizeData(data).workplaces[0].labelSuggestions).toEqual(["Brunch", "Late Night"]);
+        expect(Workplaces.normalizeData(sampleData()).workplaces[0].labelSuggestions).toBeUndefined();
+        expect(Workplaces.parseLabelSuggestions("Brunch, brunch\nOvernight").labels).toEqual(["Brunch", "Overnight"]);
+        expect(Workplaces.parseLabelSuggestions("x".repeat(61)).error).toContain("60 characters");
+        expect(Workplaces.setLabelSuggestions(data, "wp-1", ["  Event ", "event", "Catering"]).item.labelSuggestions)
+            .toEqual(["Event", "Catering"]);
+        expect(Workplaces.setLabelSuggestions(data, "wp-1", ["x".repeat(61)]).error).toContain("60 characters");
+        expect(Workplaces.setLabelSuggestions(data, "missing", []).error).toContain("no longer exists");
+        expect(() => Workplaces.normalizeData({
+            ...sampleData(),
+            workplaces: [{ ...sampleData().workplaces[0], labelSuggestions: "Brunch" }],
+        })).toThrow("Shift label suggestions");
+    });
+
     test("maps the legacy report switch to capabilities and survives normalization", () => {
         const data = sampleData();
         Workplaces.setTracksReports(data, "r-1", false);
@@ -408,6 +425,17 @@ describe("Workplace manager in Settings", () => {
         expect(element("#workplace-list").textContent).toContain("Barista");
     }));
 
+    test("edits and persists a workplace's label suggestions", () => withApp({ workplaces: sampleData() }, async (app) => {
+        const { win, element, openView, savedWorkplaces } = app;
+        openView("settings");
+        const labelInput = element('textarea[data-workplace-labels="wp-1"]');
+        labelInput.value = "Brunch, Event\novernight, brunch";
+        element('button[data-action="save-labels"][data-id="wp-1"]').click();
+        await tick(win);
+        expect(savedWorkplaces().workplaces[0].labelSuggestions).toEqual(["Brunch", "Event", "overnight"]);
+        expect(element('textarea[data-workplace-labels="wp-1"]').value).toBe("Brunch\nEvent\novernight");
+    }));
+
     test("rejects an existing role name when adding roles", () => withApp({ workplaces: sampleData() }, async ({ win, element, openView, fire, savedWorkplaces }) => {
         openView("settings");
         element('button[data-action="add-role"]').click();
@@ -534,8 +562,8 @@ describe("Shift form workplace mode", () => {
         });
         expect(element("#shift-clock-in").value).toBe("16:00");
         expect(element("#shift-clock-out").value).toBe("22:00");
-        expect(element("#shift-food-sales").value).toBe("125.50");
-        expect(element("#shift-cc-tips").value).toBe("30");
+        expect(element('#flexible-report-list [data-report-field="foodSales"]').value).toBe("125.50");
+        expect(element('#flexible-report-list [data-report-field="ccTips"]').value).toBe("30");
 
         submitForm();
         expect(savedShifts()).toHaveLength(1);
@@ -710,7 +738,7 @@ describe("Shift form workplace mode", () => {
         expect(element("#shift-meal-period").value).toBe("Dinner");
         expect(element("#shift-clock-in").value).toBe("16:00");
         expect(element("#shift-clock-out").value).toBe("22:00");
-        expect(element("#shift-food-sales").value).toBe("80");
+        expect(element('#flexible-report-list [data-report-field="foodSales"]').value).toBe("80");
     }));
 
     test("canceling inline workplace creation keeps the workplace step available", () => withApp({
@@ -768,7 +796,7 @@ describe("Shift form workplace mode", () => {
         expect(saved.job).toBe("Bartender");
     }));
 
-    test("a role without reports hides the report fields and saves without them", () => withApp({
+    test("a role without reports can save an empty flexible-report array", () => withApp({
         workplaces: (() => {
             const data = sampleData();
             data.workplaces[0].roles[1].tracksReports = false;
@@ -776,7 +804,7 @@ describe("Shift form workplace mode", () => {
         })(),
     }, ({ element, change, fillForm, submitForm, openView, savedShifts, style }) => {
         openView("new-shift");
-        expect(element("#single-report-fields").hidden).toBe(false);
+        expect(element("#single-report-fields").hidden).toBe(true);
         change("#shift-role", "r-2");
         expect(element("#single-report-fields").hidden).toBe(true);
         expect(element("#role-no-reports-note").hidden).toBe(false);
@@ -790,7 +818,7 @@ describe("Shift form workplace mode", () => {
         change("#shift-meal-period", "Double");
         expect(element("#double-report-fields").hidden).toBe(false);
         change("#shift-role", "r-2");
-        expect(element("#double-report-fields").hidden).toBe(true);
+        expect(element("#double-report-fields").hidden).toBe(false);
         change("#shift-role", "r-1");
         expect(element("#double-report-fields").hidden).toBe(false);
     }));
@@ -809,11 +837,13 @@ describe("Shift form workplace mode", () => {
     }, ({ element, change, fillForm, submitForm, openView, savedShifts, style }) => {
         openView("new-shift");
         change("#shift-role", "r-2");
-        expect(element("#single-report-fields fieldset").hidden).toBe(true);
-        expect(style(element("#single-report-fields fieldset")).display).toBe("none");
-        expect(element("#shift-cc-tips").closest("label").hidden).toBe(true);
-        expect(element("#shift-tip-out-paid").closest("label").hidden).toBe(false);
-        expect(element("#shift-tip-out-received").closest("label").hidden).toBe(true);
+        expect(element("#single-report-fields").hidden).toBe(true);
+        element("#add-flexible-report").click();
+        const report = element("#flexible-report-list .double-report");
+        expect(report.querySelector('[aria-label="Sales"]').hidden).toBe(true);
+        expect(report.querySelector('[aria-label="Tips"]').hidden).toBe(false);
+        expect(report.querySelector('[data-report-field="tipsPaidOut"]').closest("label").hidden).toBe(false);
+        expect(report.querySelector('[data-report-field="tipOutReceived"]').closest("label").hidden).toBe(true);
         fillForm({
             date: "2026-10-22",
             mealPeriod: "Dinner",
@@ -821,10 +851,8 @@ describe("Shift form workplace mode", () => {
             role: "r-2",
             clockIn: "16:00",
             clockOut: "22:00",
-            foodSales: "50",
-            ccTips: "20",
-            tipOutPaid: "5",
         });
+        report.querySelector('[data-report-field="tipsPaidOut"]').value = "5";
         submitForm();
         const [saved] = savedShifts();
         expect(saved.noSales).toBe(true);
@@ -866,9 +894,9 @@ describe("Shift form workplace mode", () => {
         submitForm();
         const report = savedShifts()[0].reports[0];
         expect(report.noSales).toBe(true);
-        expect(report.foodSales).toBe("");
+        expect(Object.hasOwn(report, "foodSales")).toBe(false);
         expect(report.ccTips).toBe(15);
-        expect(report.tipsPaidOut).toBe("");
+        expect(Object.hasOwn(report, "tipsPaidOut")).toBe(false);
     }));
 
     test("editing a shift preserves amounts hidden by the current role capabilities", () => withApp({
@@ -890,6 +918,17 @@ describe("Shift form workplace mode", () => {
             ccTips: 10,
             tipsPaidOut: 2,
             tipOutReceived: 3,
+            reports: [{
+                id: "generic-1",
+                label: "Dinner",
+                coverage: "whole",
+                foodSales: 40,
+                noSales: false,
+                ccTips: 10,
+                noTips: false,
+                tipsPaidOut: 2,
+                tipOutReceived: 3,
+            }],
         })],
     }, ({ element, fire, openView, savedShifts }) => {
         openView("previous-shifts");
@@ -899,6 +938,12 @@ describe("Shift form workplace mode", () => {
         expect(savedShifts()[0].ccTips).toBe(10);
         expect(savedShifts()[0].tipsPaidOut).toBe(2);
         expect(savedShifts()[0].tipOutReceived).toBe(3);
+        expect(savedShifts()[0].reports[0].foodSales).toBe(40);
+        expect(savedShifts()[0].reports[0].noSales).toBe(false);
+        expect(savedShifts()[0].reports[0].ccTips).toBe(10);
+        expect(savedShifts()[0].reports[0].noTips).toBe(false);
+        expect(savedShifts()[0].reports[0].tipsPaidOut).toBe(2);
+        expect(savedShifts()[0].reports[0].tipOutReceived).toBe(3);
     }));
 
     test("role settings save independent capabilities without removing templates", () => withApp({ workplaces: sampleDataWithTemplate() }, async ({ win, element, openView, fire, savedWorkplaces }) => {
@@ -971,6 +1016,22 @@ describe("Shift form workplace mode", () => {
 });
 
 describe("Editing shifts without a role", () => {
+    test("clears the previous role when moving a shift to a workplace without roles", () => withApp({
+        workplaces: (() => {
+            const data = sampleData();
+            data.workplaces.push({ id: "wp-2", name: "Cafe", archived: false, roles: [] });
+            return data;
+        })(),
+        shifts: [makeShift({ id: 35, workplaceId: "wp-1", roleId: "r-1" })],
+    }, ({ element, openView, change, submitForm, savedShifts }) => {
+        openView("previous-shifts");
+        element('.shift-card[data-shift-id="35"] .edit-shift').click();
+        change("#shift-workplace", "wp-2");
+        submitForm();
+        expect(savedShifts()[0].workplaceId).toBe("wp-2");
+        expect(savedShifts()[0].roleId).toBeUndefined();
+    }));
+
     test("keeps the old job as a no-role option and can move it to a role", () => withApp({
         workplaces: sampleData(),
         shifts: [makeShift({ id: 33, job: "Expo" })],
@@ -1061,6 +1122,7 @@ describe("Backup with workplaces", () => {
         workplaces: (() => {
             const data = sampleData();
             data.workplaces[0].roles[0].hourlyWage = 19.25;
+            data.workplaces[0].labelSuggestions = ["Private event"];
             return data;
         })(),
     }, async ({ win, element, openView }) => {
@@ -1074,15 +1136,18 @@ describe("Backup with workplaces", () => {
         expect(backup.version).toBe(2);
         expect(backup.workplaces[0].name).toBe("Bistro");
         expect(backup.workplaces[0].roles[0].hourlyWage).toBe(19.25);
+        expect(backup.workplaces[0].labelSuggestions).toEqual(["Private event"]);
     }));
 
     test("restores workplaces together with shifts", () => withApp(async (app) => {
         const shift = makeShift({ workplaceId: "wp-1", roleId: "r-1" });
         const workplaces = sampleData().workplaces;
         workplaces[0].roles[0].hourlyWage = 21.75;
+        workplaces[0].labelSuggestions = ["Private event"];
         await restore(app, JSON.stringify({ format: "shift-ledger-backup", version: 2, shifts: [shift], workplaces }));
         expect(app.savedWorkplaces().workplaces[0].name).toBe("Bistro");
         expect(app.savedWorkplaces().workplaces[0].roles[0].hourlyWage).toBe(21.75);
+        expect(app.savedWorkplaces().workplaces[0].labelSuggestions).toEqual(["Private event"]);
         expect(app.savedShifts()[0].roleId).toBe("r-1");
         expect(app.element("#workplace-list").textContent).toContain("Bistro");
     }));

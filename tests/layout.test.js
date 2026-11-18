@@ -245,15 +245,22 @@ describe("New shift layout", () => {
         revealShiftDetails(harness);
 
         const rect = (selector) => element(selector).getBoundingClientRect();
-        const ids = [
-            "shift-date", "shift-meal-period", "shift-clock-in", "shift-clock-out",
-            "shift-break-start", "shift-break-end", "shift-baw-sales", "shift-food-sales",
-            "shift-additional-sales", "shift-cc-tips", "shift-tip-out-paid",
+        element("#add-flexible-report").click();
+        const selectors = [
+            "#shift-date", "#shift-other-label", "#shift-clock-in", "#shift-clock-out",
+            "#shift-break-start", "#shift-break-end",
+            '#flexible-report-list [data-report-field="ccTips"]',
+            '#flexible-report-list [data-report-field="cashTips"]',
+            '#flexible-report-list [data-report-field="autoGratuity"]',
+            '#flexible-report-list [data-report-field="tipsPaidOut"]',
+            '#flexible-report-list [data-report-field="bawSales"]',
+            '#flexible-report-list [data-report-field="foodSales"]',
+            '#flexible-report-list [data-report-field="additionalSales"]',
         ];
-        const lefts = ids.map((id) => rect(`#${id}`).left);
+        const lefts = selectors.map((selector) => rect(selector).left);
 
-        ids.slice(1).forEach((id, index) => {
-            expect(rect(`#${id}`).top).toBeGreaterThan(rect(`#${ids[index]}`).top);
+        selectors.slice(1).forEach((selector, index) => {
+            expect(rect(selector).top).toBeGreaterThan(rect(selectors[index]).top);
         });
         expect(element("#shift-job-field").hidden).toBe(true);
         expect(Math.max(...lefts) - Math.min(...lefts)).toBeLessThanOrEqual(60);
@@ -293,9 +300,13 @@ describe("New shift layout", () => {
         const top = (selector) => element(selector).getBoundingClientRect().top;
 
         expect(top("#shift-clock-out")).toBeGreaterThan(top("#shift-clock-in"));
-        expect(top("#shift-cash-tips")).toBeGreaterThan(top("#shift-cc-tips"));
-        expect(top("#shift-auto-gratuity")).toBeGreaterThan(top("#shift-cash-tips"));
-        expect(top("#shift-tip-out-received")).toBeGreaterThan(top("#shift-tip-out-paid"));
+        element("#add-flexible-report").click();
+        expect(top('#flexible-report-list [data-report-field="cashTips"]'))
+            .toBeGreaterThan(top('#flexible-report-list [data-report-field="ccTips"]'));
+        expect(top('#flexible-report-list [data-report-field="autoGratuity"]'))
+            .toBeGreaterThan(top('#flexible-report-list [data-report-field="cashTips"]'));
+        expect(top('#flexible-report-list [data-report-field="tipOutReceived"]'))
+            .toBeGreaterThan(top('#flexible-report-list [data-report-field="tipsPaidOut"]'));
     }));
 
     test("stacks the form cards on a phone without horizontal overflow", () => withApp({ width: 390, height: 844 }, (harness) => {
@@ -304,27 +315,26 @@ describe("New shift layout", () => {
 
         const top = (selector) => element(selector).getBoundingClientRect().top;
 
-        expect(top("#shift-meal-period")).toBeGreaterThan(top("#shift-date"));
+        expect(top("#shift-other-label")).toBeGreaterThan(top("#shift-date"));
         expect(top("#break-card-title")).toBeGreaterThan(top("#shift-clock-out"));
-        expect(elements("#single-report-fields fieldset:first-child .sub-card")).toHaveLength(1);
-        expect(top("#shift-food-sales")).toBeGreaterThan(top("#shift-baw-sales"));
-        expect(top("#shift-liquor-sales")).toBeGreaterThan(top("#shift-food-sales"));
-        expect(top("#shift-na-sales")).toBeGreaterThan(top("#shift-liquor-sales"));
-        expect(top("#additional-sales-card-title")).toBeGreaterThan(top("#shift-na-sales"));
-        expect(top("#tipout-card-title")).toBeGreaterThan(top("#shift-auto-gratuity"));
-        expect(top("#single-report-fields fieldset:last-child")).toBeGreaterThan(top("#single-report-fields fieldset:first-child"));
+        element("#add-flexible-report").click();
+        expect(top('#flexible-report-list [data-report-field="foodSales"]'))
+            .toBeGreaterThan(top('#flexible-report-list [data-report-field="bawSales"]'));
+        expect(top('#flexible-report-list [data-report-field="liquorSales"]'))
+            .toBeGreaterThan(top('#flexible-report-list [data-report-field="foodSales"]'));
+        expect(top('#flexible-report-list [data-report-field="naBevSales"]'))
+            .toBeGreaterThan(top('#flexible-report-list [data-report-field="liquorSales"]'));
+        expect(top('#flexible-report-list [data-report-field="tipsPaidOut"]'))
+            .toBeGreaterThan(top('#flexible-report-list [data-report-field="autoGratuity"]'));
         expect(doc.documentElement.scrollWidth).toBeLessThanOrEqual(win.innerWidth);
     }));
 
-    test("keeps double-shift report details in one vertical column", () => withApp({
+    test("keeps flexible report details in one vertical column", () => withApp({
         width: 1400,
         height: 1000,
     }, (harness) => {
-        const { element, fire } = harness;
+        const { element } = harness;
         revealShiftDetails(harness);
-        const mealPeriod = element("#shift-meal-period");
-        mealPeriod.value = "Double";
-        fire(mealPeriod, "change");
         element("#add-flexible-report").click();
 
         const report = element("#flexible-report-list .double-report");
@@ -341,11 +351,8 @@ describe("New shift layout", () => {
         width: 390,
         height: 844,
     }, (harness) => {
-        const { doc, element, fire, win } = harness;
+        const { doc, element, win } = harness;
         revealShiftDetails(harness);
-        const mealPeriod = element("#shift-meal-period");
-        mealPeriod.value = "Double";
-        fire(mealPeriod, "change");
         element("#add-flexible-report").click();
 
         const report = element("#flexible-report-list .double-report");

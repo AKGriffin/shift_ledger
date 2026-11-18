@@ -13,13 +13,6 @@
     }
 
     function getFinancialReports(shift, missingFlag) {
-        if (shift.noReport === true && shift.mealPeriod !== "Double") {
-            return [];
-        }
-        if (!shift.reports || typeof shift.reports !== "object") {
-            return null;
-        }
-
         if (Array.isArray(shift.reports)) {
             const whole = shift.reports.filter((report) => report.coverage === "whole");
             if (whole.length > 1) {
@@ -29,6 +22,12 @@
                 return whole;
             }
             return shift.reports.filter((report) => report.coverage === "part");
+        }
+        if (shift.noReport === true && shift.mealPeriod !== "Double") {
+            return [];
+        }
+        if (!shift.reports || typeof shift.reports !== "object") {
+            return null;
         }
 
         const { lunch, dinner, whole } = shift.reports;
@@ -43,7 +42,7 @@
 
     // Single shifts can lack the sales report, the tip report, or both; doubles track coverage per report.
     function isSingleShift(shift) {
-        return shift.mealPeriod !== "Double";
+        return !Array.isArray(shift.reports) && shift.mealPeriod !== "Double";
     }
 
     function hasSalesReport(shift) {

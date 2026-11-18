@@ -36,7 +36,7 @@ describe("Incomplete shifts", () => {
         expect(card.querySelector(".card-incomplete").hidden).toBe(false);
         expect(card.querySelector(".card-missing-fields").hidden).toBe(false);
         expect(card.querySelector(".card-missing-fields").textContent).toContain("Missing:");
-        expect(card.querySelector(".card-missing-fields").textContent).toContain("Meal period");
+        expect(card.querySelector(".card-missing-fields").textContent).toContain("Worked period");
     }));
 
     test("excludes incomplete shifts from dashboard totals", () => withApp({

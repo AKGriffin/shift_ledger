@@ -9,6 +9,7 @@ export const PRE_FLEXIBLE_REPORTS_STORAGE_KEY = "shift-ledger-shifts-v1-pre-flex
 const FIELD_IDS = {
     date: "shift-date",
     mealPeriod: "shift-meal-period",
+    shiftLabel: "shift-other-label",
     job: "shift-job",
     workplace: "shift-workplace",
     role: "shift-role",
@@ -22,6 +23,18 @@ const FIELD_IDS = {
     autoGratuity: "shift-auto-gratuity",
     tipOutPaid: "shift-tip-out-paid",
     tipOutReceived: "shift-tip-out-received",
+};
+const REPORT_FIELD_NAMES = {
+    foodSales: "foodSales",
+    bawSales: "bawSales",
+    liquorSales: "liquorSales",
+    naBevSales: "naBevSales",
+    additionalSales: "additionalSales",
+    ccTips: "ccTips",
+    cashTips: "cashTips",
+    autoGratuity: "autoGratuity",
+    tipOutPaid: "tipsPaidOut",
+    tipOutReceived: "tipOutReceived",
 };
 
 const DEFAULT_FORM_VALUES = {
@@ -230,12 +243,51 @@ function createHarness(frame, consoleErrors) {
     const state_hasEditingShift = () => doc.getElementById("form-title").textContent !== "New Shift";
     const fillForm = (values) => {
         Object.entries(values).forEach(([key, value]) => {
+            if (key === "workedPeriods" || Object.hasOwn(REPORT_FIELD_NAMES, key)
+                || key === "noSales" || key === "noTips") {
+                return;
+            }
             const id = FIELD_IDS[key];
             if (!id) {
                 throw new Error(`Unknown shift form field: ${key}`);
             }
             doc.getElementById(id).value = String(value);
         });
+        if (Array.isArray(values.workedPeriods)) {
+            const list = element("#worked-period-list");
+            while (list.children.length > 1) {
+                list.lastElementChild.remove();
+            }
+            const labels = values.workedPeriods;
+            const first = list.querySelector("[data-worked-period]");
+            first.value = labels[0] || "";
+            for (const label of labels.slice(1)) {
+                element("#add-worked-period").click();
+                list.lastElementChild.querySelector("[data-worked-period]").value = label;
+            }
+            win.updateWorkedPeriodFields();
+        }
+        const hasReportValues = Object.keys(values).some((key) => (
+            Object.hasOwn(REPORT_FIELD_NAMES, key) || key === "noSales" || key === "noTips"
+        ));
+        if (hasReportValues) {
+            let report = element("#flexible-report-list").firstElementChild;
+            if (!report) {
+                element("#add-flexible-report").click();
+                report = element("#flexible-report-list").firstElementChild;
+                report.querySelector('[data-report-field="coverage"]').value = "whole";
+            }
+            Object.entries(REPORT_FIELD_NAMES).forEach(([key, reportField]) => {
+                if (Object.hasOwn(values, key)) {
+                    report.querySelector(`[data-report-field="${reportField}"]`).value = String(values[key]);
+                }
+            });
+            ["noSales", "noTips"].forEach((key) => {
+                if (values[key]) {
+                    report.querySelector(`[data-report-field="${key}"]`).checked = true;
+                }
+            });
+        }
     };
     const submitForm = () => {
         fire(element("#shift-form"), "submit");
@@ -247,6 +299,11 @@ function createHarness(frame, consoleErrors) {
     const saveShift = (values = {}) => {
         openView("new-shift");
         fillForm({ ...DEFAULT_FORM_VALUES, ...values });
+        if (element("#flexible-report-list").children.length === 0) {
+            element("#add-flexible-report").click();
+            const report = element("#flexible-report-list").firstElementChild;
+            report.querySelector('[data-report-field="coverage"]').value = "whole";
+        }
         submitForm();
     };
     const change = (selector, value) => {

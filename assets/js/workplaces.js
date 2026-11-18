@@ -128,6 +128,40 @@
         return typeof value === "string" ? value.trim().replace(/\s+/g, " ") : "";
     }
 
+    function normalizeLabelSuggestions(values) {
+        if (!Array.isArray(values)) {
+            throw new Error("Shift label suggestions are not valid.");
+        }
+        const seen = new Set();
+        return values.map((value) => {
+            if (typeof value !== "string") {
+                throw new Error("Shift label suggestions are not valid.");
+            }
+            return cleanName(value);
+        }).filter((label) => {
+            if (!label) {
+                return false;
+            }
+            if (label.length > MAX_NAME_LENGTH) {
+                throw new Error(`Each shift label must be ${MAX_NAME_LENGTH} characters or fewer.`);
+            }
+            const key = label.toLowerCase();
+            if (seen.has(key)) {
+                return false;
+            }
+            seen.add(key);
+            return true;
+        });
+    }
+
+    function parseLabelSuggestions(value) {
+        try {
+            return { labels: normalizeLabelSuggestions(String(value || "").split(/[,\n]/)), error: "" };
+        } catch (error) {
+            return { labels: [], error: error.message };
+        }
+    }
+
     function normalizeData(raw) {
         if (!raw || typeof raw !== "object" || Array.isArray(raw) || !Array.isArray(raw.workplaces)) {
             throw new Error("Workplace data is not valid.");
@@ -183,6 +217,12 @@
                 archived: workplace.archived === true,
                 roles,
             };
+            const labelSuggestions = normalizeLabelSuggestions(workplace.labelSuggestions === undefined
+                ? []
+                : workplace.labelSuggestions);
+            if (labelSuggestions.length > 0) {
+                normalizedWorkplace.labelSuggestions = labelSuggestions;
+            }
             const dates = readWorkplaceDates(workplace);
             if (dates.startDate) {
                 normalizedWorkplace.startDate = dates.startDate;
@@ -293,6 +333,24 @@
             return { error };
         }
         found.item.name = cleanName(name);
+        return { item: found.item };
+    }
+
+    function setLabelSuggestions(data, workplaceId, labels) {
+        const found = locate(data, "workplace", workplaceId);
+        if (!found) {
+            return { error: "That workplace no longer exists." };
+        }
+        try {
+            const clean = normalizeLabelSuggestions(labels);
+            if (clean.length > 0) {
+                found.item.labelSuggestions = clean;
+            } else {
+                delete found.item.labelSuggestions;
+            }
+        } catch (error) {
+            return { error: error.message };
+        }
         return { item: found.item };
     }
 
@@ -525,10 +583,13 @@
         roleHasReports,
         setPayPeriod,
         setDates,
+        setLabelSuggestions,
         linkShifts,
         load,
         locate,
         normalizeData,
+        normalizeLabelSuggestions,
+        parseLabelSuggestions,
         parseRoleNames,
         remove,
         rename,

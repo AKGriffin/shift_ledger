@@ -133,8 +133,10 @@ describe("Guided and manual entry", () => {
             if (harness.element("#shift-workplace").value !== "test-workplace") {
                 harness.change("#shift-workplace", "test-workplace");
             }
-        } else if (prompt.includes("lunch, dinner, or double")) {
-            harness.change("#shift-meal-period", "Dinner");
+        } else if (prompt.includes("worked periods")) {
+            const period = harness.element("#shift-other-label");
+            period.value = "Dinner";
+            harness.fire(period, "input");
         } else if (prompt.includes("clock in")) {
             harness.fillForm({ clockIn: "16:00" });
             harness.fire(harness.element("#shift-clock-in"), "input");
@@ -185,18 +187,20 @@ describe("Guided and manual entry", () => {
         harness.fire(radio, "change");
     }
 
-    test("shows selectable report fields during the guided double-shift question", () => withApp((harness) => {
+    test("shows flexible reports during guided entry independently of worked-period count", () => withApp((harness) => {
         chooseMode(harness, "guided");
         for (let guard = 0; guard < 30; guard += 1) {
             const prompt = harness.element("#guided-question").textContent;
-            if (prompt.includes("Which reports do you have")) break;
-            if (prompt.includes("lunch, dinner, or double")) {
-                harness.change("#shift-meal-period", "Double");
+            if (prompt.includes("reports do you have")) break;
+            if (prompt.includes("worked periods")) {
+                harness.fillForm({ workedPeriods: ["Lunch", "Dinner"] });
+                harness.fire(harness.element("#shift-other-label"), "input");
+                harness.element("#guided-next").click();
             } else {
                 answerAndAdvance(harness);
             }
         }
-        expect(harness.element("#guided-question").textContent).toContain("Which reports do you have");
+        expect(harness.element("#guided-question").textContent).toContain("reports do you have");
         harness.element("#add-flexible-report").click();
         const report = harness.element("#flexible-report-list .double-report");
         expect(harness.win.getComputedStyle(report).display).not.toBe("none");
@@ -209,13 +213,15 @@ describe("Guided and manual entry", () => {
         expect(input.value).toBe("25");
     }));
 
-    test("allows flexible report entry during the guided double-shift question", () => withApp((harness) => {
+    test("allows flexible report entry during the guided report question", () => withApp((harness) => {
         chooseMode(harness, "guided");
         for (let guard = 0; guard < 30; guard += 1) {
             const prompt = harness.element("#guided-question").textContent;
-            if (prompt.includes("Which reports do you have")) break;
-            if (prompt.includes("lunch, dinner, or double")) {
-                harness.change("#shift-meal-period", "Double");
+            if (prompt.includes("reports do you have")) break;
+            if (prompt.includes("worked periods")) {
+                harness.fillForm({ workedPeriods: ["Brunch"] });
+                harness.fire(harness.element("#shift-other-label"), "input");
+                harness.element("#guided-next").click();
             } else {
                 answerAndAdvance(harness);
             }
@@ -237,14 +243,13 @@ describe("Guided and manual entry", () => {
 
     test("allows a custom single-shift label in guided entry", () => withApp((harness) => {
         chooseMode(harness, "guided");
-        advanceGuidedUntil(harness, "lunch, dinner, or double");
-        harness.change("#shift-meal-period", "Other");
-        expect(harness.element("#guided-question").textContent).toContain("lunch, dinner, or double");
+        advanceGuidedUntil(harness, "worked periods");
         const label = harness.element("#shift-other-label");
         expect(label.getBoundingClientRect().height).toBeGreaterThan(0);
         label.value = "Overnight";
-        harness.fire(label, "change");
-        expect(harness.element("#guided-question").textContent).not.toContain("lunch, dinner, or double");
+        harness.fire(label, "input");
+        harness.element("#guided-next").click();
+        expect(harness.element("#guided-question").textContent).not.toContain("worked periods");
     }));
 
     test("suggests previously used custom labels without duplicates", () => withApp({
@@ -256,6 +261,43 @@ describe("Guided and manual entry", () => {
         expect(harness.element("#shift-other-label").getAttribute("list")).toBe("shift-label-suggestions");
         expect(values[0]).toBe("Banquet");
         expect(values.filter((value) => value.toLowerCase() === "banquet")).toHaveLength(1);
+        expect(values).toContain("Brunch");
+    }));
+
+    test("suggests labels from the selected workplace alongside defaults", () => withApp({
+        workplaces: {
+            version: 1,
+            setupDismissed: true,
+            workplaces: [
+                {
+                    id: "wp-1",
+                    name: "Bistro",
+                    archived: false,
+                    roles: [{ id: "r-1", name: "Server", archived: false }],
+                    labelSuggestions: ["Private event"],
+                },
+                {
+                    id: "wp-2",
+                    name: "Cafe",
+                    archived: false,
+                    roles: [{ id: "r-2", name: "Host", archived: false }],
+                    labelSuggestions: ["Patio service"],
+                },
+            ],
+        },
+    }, (harness) => {
+        chooseMode(harness, "manual");
+        harness.change("#shift-workplace", "wp-1");
+        harness.change("#shift-meal-period", "Other");
+        let values = harness.elements("#shift-label-suggestions option").map((option) => option.value);
+        expect(values).toContain("Private event");
+        expect(values).not.toContain("Patio service");
+        expect(values).toContain("Brunch");
+
+        harness.change("#shift-workplace", "wp-2");
+        values = harness.elements("#shift-label-suggestions option").map((option) => option.value);
+        expect(values).toContain("Patio service");
+        expect(values).not.toContain("Private event");
         expect(values).toContain("Brunch");
     }));
 
@@ -271,6 +313,37 @@ describe("Guided and manual entry", () => {
         expect(harness.element(".card-meal").textContent).toBe("Overnight");
         harness.element(".edit-shift").click();
         expect(harness.element("#shift-other-label").value).toBe("Overnight");
+    }));
+
+    test("clearing an existing worked period does not restore the old meal-period value", () => withApp({
+        shifts: [makeShift({ mealPeriod: "Lunch" })],
+    }, ({ element, openView, fire }) => {
+        openView("previous-shifts");
+        element(".edit-shift").click();
+        element("#shift-other-label").value = "";
+        fire(element("#shift-other-label"), "input");
+        element("#review-shift").click();
+        expect(element("#shift-incomplete-warning").hidden).toBe(false);
+    }));
+
+    test("worked period suggestions remain available after adding and removing rows", () => withApp((harness) => {
+        harness.openView("new-shift");
+        harness.element("#add-worked-period").click();
+        expect(harness.elements("#shift-label-suggestions")).toHaveLength(1);
+        harness.element('#worked-period-list [data-remove-worked-period]').click();
+        expect(harness.elements("#shift-label-suggestions")).toHaveLength(1);
+        expect(harness.element("#worked-period-list input").getAttribute("list")).toBe("shift-label-suggestions");
+        expect(harness.elements("#shift-label-suggestions option").map((option) => option.value)).toContain("Lunch");
+    }));
+
+    test("retains the designation when editing an older Other shift without a label", () => withApp({
+        shifts: [makeShift({ mealPeriod: "Other" })],
+    }, ({ element, openView, submitForm, savedShifts }) => {
+        openView("previous-shifts");
+        element(".edit-shift").click();
+        expect(element("#shift-other-label").value).toBe("Other");
+        submitForm();
+        expect(savedShifts()[0].workedPeriods).toEqual(["Other"]);
     }));
 
     test("new entry starts with the guided questions and offers Cancel", () => withApp({
@@ -320,8 +393,8 @@ describe("Guided and manual entry", () => {
         element(".edit-shift").click();
         expect(element("#shift-had-break-yes").checked).toBe(true);
         expect(element("#shift-has-notes-yes").checked).toBe(true);
-        expect(element("#shift-has-tips-report-no").checked).toBe(true);
-        expect(element("#shift-has-sales-report-yes").checked).toBe(true);
+        expect(element('#flexible-report-list [data-report-field="noTips"]').checked).toBe(true);
+        expect(element('#flexible-report-list [data-report-field="noSales"]').checked).toBe(false);
         expect(element("#guided-progress").textContent).toBe("Edit");
     }));
 
@@ -432,71 +505,45 @@ describe("Guided and manual entry", () => {
         expect(element("#guided-question").textContent).toContain("shift end");
     }));
 
-    test("guided entry advances on a no-report choice but keeps optional amount groups together", () => withApp((harness) => {
-        const { element, fire } = harness;
+    test("guided entry offers one optional flexible report editor for all report types", () => withApp((harness) => {
+        const { element } = harness;
         chooseMode(harness, "guided");
-        advanceGuidedUntil(harness, "sales report");
-
-        expect(element("#guided-next-hint").hidden).toBe(true);
-        expect(element("#guided-sales-report-step").hidden).toBe(false);
-        expect(harness.style(element("#shift-no-sales-report-control")).display).toBe("none");
-        expect(element('[data-report-inputs="sales"]').hidden).toBe(true);
-        expect(activeGuidedQuestion(harness).textContent).toBe("Do you have your sales report?");
-        expect(element("#guided-sales-card").contains(element("#guided-sales-report-step"))).toBe(true);
-
+        advanceGuidedUntil(harness, "reports do you have");
+        expect(element("#double-report-fields").hidden).toBe(false);
+        expect(activeGuidedQuestion(harness).textContent).toContain("reports do you have");
         element("#guided-next").click();
-        expect(element("#guided-next-hint").textContent).toContain("Choose whether you have a sales report");
-
-        element("#shift-has-sales-report-no").checked = true;
-        fire(element("#shift-has-sales-report-no"), "change");
-        expect(element("#guided-question").textContent).toContain("tips report");
-    }));
-
-    test("guided sales report Yes advances to the inputs and focuses the first amount", () => withApp((harness) => {
-        const { element, fire, doc } = harness;
-        chooseMode(harness, "guided");
-        advanceGuidedUntil(harness, "sales report");
-
-        element("#shift-has-sales-report-yes").checked = true;
-        fire(element("#shift-has-sales-report-yes"), "change");
-
-        expect(element('[data-report-inputs="sales"]').hidden).toBe(false);
-        expect(element("#shift-no-sales-report").checked).toBe(false);
-        expect(doc.activeElement.id).toBe("shift-baw-sales");
-        expect(element("#guided-sales-report-step").classList.contains("guided-off")).toBe(true);
-        expect(activeGuidedQuestion(harness).textContent).toBe("Fill out the sales from your report");
-
-        element("#guided-back").click();
-        expect(element("#guided-question").textContent).toContain("sales report");
-        expect(element("#guided-sales-report-step").classList.contains("guided-off")).toBe(false);
-    }));
-
-    test("guided tips report Yes advances to the tip inputs and focuses the first", () => withApp((harness) => {
-        const { element, fire, doc } = harness;
-        chooseMode(harness, "guided");
-        advanceGuidedUntil(harness, "tips report");
-        expect(element("#guided-tips-inputs").hidden).toBe(true);
-        expect(element("#shift-no-tips-report-control").hidden).toBe(true);
-
-        element("#shift-has-tips-report-yes").checked = true;
-        fire(element("#shift-has-tips-report-yes"), "change");
-        expect(element("#guided-tips-inputs").hidden).toBe(false);
-        expect(element("#shift-no-tips-report").checked).toBe(false);
-        expect(element("#shift-cc-tips").disabled).toBe(false);
-        expect(doc.activeElement.id).toBe("shift-cc-tips");
-        expect(activeGuidedQuestion(harness).textContent).toBe("Fill out the tips from your report");
-
-        element("#guided-back").click();
-        expect(element("#guided-question").textContent).toContain("tips report");
-
-        element("#shift-has-tips-report-no").checked = true;
-        fire(element("#shift-has-tips-report-no"), "change");
-        expect(element("#shift-no-tips-report").checked).toBe(true);
-        expect(element("#guided-tips-inputs").hidden).toBe(true);
         expect(element("#guided-question").textContent).toContain("Do you have notes");
     }));
 
-    test("guided tips report focuses the first available field for tip-out-only roles", () => withApp({
+    test("guided reports support separate sales and tips availability", () => withApp((harness) => {
+        const { element } = harness;
+        chooseMode(harness, "guided");
+        advanceGuidedUntil(harness, "reports do you have");
+        element("#add-flexible-report").click();
+        const report = element("#flexible-report-list .double-report");
+        const noSales = report.querySelector('[data-report-field="noSales"]');
+        noSales.checked = true;
+        harness.fire(noSales, "change");
+        expect(report.querySelector('[data-report-field="foodSales"]').disabled).toBe(true);
+        expect(report.querySelector('[data-report-field="ccTips"]').disabled).toBe(false);
+    }));
+
+    test("guided report entry supports whole, separate, reference, and no-report choices", () => withApp((harness) => {
+        const { element } = harness;
+        chooseMode(harness, "guided");
+        advanceGuidedUntil(harness, "reports do you have");
+        element("#add-flexible-report").click();
+        const report = element("#flexible-report-list .double-report");
+        const coverage = report.querySelector('[data-report-field="coverage"]');
+        expect([...coverage.options].map((option) => option.value)).toEqual(["part", "whole", "reference"]);
+        coverage.value = "reference";
+        harness.fire(coverage, "change");
+        expect(report.querySelector('[data-report-field="ccTips"]').disabled).toBe(false);
+        element("#guided-next").click();
+        expect(element("#guided-question").textContent).toContain("Do you have notes");
+    }));
+
+    test("unified report editor respects tip-out-only role capabilities", () => withApp({
         workplaces: {
             workplaces: [{
                 id: "test-workplace",
@@ -514,13 +561,16 @@ describe("Guided and manual entry", () => {
             }],
         },
     }, (harness) => {
-        const { element, fire, doc } = harness;
+        const { element } = harness;
         chooseMode(harness, "guided");
-        advanceGuidedUntil(harness, "tips report");
-        element("#shift-has-tips-report-yes").checked = true;
-        fire(element("#shift-has-tips-report-yes"), "change");
-
-        expect(doc.activeElement.id).toBe("shift-tip-out-paid");
+        advanceGuidedUntil(harness, "reports do you have");
+        harness.change("#shift-workplace", "test-workplace");
+        harness.change("#shift-role", "test-server");
+        element("#add-flexible-report").click();
+        const report = element("#flexible-report-list .double-report");
+        expect(report.querySelector('[aria-label="Sales"]').hidden).toBe(false);
+        expect(report.querySelector('[data-report-field="ccTips"]').closest("[data-role-capability]").hidden).toBe(true);
+        expect(report.querySelector('[data-report-field="tipsPaidOut"]').closest("label").hidden).toBe(false);
     }));
 
     test("guided break question conditionally reveals and validates break times", () => withApp((harness) => {
@@ -605,29 +655,24 @@ describe("Guided and manual entry", () => {
         expect(savedShifts()[0].notes).toEqual(["Slow night"]);
     }));
 
-    test("guided entry groups reports and ends with an editable full-form edit step", () => withApp((harness) => {
-        const { element, elements, fire, savedShifts } = harness;
+    test("guided report entry leads through full edit and preview", () => withApp((harness) => {
+        const { element, elements, savedShifts } = harness;
         chooseMode(harness, "guided");
         expect(element("#form-actions").hidden).toBe(true);
-        advanceGuidedUntil(harness, "sales report");
-        element("#shift-has-sales-report-yes").checked = true;
-        fire(element("#shift-has-sales-report-yes"), "change");
-        element("#shift-food-sales").value = "75";
-        fire(element("#shift-food-sales"), "input");
-        element("#guided-next").click();
-        expect(element("#guided-question").textContent).toContain("tips report");
-        element("#shift-has-tips-report-yes").checked = true;
-        fire(element("#shift-has-tips-report-yes"), "change");
+        advanceGuidedUntil(harness, "reports do you have");
+        element("#add-flexible-report").click();
+        const foodSales = element('#flexible-report-list [data-report-field="foodSales"]');
+        foodSales.value = "75";
+        harness.fire(foodSales, "input");
         element("#guided-next").click();
         expect(element("#guided-question").textContent).toContain("Do you have notes");
-        expect(elements("#shift-entry-fields [data-guided-prompt*='tip anyone out']")).toHaveLength(0);
+        expect(element("#single-report-fields").hidden).toBe(true);
         advanceGuidedToReview(harness);
         expect(element("#guided-question").textContent).toContain("Edit your shift");
         expect(element("#shift-entry-fields").querySelectorAll(".guided-off")).toHaveLength(0);
         expect(element("#form-actions").hidden).toBe(false);
         expect(element("#guided-buttons").hidden).toBe(true);
-        element("#shift-food-sales").value = "75";
-        fire(element("#shift-food-sales"), "input");
+        element('#flexible-report-list [data-report-field="foodSales"]').value = "75";
         element("#review-shift").click();
         expect(savedShifts()).toHaveLength(0);
         element("#save-shift").click();
@@ -653,67 +698,40 @@ describe("Guided and manual entry", () => {
         expect(element("#break-time-fields").hidden).toBe(true);
     }));
 
-    test("sales and tips report choices remain editable in guided review", () => withApp((harness) => {
-        const { element, fire, style } = harness;
+    test("report labels, coverage, flags, and amounts remain editable in guided review", () => withApp((harness) => {
+        const { element } = harness;
         chooseMode(harness, "guided");
+        advanceGuidedUntil(harness, "reports do you have");
+        element("#add-flexible-report").click();
+        const report = element("#flexible-report-list .double-report");
+        report.querySelector('[data-report-field="label"]').value = "Combined closeout";
+        report.querySelector('[data-report-field="coverage"]').value = "whole";
+        report.querySelector('[data-report-field="foodSales"]').value = "125";
+        report.querySelector('[data-report-field="noTips"]').checked = true;
+        element("#guided-next").click();
         advanceGuidedToReview(harness);
         expect(element("#guided-question").textContent).toContain("Edit your shift");
-        expect(element("#guided-sales-report-title").textContent).toBe("Do you have your sales report?");
-        expect(element("#guided-tips-report-title").textContent).toBe("Do you have your tips report?");
-        expect(element("#guided-sales-report-choice").getAttribute("aria-labelledby")).toBe("guided-sales-report-title");
-        expect(element("#guided-tips-report-choice").getAttribute("aria-labelledby")).toBe("guided-tips-report-title");
-
-        element("#shift-has-sales-report-yes").checked = true;
-        fire(element("#shift-has-sales-report-yes"), "change");
-        expect(element("#guided-sales-report-choice").hidden).toBe(false);
-        expect(element('[data-report-inputs="sales"]').hidden).toBe(false);
-        expect(element("#guided-question").textContent).toContain("Edit your shift");
-
-        element("#shift-has-sales-report-no").checked = true;
-        fire(element("#shift-has-sales-report-no"), "change");
-        expect(element("#guided-sales-report-choice").hidden).toBe(false);
-        expect(element('[data-report-inputs="sales"]').hidden).toBe(true);
-
-        element("#shift-has-tips-report-yes").checked = true;
-        fire(element("#shift-has-tips-report-yes"), "change");
-        expect(element("#guided-tips-report-choice").hidden).toBe(false);
-        expect(element("#guided-tips-inputs").hidden).toBe(false);
-        expect(element("#guided-question").textContent).toContain("Edit your shift");
-        const tipsFieldset = element("#guided-tips-card");
-        const tipsCard = element("#shift-cc-tips").closest(".sub-card");
-        const tipOutCard = element("#shift-tip-out-paid").closest(".sub-card");
-        expect(style(tipsCard).backgroundColor).toBe(style(tipsFieldset).backgroundColor);
-        expect(style(tipsCard).opacity).toBe("1");
-        expect(style(tipOutCard).backgroundColor).toBe(style(tipsFieldset).backgroundColor);
-        expect(style(tipOutCard).opacity).toBe("1");
-
-        element("#shift-has-tips-report-no").checked = true;
-        fire(element("#shift-has-tips-report-no"), "change");
-        expect(element("#guided-tips-report-choice").hidden).toBe(false);
-        expect(element("#guided-tips-inputs").hidden).toBe(true);
-        expect(element("#shift-cc-tips").closest(".sub-card").closest("#guided-tips-inputs").hidden).toBe(true);
-        expect(element("#shift-tip-out-paid").closest(".sub-card").closest("#guided-tips-inputs").hidden).toBe(true);
+        expect(report.querySelector('[data-report-field="label"]').value).toBe("Combined closeout");
+        expect(report.querySelector('[data-report-field="coverage"]').value).toBe("whole");
+        expect(report.querySelector('[data-report-field="foodSales"]').value).toBe("125");
+        expect(report.querySelector('[data-report-field="noTips"]').checked).toBe(true);
+        report.querySelector('[data-report-field="foodSales"]').value = "130";
         expect(element("#review-shift").hidden).toBe(false);
     }));
 
-    test("affirmative report choices stay visible when guided entry first reaches review", () => withApp((harness) => {
-        const { element, fire } = harness;
+    test("report editor is visible when guided entry first reaches review", () => withApp((harness) => {
+        const { element } = harness;
         chooseMode(harness, "guided");
-        advanceGuidedUntil(harness, "sales report");
-
-        element("#shift-has-sales-report-yes").checked = true;
-        fire(element("#shift-has-sales-report-yes"), "change");
-        element("#guided-next").click();
-        element("#shift-has-tips-report-yes").checked = true;
-        fire(element("#shift-has-tips-report-yes"), "change");
+        advanceGuidedUntil(harness, "reports do you have");
+        element("#add-flexible-report").click();
+        const report = element("#flexible-report-list .double-report");
+        report.querySelector('[data-report-field="label"]').value = "Evening";
         element("#guided-next").click();
         advanceGuidedToReview(harness);
 
         expect(element("#guided-question").textContent).toContain("Edit your shift");
-        expect(element("#guided-sales-report-choice").hidden).toBe(false);
-        expect(element("#guided-tips-report-choice").hidden).toBe(false);
-        expect(element('[data-report-inputs="sales"]').hidden).toBe(false);
-        expect(element("#guided-tips-inputs").hidden).toBe(false);
+        expect(element("#flexible-report-list").children).toHaveLength(1);
+        expect(report.querySelector('[data-report-field="label"]').value).toBe("Evening");
     }));
 
     test("review step previews the shift and Edit returns with values kept", () => withApp((harness) => {
@@ -734,7 +752,7 @@ describe("Guided and manual entry", () => {
         element("#edit-shift").click();
         expect(element("#shift-review").hidden).toBe(true);
         expect(element("#shift-entry-fields").hidden).toBe(false);
-        expect(element("#shift-food-sales").value).toBe("55");
+        expect(element('#flexible-report-list [data-report-field="foodSales"]').value).toBe("55");
     }));
 
     test("cancelling from the review step asks first and keeps the shift when declined", () => withApp(async (harness) => {
@@ -791,18 +809,20 @@ describe("Guided and manual entry", () => {
     test("back gesture on an edited form asks before discarding", () => withApp(async (harness) => {
         const { element, win, fire } = harness;
         chooseMode(harness, "manual");
-        element("#shift-food-sales").value = "25";
-        fire(element("#shift-food-sales"), "input");
+        element("#add-flexible-report").click();
+        const foodSales = element('#flexible-report-list [data-report-field="foodSales"]');
+        foodSales.value = "25";
+        fire(foodSales, "input");
 
         win.dispatchEvent(new win.PopStateEvent("popstate", { state: { shiftLedgerView: "new-shift" } }));
         await harness.respondToConfirmDialog(false);
-        expect(element("#shift-food-sales").value).toBe("25");
+        expect(element('#flexible-report-list [data-report-field="foodSales"]').value).toBe("25");
         expect(element("#shift-entry-fields").hidden).toBe(false);
         expect(win.history.state.shiftLedgerEntryGuard).toBe(true);
 
         win.dispatchEvent(new win.PopStateEvent("popstate", { state: { shiftLedgerView: "new-shift" } }));
         await harness.respondToConfirmDialog(true);
-        expect(element("#shift-food-sales").value).not.toBe("25");
+        expect(element("#flexible-report-list").children).toHaveLength(0);
     }));
 
     test("undo and redo step through committed edits on the edit phase", () => withApp((harness) => {
@@ -813,11 +833,15 @@ describe("Guided and manual entry", () => {
         };
         chooseMode(harness, "manual");
         expect(element("#edit-history").hidden).toBe(true);
-        const blankSales = element("#shift-food-sales").value;
+        element("#add-flexible-report").click();
+        const salesSelector = '#flexible-report-list [data-report-field="foodSales"]';
+        const ccTipsSelector = '#flexible-report-list [data-report-field="ccTips"]';
+        const cashTipsSelector = '#flexible-report-list [data-report-field="cashTips"]';
+        const blankSales = element(salesSelector).value;
 
-        setValue("#shift-food-sales", "25");
+        setValue(salesSelector, "25");
         expect(element("#edit-history").hidden).toBe(false);
-        setValue("#shift-cc-tips", "10");
+        setValue(ccTipsSelector, "10");
         element("#notes-list .note-input").value = "Slow night";
         fire(element("#notes-list .note-input"), "change");
         expect(element("#undo-edit").disabled).toBe(false);
@@ -825,40 +849,44 @@ describe("Guided and manual entry", () => {
         element("#undo-edit").click();
         expect(element("#edit-history-message").textContent).toBe("Undid: Notes");
         expect(element("#notes-list .note-input").value).toBe("");
-        expect(element("#shift-cc-tips").value).toBe("10");
+        expect(element(ccTipsSelector).value).toBe("10");
         element("#undo-edit").click();
         expect(element("#edit-history-message").textContent).toContain("Undid: ");
         expect(element("#edit-history-message").textContent).not.toBe("Undid: Notes");
-        expect(element("#shift-cc-tips").value).not.toBe("10");
-        expect(element("#shift-food-sales").value).toBe("25");
+        expect(element(ccTipsSelector).value).not.toBe("10");
+        expect(element(salesSelector).value).toBe("25");
         expect(element("#redo-edit").disabled).toBe(false);
 
         element("#redo-edit").click();
         expect(element("#edit-history-message").textContent).toContain("Redid: ");
-        expect(element("#shift-cc-tips").value).toBe("10");
+        expect(element(ccTipsSelector).value).toBe("10");
 
         // A fresh edit discards the redo branch.
-        setValue("#shift-cash-tips", "7");
+        setValue(cashTipsSelector, "7");
         expect(element("#redo-edit").disabled).toBe(true);
         element("#undo-edit").click();
         element("#undo-edit").click();
         element("#undo-edit").click();
-        expect(element("#shift-food-sales").value).toBe(blankSales);
-        expect(element("#undo-edit").disabled).toBe(true);
+        expect(element(salesSelector).value).toBe(blankSales);
+        expect(element("#undo-edit").disabled).toBe(false);
+        element("#undo-edit").click();
+        expect(element("#flexible-report-list").children).toHaveLength(0);
+        element("#redo-edit").click();
+        expect(element("#flexible-report-list").children).toHaveLength(1);
 
         // Ctrl+Z works outside text fields and leaves text fields to the browser.
-        element("#redo-edit").click();
+        setValue(salesSelector, "25");
         const press = (target, init) => {
             const keyEvent = new win.KeyboardEvent("keydown", { bubbles: true, cancelable: true, ...init });
             target.dispatchEvent(keyEvent);
             return keyEvent.defaultPrevented;
         };
-        expect(press(element("#shift-food-sales"), { key: "z", ctrlKey: true })).toBe(false);
-        expect(element("#shift-food-sales").value).toBe("25");
+        expect(press(element(salesSelector), { key: "z", ctrlKey: true })).toBe(false);
+        expect(element(salesSelector).value).toBe("25");
         expect(press(doc.body, { key: "z", ctrlKey: true })).toBe(true);
-        expect(element("#shift-food-sales").value).toBe(blankSales);
+        expect(element(salesSelector).value).toBe(blankSales);
         expect(press(doc.body, { key: "y", ctrlKey: true })).toBe(true);
-        expect(element("#shift-food-sales").value).toBe("25");
+        expect(element(salesSelector).value).toBe("25");
     }));
 
     test("undo restores the workplace and notes, and survives a trip to review", () => withApp((harness) => {
@@ -876,7 +904,7 @@ describe("Guided and manual entry", () => {
 
         element("#undo-edit").click();
         expect(element("#shift-meal-period").value).toBe("Dinner");
-        expect(element("#edit-history-message").textContent).toBe("Undid: Meal period");
+        expect(element("#edit-history-message").textContent).toBe("Undid: Worked periods");
         expect(element("#notes-list .note-input").value).toBe("First");
         element("#undo-edit").click();
         expect(element("#notes-list .note-input").value).toBe("");
@@ -888,8 +916,10 @@ describe("Guided and manual entry", () => {
         expect(element("#edit-history").hidden).toBe(true);
         advanceGuidedToReview(harness);
         expect(element("#edit-history").hidden).toBe(true);
-        element("#shift-food-sales").value = "9";
-        fire(element("#shift-food-sales"), "change");
+        element("#add-flexible-report").click();
+        const foodSales = element('#flexible-report-list [data-report-field="foodSales"]');
+        foodSales.value = "9";
+        fire(foodSales, "change");
         expect(element("#edit-history").hidden).toBe(false);
     }));
 
@@ -1019,7 +1049,7 @@ describe("Editing and deleting shifts", () => {
         element(".edit-shift").click();
 
         expect(element("#form-title").textContent).toBe("Edit Shift");
-        expect(element("#shift-food-sales").value).toBe("100.00");
+        expect(element('#flexible-report-list [data-report-field="foodSales"]').value).toBe("100.00");
 
         fillForm({ foodSales: "125.50" });
         submitForm();
@@ -1035,7 +1065,7 @@ describe("Editing and deleting shifts", () => {
         openView("previous-shifts");
         element(".edit-shift").click();
 
-        expect(element("#shift-auto-gratuity").value).toBe("12.00");
+        expect(element('#flexible-report-list [data-report-field="autoGratuity"]').value).toBe("12.00");
         fillForm({ autoGratuity: "18.50" });
         submitForm();
 
@@ -1150,7 +1180,8 @@ describe("Shift notes", () => {
 describe("Number field focus", () => {
     test("selects a number field's contents when it receives focus", () => withApp(({ element, fire, openView }) => {
         openView("new-shift");
-        const foodSales = element("#shift-food-sales");
+        element("#add-flexible-report").click();
+        const foodSales = element('#flexible-report-list [data-report-field="foodSales"]');
 
         fire(foodSales, "focusin");
 

@@ -36,6 +36,51 @@ describe("Unfinished shift drafts", () => {
         expect(restored.querySelector('[data-report-field="ccTips"]').value).toBe("45.50");
     }));
 
+    test("round-trips multiple custom worked periods independently from an empty report array", () => withApp((harness) => {
+        createDraft(harness);
+        const first = harness.element("#shift-other-label");
+        first.value = "Private event";
+        harness.fire(first, "input");
+        harness.element("#add-worked-period").click();
+        const second = harness.element("#worked-period-list").lastElementChild.querySelector("[data-worked-period]");
+        second.value = "Overnight";
+        harness.fire(second, "input");
+
+        reopenDraftPrompt(harness);
+        harness.element("#resume-shift-draft").click();
+
+        expect(harness.elements("#worked-period-list [data-worked-period]").map((input) => input.value))
+            .toEqual(["Private event", "Overnight"]);
+        expect(harness.element("#flexible-report-list").children).toHaveLength(0);
+    }));
+
+    test("resumes a version-one single-shift draft into one flexible whole report", () => withApp((harness) => {
+        const draft = {
+            version: 1,
+            mode: "manual",
+            values: {
+                "id:shift-date": "2026-10-28",
+                "id:shift-meal-period": "Dinner",
+                "id:shift-other-label": "",
+                "id:shift-food-sales": "125.50",
+                "id:shift-cc-tips": "40",
+                "id:shift-no-sales-report": false,
+                "id:shift-no-tips-report": false,
+            },
+            notes: [],
+            step: { id: "", index: 0, review: false },
+        };
+        localStorage.setItem(SHIFT_DRAFT_STORAGE_KEY, JSON.stringify(draft));
+        reopenDraftPrompt(harness);
+        harness.element("#resume-shift-draft").click();
+
+        const report = harness.element("#flexible-report-list").firstElementChild;
+        expect(harness.element("#shift-other-label").value).toBe("Dinner");
+        expect(report.querySelector('[data-report-field="coverage"]').value).toBe("whole");
+        expect(report.querySelector('[data-report-field="foodSales"]').value).toBe("125.50");
+        expect(report.querySelector('[data-report-field="ccTips"]').value).toBe("40");
+    }));
+
     test("autosaves entry separately from saved shifts", () => withApp(({ savedDraft, savedShifts, element, fire, openView }) => {
         openView("new-shift", { entryMode: "manual" });
         const dateField = element("#shift-date");

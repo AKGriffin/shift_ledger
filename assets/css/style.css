@@ -757,6 +757,16 @@ main {
     width: 100%;
 }
 
+.workplace-label-settings {
+    display: grid;
+    gap: 8px;
+    width: 100%;
+}
+
+.workplace-label-field {
+    width: 100%;
+}
+
 .role-item {
     padding: 8px 10px;
     border: 1px solid var(--border);
