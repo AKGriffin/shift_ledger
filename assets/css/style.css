@@ -1770,6 +1770,14 @@ legend {
     gap: 14px;
 }
 
+.double-report-list[hidden] {
+    display: none;
+}
+
+#shift-other-label-control[hidden] {
+    display: none;
+}
+
 .double-report {
     display: grid;
     gap: 10px;

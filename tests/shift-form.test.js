@@ -186,6 +186,82 @@ describe("Guided and manual entry", () => {
         harness.fire(radio, "change");
     }
 
+    test("shows selectable report fields during the guided double-shift question", () => withApp((harness) => {
+        chooseMode(harness, "guided");
+        for (let guard = 0; guard < 30; guard += 1) {
+            const prompt = harness.element("#guided-question").textContent;
+            if (prompt.includes("Which reports do you have")) break;
+            if (prompt.includes("lunch, dinner, or double")) {
+                harness.change("#shift-meal-period", "Double");
+            } else {
+                answerAndAdvance(harness);
+            }
+        }
+        expect(harness.element("#guided-question").textContent).toContain("Which reports do you have");
+        harness.element("#add-flexible-report").click();
+        const report = harness.element("#flexible-report-list .double-report");
+        expect(harness.win.getComputedStyle(report).display).not.toBe("none");
+        const input = report.querySelector('[data-report-field="ccTips"]');
+        expect(input.disabled).toBe(false);
+        expect(input.getBoundingClientRect().height).toBeGreaterThan(0);
+        input.value = "25";
+        harness.fire(input, "input");
+        harness.element("#guided-next").click();
+        expect(input.value).toBe("25");
+    }));
+
+    test("allows flexible report entry during the guided double-shift question", () => withApp((harness) => {
+        chooseMode(harness, "guided");
+        for (let guard = 0; guard < 30; guard += 1) {
+            const prompt = harness.element("#guided-question").textContent;
+            if (prompt.includes("Which reports do you have")) break;
+            if (prompt.includes("lunch, dinner, or double")) {
+                harness.change("#shift-meal-period", "Double");
+            } else {
+                answerAndAdvance(harness);
+            }
+        }
+        harness.element("#add-flexible-report").click();
+        const report = harness.element("#flexible-report-list").firstElementChild;
+        const label = report.querySelector('[data-report-field="label"]');
+        const amount = report.querySelector('[data-report-field="ccTips"]');
+        expect(label.getBoundingClientRect().height).toBeGreaterThan(0);
+        expect(amount.getBoundingClientRect().height).toBeGreaterThan(0);
+        label.value = "Brunch";
+        harness.fire(label, "input");
+        amount.value = "15";
+        harness.fire(amount, "input");
+        harness.element("#guided-next").click();
+        expect(label.value).toBe("Brunch");
+        expect(amount.value).toBe("15");
+    }));
+
+    test("allows a custom single-shift label in guided entry", () => withApp((harness) => {
+        chooseMode(harness, "guided");
+        advanceGuidedUntil(harness, "lunch, dinner, or double");
+        harness.change("#shift-meal-period", "Other");
+        expect(harness.element("#guided-question").textContent).toContain("lunch, dinner, or double");
+        const label = harness.element("#shift-other-label");
+        expect(label.getBoundingClientRect().height).toBeGreaterThan(0);
+        label.value = "Overnight";
+        harness.fire(label, "change");
+        expect(harness.element("#guided-question").textContent).not.toContain("lunch, dinner, or double");
+    }));
+
+    test("saves and restores a custom single-shift label", () => withApp((harness) => {
+        harness.openView("new-shift");
+        harness.fillForm({ date: "2026-10-23", mealPeriod: "Other", clockIn: "22:00", clockOut: "06:00" });
+        harness.fire(harness.element("#shift-meal-period"), "change");
+        harness.element("#shift-other-label").value = "Overnight";
+        harness.fire(harness.element("#shift-other-label"), "input");
+        harness.submitForm();
+        expect(harness.savedShifts()[0].shiftLabel).toBe("Overnight");
+        harness.openView("previous-shifts");
+        expect(harness.element(".card-meal").textContent).toBe("Overnight");
+        harness.element(".edit-shift").click();
+        expect(harness.element("#shift-other-label").value).toBe("Overnight");
+    }));
+
     test("asks for an entry mode each time and offers Cancel before entry starts", () => withApp({
         width: 390,
         height: 800,

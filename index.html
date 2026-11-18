@@ -211,7 +211,7 @@
 
                     <div id="shift-details" class="shift-form-details progressive-section" hidden>
                         <div class="form-context-grid">
-                            <fieldset data-guided-step data-guided-prompt="Was this a lunch, dinner, or double shift?">
+                            <fieldset data-guided-step data-guided-prompt="Was this a lunch, dinner, or double shift, or another kind?">
                                 <legend>General</legend>
                                 <div class="form-grid">
                                     <label class="field">
@@ -221,8 +221,13 @@
                                             <option value="Lunch">Lunch</option>
                                             <option value="Dinner">Dinner</option>
                                             <option value="Double">Double</option>
+                                            <option value="Other">Other</option>
                                         </select>
                                         <span class="field-error" id="shift-meal-period-error" hidden></span>
+                                    </label>
+                                    <label class="field" id="shift-other-label-control" hidden>
+                                        <span>Shift label (optional)</span>
+                                        <input type="text" id="shift-other-label" placeholder="e.g. Brunch">
                                     </label>
                                     <label class="field" id="shift-job-field">
                                         <span>Job</span>
@@ -388,8 +393,13 @@
 
                         <section id="double-report-fields" data-guided-step data-guided-prompt="Which reports do you have for this double shift?" hidden aria-labelledby="double-report-heading">
                             <h3 id="double-report-heading">Which reports do you have?</h3>
-                            <p>Check the boxes below for each time period you have a report for. When you check a box, you'll be able to enter the sales and tips for that period.</p>
-                            <div id="double-report-list" class="double-report-list"></div>
+                            <div id="flexible-reports">
+                                <p>Add separate, non-overlapping reports or one whole-shift report. Labels are optional.</p>
+                                <div id="flexible-report-list" class="double-report-list"></div>
+                                <button type="button" class="secondary-button" id="add-flexible-report">+ Add report</button>
+                                <p id="flexible-report-summary" role="status"></p>
+                                <ul id="flexible-report-calculation" hidden></ul>
+                            </div>
                         </section>
 
                         <fieldset id="guided-notes-card" class="notes-section">
@@ -1085,6 +1095,10 @@
                 </div>
             </div>
 
+            <section class="card-flexible-reports" hidden>
+                <h4>Reports</h4>
+                <ul></ul>
+            </section>
             <div class="card-notes"></div>
             </div>
 
@@ -1112,23 +1126,6 @@
             <fieldset data-report-fields disabled>
                 <legend class="sr-only">Report details</legend>
                 <div class="report-details-grid">
-                    <section class="report-data-group" role="group" aria-label="Sales" data-role-capability="tracksSales">
-                        <h4>Sales</h4>
-                        <div class="report-field-subgroup">
-                            <div class="report-field-grid">
-                                <label class="field"><span>Beer &amp; wine</span><input type="number" min="0" step="0.01" value="0" data-report-field="bawSales"></label>
-                                <label class="field"><span>Food</span><input type="number" min="0" step="0.01" value="0" data-report-field="foodSales"></label>
-                                <label class="field"><span>Liquor</span><input type="number" min="0" step="0.01" value="0" data-report-field="liquorSales"></label>
-                                <label class="field"><span>NA beverage</span><input type="number" min="0" step="0.01" value="0" data-report-field="naBevSales"></label>
-                            </div>
-                        </div>
-                        <div class="report-field-subgroup">
-                            <h5>Additional sales</h5>
-                            <div class="report-field-grid">
-                                <label class="field"><span>Additional</span><input type="number" min="0" step="0.01" value="0" data-report-field="additionalSales"></label>
-                            </div>
-                        </div>
-                    </section>
                     <section class="report-data-group" role="group" aria-label="Tips" data-role-capability="tipReport">
                         <h4>Tips</h4>
                         <div class="report-field-subgroup" data-role-capability="receivesTips">
@@ -1144,6 +1141,23 @@
                             <div class="report-field-grid">
                                 <label class="field" data-role-capability="tipsOut"><span>Tips paid out</span><input type="number" min="0" step="0.01" value="0" data-report-field="tipsPaidOut"></label>
                                 <label class="field" data-role-capability="receivesTipOut"><span>Tip out received</span><input type="number" min="0" step="0.01" value="0" data-report-field="tipOutReceived"></label>
+                            </div>
+                        </div>
+                    </section>
+                    <section class="report-data-group" role="group" aria-label="Sales" data-role-capability="tracksSales">
+                        <h4>Sales</h4>
+                        <div class="report-field-subgroup">
+                            <div class="report-field-grid">
+                                <label class="field"><span>Beer &amp; wine</span><input type="number" min="0" step="0.01" value="0" data-report-field="bawSales"></label>
+                                <label class="field"><span>Food</span><input type="number" min="0" step="0.01" value="0" data-report-field="foodSales"></label>
+                                <label class="field"><span>Liquor</span><input type="number" min="0" step="0.01" value="0" data-report-field="liquorSales"></label>
+                                <label class="field"><span>NA beverage</span><input type="number" min="0" step="0.01" value="0" data-report-field="naBevSales"></label>
+                            </div>
+                        </div>
+                        <div class="report-field-subgroup">
+                            <h5>Additional sales</h5>
+                            <div class="report-field-grid">
+                                <label class="field"><span>Additional</span><input type="number" min="0" step="0.01" value="0" data-report-field="additionalSales"></label>
                             </div>
                         </div>
                     </section>

@@ -14,6 +14,28 @@ function reopenDraftPrompt(harness) {
 }
 
 describe("Unfinished shift drafts", () => {
+    test("restores flexible report labels, coverage, and amounts", () => withApp((harness) => {
+        createDraft(harness);
+        harness.change("#shift-meal-period", "Double");
+        harness.element("#add-flexible-report").click();
+        const node = harness.element("#flexible-report-list").firstElementChild;
+        const label = node.querySelector('[data-report-field="label"]');
+        label.value = "Overnight";
+        harness.fire(label, "input");
+        const coverage = node.querySelector('[data-report-field="coverage"]');
+        coverage.value = "whole";
+        harness.fire(coverage, "change");
+        const amount = node.querySelector('[data-report-field="ccTips"]');
+        amount.value = "45.50";
+        harness.fire(amount, "input");
+        reopenDraftPrompt(harness);
+        harness.element("#resume-shift-draft").click();
+        const restored = harness.element("#flexible-report-list").firstElementChild;
+        expect(restored.querySelector('[data-report-field="label"]').value).toBe("Overnight");
+        expect(restored.querySelector('[data-report-field="coverage"]').value).toBe("whole");
+        expect(restored.querySelector('[data-report-field="ccTips"]').value).toBe("45.50");
+    }));
+
     test("autosaves entry separately from saved shifts", () => withApp(({ savedDraft, savedShifts, element, fire, openView }) => {
         openView("new-shift", { entryMode: "manual" });
         const dateField = element("#shift-date");
@@ -102,23 +124,29 @@ describe("Unfinished shift drafts", () => {
         },
     ));
 
-    test("preserves double-shift report selections and amounts", () => withApp((harness) => {
-        harness.openView("new-shift", { entryMode: "manual" });
-        harness.change("#shift-meal-period", "Double");
-        const toggle = harness.element('[data-report-period="lunch"] [data-report-toggle]');
-        toggle.checked = true;
-        harness.fire(toggle, "change");
-        const amount = harness.element('[data-report-period="lunch"] [data-report-field="foodSales"]');
-        amount.value = "123.45";
-        harness.fire(amount, "input");
-
-        expect(harness.savedDraft().values["report:lunch:enabled"]).toBe(true);
-        expect(harness.savedDraft().values["report:lunch:foodSales"]).toBe("123.45");
-        reopenDraftPrompt(harness);
+    test("converts legacy double-report drafts without losing amounts", () => withApp((harness) => {
+        harness.win.localStorage.setItem(SHIFT_DRAFT_STORAGE_KEY, JSON.stringify({
+            version: 1,
+            mode: "manual",
+            values: {
+                "id:shift-meal-period": "Double",
+                "id:shift-use-flexible-reports": false,
+                "report:lunch:enabled": true,
+                "report:lunch:foodSales": "123.45",
+                "report:whole:enabled": true,
+                "report:whole:foodSales": "300",
+            },
+            notes: [],
+            step: { id: "", index: 0, review: false },
+        }));
+        harness.openView("new-shift", { entryMode: null });
         harness.element("#resume-shift-draft").click();
-
-        expect(harness.element('[data-report-period="lunch"] [data-report-toggle]').checked).toBe(true);
-        expect(harness.element('[data-report-period="lunch"] [data-report-field="foodSales"]').value).toBe("123.45");
+        const [lunch, whole] = harness.element("#flexible-report-list").children;
+        expect(lunch.querySelector('[data-report-field="label"]').value).toBe("Lunch");
+        expect(lunch.querySelector('[data-report-field="foodSales"]').value).toBe("123.45");
+        expect(whole.querySelector('[data-report-field="coverage"]').value).toBe("whole");
+        expect(whole.querySelector('[data-report-field="strictWhole"]').checked).toBe(true);
+        expect(whole.querySelector('[data-report-field="foodSales"]').value).toBe("300");
     }));
 
     test("unreadable drafts can be explicitly discarded", () => withApp((harness) => {

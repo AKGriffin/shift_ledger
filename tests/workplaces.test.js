@@ -849,11 +849,10 @@ describe("Shift form workplace mode", () => {
         openView("new-shift");
         change("#shift-meal-period", "Double");
         change("#shift-role", "r-2");
-        const lunch = element('.double-report[data-report-period="lunch"]');
+        element("#add-flexible-report").click();
+        const lunch = element("#flexible-report-list .double-report");
         expect(lunch.querySelector('[aria-label="Sales"]').hidden).toBe(true);
         expect(lunch.querySelector('[aria-label="Tips"]').hidden).toBe(false);
-        lunch.querySelector("[data-report-toggle]").checked = true;
-        fire(lunch.querySelector("[data-report-toggle]"), "change");
         lunch.querySelector('[data-report-field="foodSales"]').value = "100";
         lunch.querySelector('[data-report-field="ccTips"]').value = "15";
         fillForm({
@@ -865,7 +864,7 @@ describe("Shift form workplace mode", () => {
             clockOut: "22:00",
         });
         submitForm();
-        const report = savedShifts()[0].reports.lunch;
+        const report = savedShifts()[0].reports[0];
         expect(report.noSales).toBe(true);
         expect(report.foodSales).toBe("");
         expect(report.ccTips).toBe(15);

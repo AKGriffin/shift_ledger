@@ -10,14 +10,16 @@ Open `index.html` in a modern browser, or serve the project directory with any s
 
 The app is installable and can load its app shell offline after its first successful visit. To use PWA features, serve it from `localhost` during development or deploy it over HTTPS; opening the HTML file directly does not enable service workers. Use your browser's Install app / Add to Home Screen command when available.
 
-The service worker caches the app shell and static assets. When deploying an update, increment `CACHE_NAME` in `sw.js` so installed copies replace their old cached assets. The app checks for updates when it returns online or to the foreground and offers a manual reload when one is ready. Unsaved shift-form changes trigger a confirmation before reloading or leaving the page.
+The service worker caches the app shell and static assets. When deploying an update, increment `SHIFT_LEDGER_VERSION` in `assets/js/app-version.js` so installed copies replace their old cached assets. The app checks for updates when it returns online or to the foreground and offers a manual reload when one is ready. Unsaved shift-form changes trigger a confirmation before reloading or leaving the page.
 
 ## Features
 
 - Record, edit, and delete shifts
+- Choose Other for a single shift outside lunch or dinner and optionally give it a custom label, such as Brunch or Overnight.
 - Track clock-in/out times, breaks, sales, tips, and multiple shift notes
 - Record auto-gratuity separately from other tips; it is included in net tip totals and preserved in backups and CSV exports.
-- For doubles, save lunch and dinner reports independently, a whole-double report, any combination, or no report. Totals avoid double-counting and history labels partial or combined figures; older doubles remain treated as combined reports.
+- For doubles, add any number of labeled or unlabeled separate, non-overlapping reports and optionally one whole-shift report. The whole report is used for totals instead of adding it to the separate reports; otherwise separate reports are summed. Entry shows a calculated remainder or sum, including category amounts, and warns when separate amounts exceed the whole. Sales and tip availability can be marked independently. Reference-only reports are saved without being counted, and a whole report can be set not to fall back to separate reports when a category is missing.
+- Older double reports and unfinished drafts are converted to flexible reports. Existing totals and report details are retained, including when a whole report disagrees with separate reports. Before converting saved shifts, the original data is copied to browser storage under `shift-ledger-shifts-v1-pre-flexible-reports` (or a numbered suffix if needed); saving is disabled if conversion cannot safely be persisted. Older JSON backups can still be imported.
 - For single shifts, check "No sales or tip report" when you don't have the numbers. History, recent activity, and CSV then show "No report" instead of $0.00, and totals simply leave the shift out of sales and tips. Hours still count.
 - Log overnight shifts by recording the date the shift starts; an earlier clock-out (or break end) is treated as the next day. The full shift is grouped under its start date in summaries and history filters.
 - Review all-time, current-week, and current-month totals
@@ -47,7 +49,7 @@ Serve the project directory with a static web server, then open `/tests/` in the
 
 Shift data and preferences are saved in this browser's `localStorage`; they are not uploaded to a server. Stored and imported shifts are validated the same way. If saved data can't be read, the app keeps a copy under `shift-ledger-shifts-v1-recovery` and shows a notice instead of silently overwriting it. Clearing browser storage or switching browsers/devices can remove or make the data unavailable, so download a JSON backup before clearing data or moving devices. browser storage or switching browsers/devices can remove or make the data unavailable, so download a JSON backup before clearing data or moving devices.
 
-CSV exports include all saved shifts. Keep exported files somewhere private because they can contain work and earnings information.
+CSV exports include all saved shifts. Flexible reports are included as JSON in the "Flexible reports (JSON)" column. Keep exported files somewhere private because they can contain work and earnings information.
 
 ## Project layout
 

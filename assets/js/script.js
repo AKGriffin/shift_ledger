@@ -26,7 +26,8 @@ const CARD_BREAKDOWN_SELECTORS = {
 
 const RECOVERY_KEY = "shift-ledger-shifts-v1-recovery";
 const PRE_WORKPLACES_KEY = "shift-ledger-shifts-v1-pre-workplaces";
-const MEAL_PERIODS = ["Lunch", "Dinner", "Double"];
+const PRE_FLEXIBLE_REPORTS_KEY = "shift-ledger-shifts-v1-pre-flexible-reports";
+const MEAL_PERIODS = ["Lunch", "Dinner", "Double", "Other"];
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 const ADD_WORKPLACE_OPTION = "__add_workplace__";
 const ADD_ROLE_OPTION = "__add_role__";
@@ -38,6 +39,7 @@ const reportAmountFields = [
 const salesAmountFields = reportAmountFields.slice(0, 5);
 const tipAmountFields = reportAmountFields.slice(5);
 let loadNotice = "";
+let shiftStorageWriteBlocked = false;
 let setupSaved = false;
 let setupFirstRun = false;
 let setupReturnToShift = false;
@@ -105,12 +107,9 @@ const weekSummary = document.getElementById("week-summary");
 const monthSummary = document.getElementById("month-summary");
 const weekDateRange = document.getElementById("week-date-range");
 const monthDateRange = document.getElementById("month-date-range");
-const doubleReportList = document.getElementById("double-report-list");
 const doubleReportTemplate = document.getElementById("double-report-template");
-// Report periods for double shifts. Values: [id, displayName, capability]
-// Capability determines when to show this period based on role.
-// Updated dynamically in initializeDoubleReports().
-let reportPeriods = [
+const flexibleReportList = document.getElementById("flexible-report-list");
+const reportPeriods = [
     ["lunch", "Lunch", "lunch"],
     ["dinner", "Dinner", "dinner"],
     ["whole", "Whole", "whole"],
@@ -124,6 +123,7 @@ const GUIDED_REPORT_KINDS = {
 const fields = {
     date: document.getElementById("shift-date"),
     mealPeriod: document.getElementById("shift-meal-period"),
+    shiftLabel: document.getElementById("shift-other-label"),
     job: document.getElementById("shift-job"),
     workplace: document.getElementById("shift-workplace"),
     role: document.getElementById("shift-role"),
@@ -208,7 +208,6 @@ window.visualViewport?.addEventListener("resize", keepFocusedFieldVisible);
 
 bindEvents();
 setNoteRows([]);
-initializeDoubleReports();
 initializeSettings();
 renderWorkplaces();
 renderDashboard();
@@ -491,11 +490,27 @@ function bindEvents() {
     document.getElementById("shift-no-tips-report").addEventListener("change", updateMealPeriodFields);
     document.getElementById("template-use-times").addEventListener("change", updateTemplateDefaultFields);
     document.getElementById("template-use-break").addEventListener("change", updateTemplateDefaultFields);
-    doubleReportList.addEventListener("change", handleDoubleReportToggle);
-    doubleReportList.addEventListener("input", (event) => {
-        if (event.target.matches("[data-report-field]")) {
-            updateInferredReports();
-        }
+    document.getElementById("add-flexible-report").addEventListener("click", () => {
+        addFlexibleReport();
+        updateMealPeriodFields();
+        updateFlexibleReportSummary();
+        markShiftFormDirty();
+        recordFormHistory();
+        saveShiftDraft();
+    });
+    flexibleReportList.addEventListener("click", (event) => {
+        if (!event.target.matches("[data-remove-report]")) return;
+        event.target.closest("[data-report-period]").remove();
+        updateFlexibleReportNames();
+        updateFlexibleReportSummary();
+        markShiftFormDirty();
+        recordFormHistory();
+        saveShiftDraft();
+    });
+    flexibleReportList.addEventListener("input", updateFlexibleReportSummary);
+    flexibleReportList.addEventListener("change", () => {
+        updateFlexibleReportInputs();
+        updateFlexibleReportSummary();
     });
     form.addEventListener("focusin", selectNumberOnFocus);
     form.addEventListener("mouseup", (event) => {
@@ -1375,7 +1390,7 @@ function setEntryMode(mode) {
 }
 
 const GUIDED_STEP_SELECTOR = "[data-guided-step]";
-const GUIDED_CONTAINER_SELECTOR = "fieldset, .sub-card, #double-report-fields, #double-report-list > *, #role-no-reports-note";
+const GUIDED_CONTAINER_SELECTOR = "fieldset, .sub-card, #double-report-fields, #flexible-report-list > *, #role-no-reports-note";
 
 function getGuidedSteps() {
     const steps = [...document.getElementById("shift-entry-fields").querySelectorAll(GUIDED_STEP_SELECTOR)]
@@ -1540,7 +1555,9 @@ function renderEntryMode() {
         container.querySelectorAll(GUIDED_CONTAINER_SELECTOR).forEach((element) => {
             const partOfCurrentInputs = current.matches("[data-report-inputs]")
                 && element.closest("[data-report-inputs]") === current;
-            element.classList.toggle("guided-off", !element.contains(current) && !partOfCurrentInputs);
+            const partOfCurrentReports = current.id === "double-report-fields"
+                && current.contains(element);
+            element.classList.toggle("guided-off", !element.contains(current) && !partOfCurrentInputs && !partOfCurrentReports);
         });
         const prompt = current.dataset.guidedPrompt || "";
         question.textContent = prompt;
@@ -1758,7 +1775,37 @@ function restoreShiftDraft(draft) {
     resetForm();
     setEntryMode(draft.mode);
 
-    const workplaceValue = draft.values[`id:${fields.workplace.id}`];
+    const values = { ...draft.values };
+    const legacyMode = values["id:shift-use-flexible-reports"] === false
+        || (!Object.hasOwn(values, "id:shift-use-flexible-reports")
+            && reportPeriods.some(([period]) => values[`report:${period}:enabled`] === true));
+    if (legacyMode) {
+        Object.keys(values).filter((key) => key.startsWith("report:generic-")).forEach((key) => delete values[key]);
+        const enabled = Object.fromEntries(reportPeriods.map(([period]) => [
+            period, values[`report:${period}:enabled`] === true,
+        ]));
+        reportPeriods.forEach(([period, label], index) => {
+            if (!enabled[period]) return;
+            const prefix = `report:generic-${index + 1}:`;
+            values[`${prefix}label`] = label === "Whole" ? "Whole shift" : label;
+            values[`${prefix}coverage`] = period === "whole"
+                ? (enabled.lunch && enabled.dinner ? "reference" : "whole") : "part";
+            if (period === "whole" && !(enabled.lunch && enabled.dinner)) {
+                values[`${prefix}strictWhole`] = true;
+            }
+            reportAmountFields.forEach((field) => {
+                const oldKey = `report:${period}:${field}`;
+                if (Object.hasOwn(values, oldKey)) values[`${prefix}${field}`] = values[oldKey];
+            });
+        });
+    }
+
+    const reportIds = [...new Set(Object.keys(values)
+        .map((key) => /^report:(generic-[^:]+):/.exec(key)?.[1])
+        .filter(Boolean))];
+    reportIds.forEach((id) => addFlexibleReport(id));
+
+    const workplaceValue = values[`id:${fields.workplace.id}`];
     if (typeof workplaceValue === "string") {
         fields.workplace.value = workplaceValue;
         fields.workplace.dataset.previousValue = fields.workplace.value;
@@ -1768,10 +1815,10 @@ function restoreShiftDraft(draft) {
     const unavailableFields = [];
     getHistoryControls().forEach((control) => {
         const key = getShiftDraftControlKey(control);
-        if (!key || !Object.hasOwn(draft.values, key)) {
+        if (!key || !Object.hasOwn(values, key)) {
             return;
         }
-        const value = draft.values[key];
+        const value = values[key];
         if (control.type === "checkbox" || control.type === "radio") {
             control.checked = value;
         } else {
@@ -1786,6 +1833,7 @@ function restoreShiftDraft(draft) {
     fields.role.dataset.previousValue = fields.role.value;
     fields.job.dataset.previousValue = fields.job.value;
     updateMealPeriodFields();
+    updateFlexibleReportSummary();
     updateShiftFormProgression();
 
     if (draft.mode === "guided") {
@@ -1921,6 +1969,9 @@ function maybeAutoAdvanceGuidedStep(event) {
     }
 
     const step = guidedStep.element;
+    if (event.target === fields.mealPeriod && fields.mealPeriod.value === "Other") {
+        return;
+    }
     const isBreakChoice = event.target.matches('input[name="guided-had-break"]');
     const isNoReportChoice = event.target.matches("#shift-no-sales-report, #shift-no-tips-report")
         && event.target.checked;
@@ -2074,6 +2125,7 @@ async function addRoleFromShift() {
 
 function resetForm(shouldClearStatus = true) {
     form.reset();
+    flexibleReportList.replaceChildren();
     resetFormHistory();
     shiftFormDirty = false;
     shiftDraftSaved = false;
@@ -2112,6 +2164,7 @@ function populateForm(shift) {
     state.editingShiftId = shift.id;
     fields.date.value = shift.date || "";
     fields.mealPeriod.value = shift.mealPeriod || "";
+    fields.shiftLabel.value = shift.shiftLabel || "";
     const single = shift.mealPeriod !== "Double";
     document.getElementById("shift-no-sales-report").checked = single
         && (shift.noReport === true || shift.noSales === true);
@@ -2141,19 +2194,22 @@ function populateForm(shift) {
     fields.tipOutPaid.value = formatInputAmount(shift.tipsPaidOut);
     fields.tipOutReceived.value = formatInputAmount(shift.tipOutReceived);
     setNoteRows(getNotes(shift));
-    reportPeriods.forEach(([period]) => {
-        const report = shift.reports?.[period];
-        const reportNode = getReportNode(period);
-        const toggle = reportNode.querySelector("[data-report-toggle]");
-        toggle.checked = Boolean(report);
-        reportAmountFields.forEach((field) => {
-            const input = reportNode.querySelector(`[data-report-field="${field}"]`);
-            input.value = report ? formatInputAmount(report[field]) : "0.00";
+    if (Array.isArray(shift.reports)) {
+        flexibleReportList.replaceChildren();
+        shift.reports.forEach((report) => {
+            const node = addFlexibleReport(report.id);
+            node.querySelector('[data-report-field="label"]').value = report.label;
+            node.querySelector('[data-report-field="coverage"]').value = report.coverage;
+            node.querySelector('[data-report-field="strictWhole"]').checked = report.strictWhole === true;
+            node.querySelector('[data-report-field="noSales"]').checked = report.noSales === true;
+            node.querySelector('[data-report-field="noTips"]').checked = report.noTips === true;
+            reportAmountFields.forEach((field) => {
+                node.querySelector(`[data-report-field="${field}"]`).value = formatInputAmount(report[field]);
+            });
         });
-        setReportInputsEnabled(reportNode, toggle.checked);
-    });
-    if (shift.mealPeriod === "Double") {
-        updateInferredReports();
+        updateFlexibleReportSummary();
+    } else {
+        flexibleReportList.replaceChildren();
     }
     updateMealPeriodFields();
     syncAnswerRadios();
@@ -2182,6 +2238,7 @@ function isFormHistoryActive() {
 function captureFormSnapshot() {
     const controls = getHistoryControls();
     return {
+        reportIds: [...flexibleReportList.children].map((node) => node.dataset.reportPeriod),
         values: controls.map((control) => (
             control.type === "checkbox" || control.type === "radio" ? control.checked : control.value
         )),
@@ -2218,7 +2275,7 @@ function recordFormHistory(event) {
         formHistory.current = snapshot;
         return;
     }
-    const content = ({ values, notes }) => JSON.stringify({ values, notes });
+    const content = ({ values, notes, reportIds }) => JSON.stringify({ values, notes, reportIds });
     if (content(snapshot) === content(formHistory.current)) {
         return;
     }
@@ -2229,6 +2286,8 @@ function recordFormHistory(event) {
 }
 
 function applyFormSnapshot(snapshot) {
+    flexibleReportList.replaceChildren();
+    (snapshot.reportIds || []).forEach((id) => addFlexibleReport(id));
     const controls = getHistoryControls();
     if (controls.length !== snapshot.values.length) {
         return;
@@ -2258,6 +2317,7 @@ function applyFormSnapshot(snapshot) {
     setNoteRows(snapshot.notes);
     shiftFormDirty = true;
     updateMealPeriodFields();
+    updateFlexibleReportSummary();
     updateShiftFormProgression();
     updateValidationErrors();
 }
@@ -2330,6 +2390,9 @@ function handleFormSubmit(event) {
     try {
         updateShiftFormProgression();
         const shift = readFormValues();
+        if (Array.isArray(shift.reports)) {
+            validateFlexibleReports(shift.reports);
+        }
         const allowPartial = saveIncompleteRequested || (!shiftReviewing && isShiftIncomplete(shift));
         const issues = validateShift(shift, allowPartial);
         if (issues.length > 0) {
@@ -2366,7 +2429,9 @@ function handleFormSubmit(event) {
                 !draftCleared,
             );
         } else {
-            setStatus("The shift could not be saved. Your unfinished draft remains available.", true);
+            setStatus(shiftStorageWriteBlocked
+                ? "The shift could not be saved. Saving is disabled to protect existing data; resolve the storage problem or restore a backup."
+                : "The shift could not be saved. Your unfinished draft remains available.", true);
         }
     } catch (error) {
         setStatus(error.message, true);
@@ -2379,6 +2444,8 @@ function readFormValues() {
         id: state.editingShiftId ?? createShiftId(),
         date: fields.date.value.trim(),
         mealPeriod: fields.mealPeriod.value,
+        ...(fields.mealPeriod.value === "Other" && fields.shiftLabel.value.trim()
+            ? { shiftLabel: fields.shiftLabel.value.trim() } : {}),
         job: fields.job.value,
         clockIn: fields.clockIn.value,
         clockOut: fields.clockOut.value,
@@ -2458,46 +2525,23 @@ function readFormValues() {
                 ? editing[field]
                 : capabilityForField(field, capabilities) ? 0 : "";
         });
-        baseline.reports = Object.fromEntries(reportPeriods.map(([period]) => {
-            const reportNode = getReportNode(period);
-            const enabled = reportNode.querySelector("[data-report-toggle]").checked;
-            if (!enabled) {
-                return [period, null];
-            }
-            const existing = editing?.reports?.[period];
-            const fieldCapabilities = {
-                foodSales: capabilities.tracksSales,
-                bawSales: capabilities.tracksSales,
-                liquorSales: capabilities.tracksSales,
-                naBevSales: capabilities.tracksSales,
-                additionalSales: capabilities.tracksSales,
-                ccTips: capabilities.receivesTips,
-                cashTips: capabilities.receivesTips,
-                autoGratuity: capabilities.receivesTips,
-                tipsPaidOut: capabilities.tipsOut,
-                tipOutReceived: capabilities.receivesTipOut,
-            };
-            const values = Object.fromEntries(reportAmountFields.map((field) => {
-                const available = fieldCapabilities[field];
-                const value = available
-                    ? toNumber(reportNode.querySelector(`[data-report-field="${field}"]`).value)
-                    : (existing && Object.hasOwn(existing, field) ? existing[field] : "");
-                return [field, value];
-            }));
-            const oldNoSales = existing?.noSales === true;
-            const oldNoTips = existing?.noTips === true;
-            if (editing ? oldNoSales : !capabilities.tracksSales) {
-                values.noSales = true;
-            }
-            if (editing ? oldNoTips : !hasTipFields) {
-                values.noTips = true;
-            }
-            return [period, values];
-        }));
+        baseline.reports = readFlexibleReports();
     }
 
     baseline.isIncomplete = isShiftIncomplete(baseline);
     return baseline;
+}
+
+function validateFlexibleReports(reports) {
+    if (reports.filter((report) => report.coverage === "whole").length > 1) {
+        throw new Error("Choose only one whole-shift report.");
+    }
+    const invalid = [...flexibleReportList.querySelectorAll('input[type="number"]')]
+        .find((input) => input.willValidate && !input.validity.valid);
+    if (invalid) {
+        invalid.focus();
+        throw new Error("Enter a valid nonnegative amount for each report field.");
+    }
 }
 
 function validateShift(shift, allowPartial = false) {
@@ -2612,7 +2656,7 @@ function validateShift(shift, allowPartial = false) {
 function getIncompleteFields(shift) {
     const missing = [];
 
-    if (isWorkplaceMode()) {
+    if (isWorkplaceMode() && (shift.workplaceId || shift.roleId || !shift.job)) {
         if (!shift.workplaceId) missing.push("Workplace");
         if (!shift.roleId) missing.push("Role");
     } else if (!shift.job) {
@@ -2832,7 +2876,7 @@ function renderDashboard() {
         const description = document.createElement("span");
         description.textContent = shift.mealPeriod === "Double"
             ? `${shift.job} · Double · ${getDoubleReportStatus(shift)}`
-            : `${shift.job} · ${shift.mealPeriod}${getRecentReportNote(shift)}`;
+            : `${shift.job} · ${getShiftLabel(shift)}${getRecentReportNote(shift)}`;
         details.append(date, description);
 
         const metrics = document.createElement("div");
@@ -2911,7 +2955,7 @@ function buildShiftCardNode(shift) {
         ? formatDate(shift.date)
         : `${weekday}, ${formatDate(shift.date)}`;
     summary.querySelector(".summary-job").textContent = [shift.job, getWorkplaceName(shift.workplaceId)].filter(Boolean).join(" · ");
-    summary.querySelector(".summary-meal").textContent = shift.mealPeriod;
+    summary.querySelector(".summary-meal").textContent = getShiftLabel(shift);
     
     // Handle incomplete badge
     const summaryIncompleteBadge = summary.querySelector(".summary-incomplete");
@@ -2926,7 +2970,7 @@ function buildShiftCardNode(shift) {
     summary.querySelector(".summary-tips").textContent = formatReportAmount(shift, getNetTips(shift), "tips");
     summary.setAttribute("aria-label", `View shift details: ${summary.querySelector(".summary-date").textContent}, ${summary.querySelector(".summary-job").textContent}`);
     card.querySelector(".card-date").textContent = formatDate(shift.date);
-    card.querySelector(".card-meal").textContent = shift.mealPeriod;
+    card.querySelector(".card-meal").textContent = getShiftLabel(shift);
     
     // Handle incomplete badge on card
     const cardIncompleteBadge = card.querySelector(".card-incomplete");
@@ -2967,6 +3011,32 @@ function buildShiftCardNode(shift) {
         ? `${formatTime(shift.breakStart)} - ${formatBreakEnd(shift)}`
         : "None";
     breakValue.parentElement.hidden = state.settings.zeroDetails === "hide" && !hasBreak;
+    const reportDetails = card.querySelector(".card-flexible-reports");
+    if (Array.isArray(shift.reports) && shift.reports.length) {
+        const list = reportDetails.querySelector("ul");
+        shift.reports.forEach((report, index) => {
+            const item = document.createElement("li");
+            const source = { mealPeriod: "Double", reports: [{ ...report, coverage: "part" }] };
+            const label = report.label || `Report ${index + 1}`;
+            const coverage = report.coverage === "whole" ? "whole shift"
+                : report.coverage === "reference" ? "reference only" : "separate period";
+            item.textContent = `${label} (${coverage}) — tips ${formatReportAmount(source, getNetTips(source), "tips")}; sales ${formatReportAmount(source, getSalesTotal(source), "sales")}`;
+            list.appendChild(item);
+        });
+        const inferred = inferMissingReport(shift.reports);
+        if (inferred) {
+            const item = document.createElement("li");
+            if (inferred.inconsistentFields.length) {
+                item.textContent = `Cannot calculate remainder: separate reports exceed the whole for ${inferred.inconsistentFields.map(formatReportFieldName).join(", ")}.`;
+            } else {
+                const source = { mealPeriod: "Double", reports: [{ ...inferred.report, coverage: "part" }] };
+                const label = inferred.period === "whole" ? "Sum of separate reports" : "Calculated remainder";
+                item.textContent = `${label} — tips ${formatReportAmount(source, getNetTips(source), "tips")}; sales ${formatReportAmount(source, getSalesTotal(source), "sales")}`;
+            }
+            list.appendChild(item);
+        }
+        reportDetails.hidden = false;
+    }
     const notesEl = card.querySelector(".card-notes");
     const notes = getNotes(shift);
     if (notes.length > 0) {
@@ -3177,6 +3247,7 @@ function exportShiftsCsv() {
         "Tip out received", "Net tips", "Report coverage",
         ...reportPeriods.flatMap(([, label]) => reportAmountFields.map((field) => `${label} ${formatReportFieldName(field)}`)),
         "Notes",
+        "Shift label", "Flexible reports (JSON)",
     ];
     const rows = shifts.map((shift) => {
         const isDouble = shift.mealPeriod === "Double";
@@ -3204,6 +3275,8 @@ function exportShiftsCsv() {
                 reports[period] ? reports[period][field] : ""
             ))),
             getNotes(shift).join(" | "),
+            shift.shiftLabel || "",
+            Array.isArray(shift.reports) ? JSON.stringify(shift.reports) : "",
         ];
     });
     const csv = [headers, ...rows]
@@ -3312,6 +3385,7 @@ async function importBackup(event) {
             throw new Error("Unable to restore: browser storage is full or unavailable. Your existing shifts were not changed.");
         }
         state.shifts = importedShifts;
+        shiftStorageWriteBlocked = false;
         if (importedWorkplaces) {
             state.workplaces = importedWorkplaces;
             renderWorkplaces();
@@ -3325,6 +3399,23 @@ async function importBackup(event) {
     } finally {
         fileInput.value = "";
     }
+}
+
+function convertLegacyReports(reports) {
+    const bothParts = Boolean(reports.lunch && reports.dinner);
+    return [["lunch", "Lunch"], ["dinner", "Dinner"], ["whole", "Whole shift"]]
+        .flatMap(([period, label], index) => {
+            const report = reports[period];
+            if (!report) return [];
+            const coverage = period !== "whole" ? "part" : bothParts ? "reference" : "whole";
+            return [{
+                ...report,
+                id: `generic-${index + 1}`,
+                label,
+                coverage,
+                ...(coverage === "whole" ? { strictWhole: true } : {}),
+            }];
+        });
 }
 
 function normalizeImportedShift(shift, index) {
@@ -3352,6 +3443,9 @@ function normalizeImportedShift(shift, index) {
         if (shift[field] !== undefined && shift[field] !== "" && !TIME_PATTERN.test(shift[field])) {
             throw new Error(`Backup shift ${index + 1} has an invalid ${field} time.`);
         }
+        if (shift.shiftLabel !== undefined && typeof shift.shiftLabel !== "string") {
+            throw new Error(`Backup shift ${index + 1} has an invalid shift label.`);
+        }
     }
 
     const amountFields = reportAmountFields;
@@ -3372,42 +3466,78 @@ function normalizeImportedShift(shift, index) {
     });
 
     if (Object.hasOwn(shift, "reports")) {
-        if (!shift.reports || typeof shift.reports !== "object" || Array.isArray(shift.reports)) {
-            throw new Error(`Backup shift ${index + 1} has invalid report data.`);
-        }
-        const reports = {};
-        for (const [period, report] of Object.entries(shift.reports)) {
-            if (!["lunch", "dinner", "whole"].includes(period)) {
-                throw new Error(`Backup shift ${index + 1} has an unknown report period.`);
-            }
-            if (report === null) {
-                reports[period] = null;
-                continue;
-            }
-            if (!report || typeof report !== "object" || Array.isArray(report)) {
-                throw new Error(`Backup shift ${index + 1} has invalid ${period} report data.`);
-            }
-            const normalizedReport = {};
-            reportAmountFields.forEach((field) => {
-                if (report[field] === "") {
-                    normalizedReport[field] = "";
-                    return;
+        if (Array.isArray(shift.reports)) {
+            const ids = new Set();
+            let wholeCount = 0;
+            normalized.reports = shift.reports.map((report) => {
+                if (!report || typeof report !== "object" || Array.isArray(report)
+                    || typeof report.id !== "string" || !/^generic-\d+(?:\.\d+)?$/.test(report.id)
+                    || ids.has(report.id) || typeof report.label !== "string"
+                    || !["part", "whole", "reference"].includes(report.coverage)
+                    || (report.strictWhole !== undefined && typeof report.strictWhole !== "boolean")
+                    || (report.strictWhole === true && report.coverage !== "whole")) {
+                    throw new Error(`Backup shift ${index + 1} has invalid flexible report data.`);
                 }
-                const amount = Number(report[field] ?? 0);
-                if (!Number.isFinite(amount) || amount < 0) {
-                    throw new Error(`Backup shift ${index + 1} has an invalid ${period} ${field} amount.`);
-                }
-                normalizedReport[field] = amount;
+                ids.add(report.id);
+                if (report.coverage === "whole") wholeCount += 1;
+                const normalizedReport = { id: report.id, label: report.label, coverage: report.coverage };
+                if (report.strictWhole === true) normalizedReport.strictWhole = true;
+                reportAmountFields.forEach((field) => {
+                    if (report[field] === "") {
+                        normalizedReport[field] = "";
+                        return;
+                    }
+                    const amount = Number(report[field] ?? 0);
+                    if (!Number.isFinite(amount) || amount < 0) {
+                        throw new Error(`Backup shift ${index + 1} has an invalid report ${field} amount.`);
+                    }
+                    normalizedReport[field] = amount;
+                });
+                if (report.noSales === true) normalizedReport.noSales = true;
+                if (report.noTips === true) normalizedReport.noTips = true;
+                return normalizedReport;
             });
-            if (report.noSales === true) {
-                normalizedReport.noSales = true;
+            if (wholeCount > 1) {
+                throw new Error(`Backup shift ${index + 1} has multiple whole-shift reports.`);
             }
-            if (report.noTips === true) {
-                normalizedReport.noTips = true;
+        } else {
+            if (!shift.reports || typeof shift.reports !== "object") {
+                throw new Error(`Backup shift ${index + 1} has invalid report data.`);
             }
-            reports[period] = normalizedReport;
+            const reports = {};
+            for (const [period, report] of Object.entries(shift.reports)) {
+                if (!["lunch", "dinner", "whole"].includes(period)) {
+                    throw new Error(`Backup shift ${index + 1} has an unknown report period.`);
+                }
+                if (report === null) {
+                    reports[period] = null;
+                    continue;
+                }
+                if (!report || typeof report !== "object" || Array.isArray(report)) {
+                    throw new Error(`Backup shift ${index + 1} has invalid ${period} report data.`);
+                }
+                const normalizedReport = {};
+                reportAmountFields.forEach((field) => {
+                    if (report[field] === "") {
+                        normalizedReport[field] = "";
+                        return;
+                    }
+                    const amount = Number(report[field] ?? 0);
+                    if (!Number.isFinite(amount) || amount < 0) {
+                        throw new Error(`Backup shift ${index + 1} has an invalid ${period} ${field} amount.`);
+                    }
+                    normalizedReport[field] = amount;
+                });
+                if (report.noSales === true) {
+                    normalizedReport.noSales = true;
+                }
+                if (report.noTips === true) {
+                    normalizedReport.noTips = true;
+                }
+                reports[period] = normalizedReport;
+            }
+            normalized.reports = convertLegacyReports(reports);
         }
-        normalized.reports = reports;
     }
 
     normalized.notes = getNotes(shift);
@@ -3437,6 +3567,11 @@ function normalizeImportedShift(shift, index) {
         }
     });
 
+    if (normalized.mealPeriod === "Double" && !Object.hasOwn(normalized, "reports")) {
+        normalized.reports = convertLegacyReports({ whole: Object.fromEntries(
+            reportAmountFields.map((field) => [field, normalized[field]])
+        ) });
+    }
     return normalized;
 }
 
@@ -4369,6 +4504,10 @@ function toLocalDateString(date) {
 }
 
 function persistShifts() {
+    if (shiftStorageWriteBlocked) {
+        setStatus("Shifts cannot be saved until the storage problem is resolved or a backup is restored.", true);
+        return false;
+    }
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state.shifts));
         return true;
@@ -4425,13 +4564,36 @@ function loadShifts() {
         const skipped = parsed.length - valid.length;
         if (skipped > 0) {
             const kept = preserveRecovery(raw);
-            loadNotice = `${skipped} saved ${skipped === 1 ? "shift was" : "shifts were"} unreadable and skipped.${kept ? " A copy of the original data was kept in this browser." : ""}`;
+            shiftStorageWriteBlocked = true;
+            loadNotice = `${skipped} saved ${skipped === 1 ? "shift was" : "shifts were"} unreadable and skipped. Saving is disabled to protect the original data.${kept ? " A copy was kept in this browser." : ""}`;
         }
-        return dedupeShiftIds(valid);
+        const shifts = dedupeShiftIds(valid);
+        const needsMigration = parsed.some((record) => record && typeof record === "object"
+            && ((record.reports && !Array.isArray(record.reports))
+                || (record.mealPeriod === "Double" && !Object.hasOwn(record, "reports"))));
+        if (needsMigration && skipped === 0) {
+            try {
+                let backupKey = PRE_FLEXIBLE_REPORTS_KEY;
+                let suffix = 2;
+                while (localStorage.getItem(backupKey) !== null && localStorage.getItem(backupKey) !== raw) {
+                    backupKey = `${PRE_FLEXIBLE_REPORTS_KEY}-${suffix++}`;
+                }
+                if (localStorage.getItem(backupKey) === null) {
+                    localStorage.setItem(backupKey, raw);
+                }
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(shifts));
+            } catch (error) {
+                console.error("Unable to save converted reports:", error);
+                shiftStorageWriteBlocked = true;
+                loadNotice = "Reports were converted for this session, but could not be saved. Saving is disabled to protect your original data.";
+            }
+        }
+        return shifts;
     } catch (error) {
         console.error("Unable to read stored shifts:", error);
+        shiftStorageWriteBlocked = true;
         const kept = raw ? preserveRecovery(raw) : false;
-        loadNotice = `Saved shifts could not be read.${kept ? " A copy of the original data was kept in this browser." : ""}`;
+        loadNotice = `Saved shifts could not be read. Saving is disabled to protect the original data.${kept ? " A copy was kept in this browser." : ""}`;
         return [];
     }
 }
@@ -4442,18 +4604,121 @@ function formatDuration(totalMinutes) {
     return `${hours}h ${minutes}m`;
 }
 
-function initializeDoubleReports() {
-    // Clear existing reports (in case this is re-initialized)
-    doubleReportList.innerHTML = "";
-    
-    // Build report nodes for each period
-    reportPeriods.forEach(([period, label]) => {
-        const reportNode = doubleReportTemplate.content.firstElementChild.cloneNode(true);
-        reportNode.dataset.reportPeriod = period;
-        reportNode.querySelector("[data-report-label]").textContent = label;
-        doubleReportList.appendChild(reportNode);
+function addFlexibleReport(id) {
+    if (!id) {
+        do {
+            id = `generic-${createShiftId()}`;
+        } while ([...flexibleReportList.children].some((node) => node.dataset.reportPeriod === id));
+    }
+    const node = doubleReportTemplate.content.firstElementChild.cloneNode(true);
+    node.dataset.reportPeriod = id;
+    const header = document.createElement("div");
+    const label = document.createElement("label");
+    label.className = "field";
+    label.innerHTML = '<span>Report label (optional)</span><input type="text" data-report-field="label" placeholder="e.g. Breakfast">';
+    const coverage = document.createElement("label");
+    coverage.className = "field";
+    coverage.innerHTML = '<span>Report covers</span><select data-report-field="coverage"><option value="part">One separate period</option><option value="whole">The whole shift</option><option value="reference">Reference only (not counted)</option></select>';
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "secondary-button";
+    remove.dataset.removeReport = "";
+    remove.textContent = "Remove report";
+    const availability = document.createElement("div");
+    availability.innerHTML = '<label data-role-capability="tipReport"><input type="checkbox" data-report-field="noTips"> No tip report</label> <label data-role-capability="tracksSales"><input type="checkbox" data-report-field="noSales"> No sales report</label>';
+    const strict = document.createElement("label");
+    strict.dataset.strictWholeControl = "";
+    strict.innerHTML = '<input type="checkbox" data-report-field="strictWhole"> Use only this report for totals, even if sales or tips are missing';
+    header.append(label, coverage, availability, strict, remove);
+    node.querySelector(".double-report-toggle").replaceWith(header);
+    node.querySelector("[data-report-fields]").disabled = false;
+    flexibleReportList.appendChild(node);
+    updateFlexibleReportNames();
+    return node;
+}
+
+function updateFlexibleReportNames() {
+    [...flexibleReportList.children].forEach((node, index) => {
+        node.setAttribute("aria-label", `Report ${index + 1}`);
+        node.querySelector("[data-remove-report]").setAttribute("aria-label", `Remove report ${index + 1}`);
     });
-    updateMealPeriodFields();
+}
+
+function readFlexibleReports() {
+    const capabilities = selectedRoleCapabilities();
+    const existing = getEditingShift()?.reports;
+    return [...flexibleReportList.children].map((node) => {
+        const old = Array.isArray(existing) ? existing.find((report) => report.id === node.dataset.reportPeriod) : null;
+        const report = {
+            id: node.dataset.reportPeriod,
+            label: node.querySelector('[data-report-field="label"]').value.trim(),
+            coverage: node.querySelector('[data-report-field="coverage"]').value,
+        };
+        if (report.coverage === "whole" && node.querySelector('[data-report-field="strictWhole"]').checked) {
+            report.strictWhole = true;
+        }
+        reportAmountFields.forEach((field) => {
+            const value = node.querySelector(`[data-report-field="${field}"]`).value;
+            report[field] = capabilityForField(field, capabilities)
+                ? toNumber(value)
+                : old && Object.hasOwn(old, field) ? old[field] : "";
+        });
+        const noSales = capabilities.tracksSales
+            ? node.querySelector('[data-report-field="noSales"]').checked : old ? old.noSales === true : true;
+        const hasTipFields = capabilities.receivesTips || capabilities.tipsOut || capabilities.receivesTipOut;
+        const noTips = hasTipFields
+            ? node.querySelector('[data-report-field="noTips"]').checked : old ? old.noTips === true : true;
+        if (noSales) report.noSales = true;
+        if (noTips) {
+            report.noTips = true;
+        }
+        return report;
+    });
+}
+
+function updateFlexibleReportInputs() {
+    [...flexibleReportList.children].forEach((node) => {
+        const noSales = node.querySelector('[data-report-field="noSales"]').checked;
+        const noTips = node.querySelector('[data-report-field="noTips"]').checked;
+        node.querySelector("[data-strict-whole-control]").hidden = node.querySelector('[data-report-field="coverage"]').value !== "whole";
+        reportAmountFields.forEach((field) => {
+            node.querySelector(`[data-report-field="${field}"]`).disabled = salesAmountFields.includes(field)
+                ? noSales : noTips;
+        });
+    });
+}
+
+function updateFlexibleReportSummary() {
+    const summary = document.getElementById("flexible-report-summary");
+    const calculation = document.getElementById("flexible-report-calculation");
+    calculation.replaceChildren();
+    calculation.hidden = true;
+    const reports = readFlexibleReports();
+    if (reports.filter((report) => report.coverage === "whole").length > 1) {
+        summary.textContent = "Choose only one whole-shift report.";
+        return;
+    }
+    const inferred = inferMissingReport(reports);
+    if (!inferred) {
+        summary.textContent = "";
+    } else if (inferred.inconsistentFields.length) {
+        summary.textContent = `The separate reports exceed the whole-shift report for: ${inferred.inconsistentFields.map(formatReportFieldName).join(", ")}.`;
+    } else {
+        const synthetic = { mealPeriod: "Double", reports: [inferred.report] };
+        inferred.report.coverage = "part";
+        const label = inferred.period === "whole" ? "Sum of separate reports" : "Calculated remainder";
+        summary.textContent = `${label}: tips ${hasTipReport(synthetic) ? formatCurrency(getNetTips(synthetic)) : "No report"}, sales ${hasSalesReport(synthetic) ? formatCurrency(getSalesTotal(synthetic)) : "No report"}.`;
+        const capabilities = selectedRoleCapabilities();
+        [...tipAmountFields, ...salesAmountFields].forEach((field) => {
+            if ((tipAmountFields.includes(field) && inferred.report.noTips)
+                || (salesAmountFields.includes(field) && inferred.report.noSales)
+                || !capabilityForField(field, capabilities)) return;
+            const item = document.createElement("li");
+            item.textContent = `${formatReportFieldName(field)}: ${formatCurrency(inferred.report[field])}`;
+            calculation.appendChild(item);
+        });
+        calculation.hidden = calculation.childElementCount === 0;
+    }
 }
 
 function selectedRoleCapabilities() {
@@ -4482,6 +4747,7 @@ function updateMealPeriodFields() {
     const capabilities = selectedRoleCapabilities();
     const hasTipFields = capabilities.receivesTips || capabilities.tipsOut || capabilities.receivesTipOut;
     const hasReports = capabilities.tracksSales || hasTipFields;
+    document.getElementById("shift-other-label-control").hidden = fields.mealPeriod.value !== "Other";
     document.querySelectorAll("[data-role-capability]").forEach((element) => {
         const capability = element.dataset.roleCapability;
         const enabled = capability === "tipReport"
@@ -4506,93 +4772,16 @@ function updateMealPeriodFields() {
     });
     updateGuidedSalesReport();
     document.getElementById("double-report-fields").hidden = !isDouble || !hasReports;
-    reportPeriods.forEach(([period]) => {
-        const reportNode = getReportNode(period);
-        setReportInputsEnabled(reportNode, reportNode.querySelector("[data-report-toggle]").checked);
-    });
-}
-
-function getReportNode(period) {
-    const node = doubleReportList.querySelector(`[data-report-period="${period}"]`);
-    if (!node) {
-        throw new Error(`Double-shift report section not found: ${period}`);
-    }
-    return node;
-}
-
-function setReportInputsEnabled(reportNode, enabled) {
-    reportNode.querySelector("[data-report-fields]").disabled = !enabled;
-}
-
-function updateInferredReports() {
-    const reports = {};
-    reportPeriods.forEach(([period]) => {
-        const reportNode = getReportNode(period);
-        const toggle = reportNode.querySelector("[data-report-toggle]");
-        const fieldset = reportNode.querySelector("[data-report-fields]");
-        if (!toggle.checked || toggle.disabled || (fieldset && fieldset.disabled)) {
-            reports[period] = null;
-            return;
-        }
-        
-        const values = {};
-        reportAmountFields.forEach((field) => {
-            const input = reportNode.querySelector(`[data-report-field="${field}"]`);
-            values[field] = toNumber(input.value);
-        });
-        reports[period] = values;
-    });
-
-    const inferred = inferMissingReport(reports);
-    
-    reportPeriods.forEach(([period]) => {
-        const reportNode = getReportNode(period);
-        const toggle = reportNode.querySelector("[data-report-toggle]");
-        const fieldset = reportNode.querySelector("[data-report-fields]");
-        
-        if (inferred && inferred.period === period) {
-            toggle.checked = true;
-            toggle.disabled = true;
-            toggle.title = "Inferred from other reports";
-            if (fieldset) {
-                fieldset.disabled = false;
-            }
-            reportAmountFields.forEach((field) => {
-                const input = reportNode.querySelector(`[data-report-field="${field}"]`);
-                input.value = formatInputAmount(inferred.report[field]);
-                input.disabled = true;
-                input.title = "Calculated from other reports";
-            });
-        } else {
-            if (toggle.disabled) {
-                toggle.checked = false;
-                toggle.disabled = false;
-                toggle.title = "";
-                if (fieldset) {
-                    fieldset.disabled = true;
-                }
-                reportAmountFields.forEach((field) => {
-                    const input = reportNode.querySelector(`[data-report-field="${field}"]`);
-                    input.value = "0.00";
-                    input.disabled = false;
-                    input.title = "";
-                });
-            }
-        }
-    });
-}
-
-function handleDoubleReportToggle(event) {
-    if (!event.target.matches("[data-report-toggle]")) {
-        return;
-    }
-    setReportInputsEnabled(event.target.closest(".double-report"), event.target.checked);
-    updateInferredReports();
+    updateFlexibleReportInputs();
 }
 
 function getRecentReportNote(shift) {
     const status = getReportStatus(shift);
     return status ? ` · ${status === "No sales or tip report" ? "No report" : status}` : "";
+}
+
+function getShiftLabel(shift) {
+    return shift.mealPeriod === "Other" && shift.shiftLabel ? shift.shiftLabel : shift.mealPeriod;
 }
 
 function getReportStatus(shift) {
@@ -4620,6 +4809,18 @@ function getDoubleReportStatus(shift) {
         return "Whole-double report (legacy combined data)";
     }
 
+    if (Array.isArray(shift.reports)) {
+        const count = shift.reports.filter((report) => report.coverage === "part").length;
+        if (!shift.reports.length) return "No sales or tip reports";
+        const whole = shift.reports.find((report) => report.coverage === "whole");
+        if (!whole) return count
+            ? `${count} separate ${count === 1 ? "report" : "reports"}`
+            : "Reference reports only";
+        const notes = [];
+        if (whole.noSales) notes.push(hasSalesReport(shift) ? "sales from separate periods only" : "no sales report");
+        if (whole.noTips) notes.push(hasTipReport(shift) ? "tips from separate periods only" : "no tip report");
+        return ["Whole-shift report", ...notes].join("; ");
+    }
     const reports = shift.reports || {};
     const hasLunch = Boolean(reports.lunch);
     const hasDinner = Boolean(reports.dinner);
@@ -4639,6 +4840,13 @@ function getDoubleReportStatus(shift) {
 }
 
 function getCsvReports(shift) {
+    if (Array.isArray(shift.reports)) {
+        return Object.fromEntries(reportPeriods.map(([period]) => {
+            const labels = period === "whole" ? ["whole", "whole shift"] : [period];
+            const matches = shift.reports.filter((report) => labels.includes(report.label.trim().toLowerCase()));
+            return [period, matches.length === 1 ? matches[0] : null];
+        }));
+    }
     if (shift.mealPeriod === "Double" && !Object.hasOwn(shift, "reports")) {
         return { lunch: null, dinner: null, whole: Object.fromEntries(
             reportAmountFields.map((field) => [field, Number(shift[field]) || 0])

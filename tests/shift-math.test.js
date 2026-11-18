@@ -216,6 +216,65 @@ describe("shift duration", () => {
 });
 
 describe("report inference", () => {
+    test("adds any number of separate generic reports and derives their total", () => {
+        const reports = [1, 2, 3, 4].map((amount) => ({
+            coverage: "part", foodSales: amount * 10, ccTips: amount,
+        }));
+        const shift = { mealPeriod: "Double", reports };
+        expect(getSalesTotal(shift)).toBe(100);
+        expect(getNetTips(shift)).toBe(10);
+        const inferred = inferMissingReport(reports);
+        expect(inferred.period).toBe("whole");
+        expect(inferred.report.foodSales).toBe(100);
+        expect(inferred.report.ccTips).toBe(10);
+    });
+
+    test("uses a whole-shift report once and derives the remainder from separate reports", () => {
+        const reports = [
+            { coverage: "part", foodSales: 100, ccTips: 10 },
+            { coverage: "part", foodSales: 40, ccTips: 5 },
+            { coverage: "whole", foodSales: 300, ccTips: 50 },
+        ];
+        const shift = { mealPeriod: "Double", reports };
+        expect(getSalesTotal(shift)).toBe(300);
+        expect(getNetTips(shift)).toBe(50);
+        expect(getFinancialBreakdown(shift).foodSales).toBe(300);
+        const inferred = inferMissingReport(reports);
+        expect(inferred.period).toBe("remainder");
+        expect(inferred.report.foodSales).toBe(160);
+        expect(inferred.report.ccTips).toBe(35);
+    });
+
+    test("preserves missing report kinds and rejects inconsistent subtraction", () => {
+        const parts = [{ coverage: "part", foodSales: 100, noTips: true }];
+        const whole = { coverage: "whole", foodSales: 80, ccTips: 50 };
+        const result = inferMissingReport([...parts, whole]);
+        expect(result.report).toBeNull();
+        expect(result.inconsistentFields).toContain("foodSales");
+        whole.foodSales = 150;
+        const valid = inferMissingReport([...parts, whole]);
+        expect(valid.report.foodSales).toBe(50);
+        expect(valid.report.noTips).toBe(true);
+        expect(valid.report.ccTips).toBeUndefined();
+    });
+
+    test("does not mistake missing whole-shift sales for a zero or double-count tips", () => {
+        const shift = { mealPeriod: "Double", reports: [
+            { coverage: "part", foodSales: 80, ccTips: 20 },
+            { coverage: "whole", noSales: true, ccTips: 50 },
+        ] };
+        expect(hasSalesReport(shift)).toBe(true);
+        expect(getSalesTotal(shift)).toBe(80);
+        expect(getNetTips(shift)).toBe(50);
+        expect(getFinancialBreakdown(shift).foodSales).toBe(80);
+    });
+
+    test("rejects multiple whole-shift generic reports rather than double-counting", () => {
+        const reports = [{ coverage: "whole" }, { coverage: "whole" }];
+        expect(() => getSalesTotal({ mealPeriod: "Double", reports })).toThrow("only one");
+        expect(() => inferMissingReport(reports)).toThrow("only one");
+    });
+
     test("infers dinner from lunch and whole reports", () => {
         const reports = {
             lunch: { foodSales: 100, ccTips: 20, bawSales: 25, cashTips: 15, autoGratuity: 5 },

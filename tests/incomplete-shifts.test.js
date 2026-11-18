@@ -175,4 +175,19 @@ describe("Incomplete shifts", () => {
         expect(harness.savedShifts()[0].isIncomplete).toBe(true);
         expect(harness.element("#form-status").textContent).toContain("Restored 1 shift");
     }));
+
+    test("restores flexible reports from a JSON backup", () => withApp(async (harness) => {
+        harness.openView("settings");
+        await importBackup(harness, {
+            format: "shift-ledger-backup",
+            version: 2,
+            shifts: [makeShift({ mealPeriod: "Double", reports: [
+                { id: "generic-1", label: "Brunch", coverage: "part", foodSales: 100 },
+                { id: "generic-2", label: "All day", coverage: "whole", foodSales: 300 },
+            ] })],
+        });
+        expect(harness.savedShifts()[0].reports[0].label).toBe("Brunch");
+        harness.openView("previous-shifts");
+        expect(harness.element("#summary-total-sales").textContent).toBe("$300.00");
+    }));
 });

@@ -325,14 +325,15 @@ describe("New shift layout", () => {
         const mealPeriod = element("#shift-meal-period");
         mealPeriod.value = "Double";
         fire(mealPeriod, "change");
+        element("#add-flexible-report").click();
 
-        const report = element('[data-report-period="lunch"]');
+        const report = element("#flexible-report-list .double-report");
         const sales = report.querySelector(".report-data-group[aria-label='Sales']");
         const tips = report.querySelector(".report-data-group[aria-label='Tips']");
 
         expect(report.querySelectorAll(".sub-card")).toHaveLength(0);
-        expect(report.querySelectorAll("[data-report-field]")).toHaveLength(10);
-        expect(tips.getBoundingClientRect().top).toBeGreaterThan(sales.getBoundingClientRect().top);
+        expect(report.querySelectorAll('input[type="number"][data-report-field]')).toHaveLength(10);
+        expect(sales.getBoundingClientRect().top).toBeGreaterThan(tips.getBoundingClientRect().top);
         expect(Math.round(tips.getBoundingClientRect().left)).toBe(Math.round(sales.getBoundingClientRect().left));
     }));
 
@@ -345,12 +346,13 @@ describe("New shift layout", () => {
         const mealPeriod = element("#shift-meal-period");
         mealPeriod.value = "Double";
         fire(mealPeriod, "change");
+        element("#add-flexible-report").click();
 
-        const report = element('[data-report-period="lunch"]');
+        const report = element("#flexible-report-list .double-report");
         const sales = report.querySelector(".report-data-group[aria-label='Sales']");
         const tips = report.querySelector(".report-data-group[aria-label='Tips']");
 
-        expect(tips.getBoundingClientRect().top).toBeGreaterThan(sales.getBoundingClientRect().top);
+        expect(sales.getBoundingClientRect().top).toBeGreaterThan(tips.getBoundingClientRect().top);
         expect(doc.documentElement.scrollWidth).toBeLessThanOrEqual(win.innerWidth);
     }));
 });

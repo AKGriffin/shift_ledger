@@ -70,6 +70,34 @@ describe("Settings page", () => {
 });
 
 describe("CSV export", () => {
+    test("keeps migrated report details in their columns and flexible JSON", () => withApp({
+        shifts: [makeShift({ mealPeriod: "Double", reports: {
+            lunch: { foodSales: 100 },
+            dinner: { foodSales: 200 },
+            whole: { foodSales: 900 },
+        } })],
+    }, async ({ element, win, openView }) => {
+        let blob;
+        const create = win.URL.createObjectURL;
+        const click = win.HTMLAnchorElement.prototype.click;
+        win.URL.createObjectURL = (value) => { blob = value; return "blob:test"; };
+        win.HTMLAnchorElement.prototype.click = () => {};
+        try {
+            openView("settings");
+            element("#export-csv").click();
+            const [header, row] = (await blob.text()).split("\r\n").map((line) => (
+                [...line.matchAll(/"((?:[^"]|"")*)"/g)].map((match) => match[1].replace(/""/g, '"'))
+            ));
+            expect(row[header.indexOf("Lunch Food Sales")]).toBe("100");
+            expect(row[header.indexOf("Dinner Food Sales")]).toBe("200");
+            expect(row[header.indexOf("Whole Food Sales")]).toBe("900");
+            expect(JSON.parse(row[header.indexOf("Flexible reports (JSON)")])[2].coverage).toBe("reference");
+        } finally {
+            win.URL.createObjectURL = create;
+            win.HTMLAnchorElement.prototype.click = click;
+        }
+    }));
+
     test("uses the exported date range and includes a single job when applicable", () => withApp({
         shifts: [
             makeShift({ date: "2026-10-22", job: "Server" }),
@@ -315,6 +343,23 @@ describe("Data reliability", () => {
         await restore(app, JSON.stringify([makeShift({ mealPeriod: "Brunch" })]), false);
         expect(element("#form-status").textContent).toContain("missing valid required fields");
         expect(savedShifts()).toHaveLength(2);
+    }));
+
+    test("rejects a backup with conflicting whole-shift reports without replacing saved shifts", () => withApp({
+        shifts: [makeShift({ job: "Existing" })],
+        expectConsoleErrors: true,
+    }, async (app) => {
+        app.openView("settings");
+        await restore(app, JSON.stringify({ shifts: [makeShift({
+            mealPeriod: "Double",
+            reports: [
+                { id: "generic-1", label: "First", coverage: "whole" },
+                { id: "generic-2", label: "Second", coverage: "whole" },
+            ],
+        })] }), false);
+        expect(app.element("#form-status").textContent).toContain("multiple whole-shift reports");
+        expect(app.savedShifts()).toHaveLength(1);
+        expect(app.savedShifts()[0].job).toBe("Existing");
     }));
 
     test("restores empty capability fields and legacy-independent role settings", () => withApp({

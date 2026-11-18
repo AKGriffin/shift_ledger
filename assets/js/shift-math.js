@@ -12,12 +12,23 @@
         return Number(value.toFixed(2));
     }
 
-    function getFinancialReports(shift) {
+    function getFinancialReports(shift, missingFlag) {
         if (shift.noReport === true && shift.mealPeriod !== "Double") {
             return [];
         }
         if (!shift.reports || typeof shift.reports !== "object") {
             return null;
+        }
+
+        if (Array.isArray(shift.reports)) {
+            const whole = shift.reports.filter((report) => report.coverage === "whole");
+            if (whole.length > 1) {
+                throw new Error("A shift can have only one whole-shift report.");
+            }
+            if (whole.length === 1 && (!missingFlag || whole[0][missingFlag] !== true || whole[0].strictWhole === true)) {
+                return whole;
+            }
+            return shift.reports.filter((report) => report.coverage === "part");
         }
 
         const { lunch, dinner, whole } = shift.reports;
@@ -47,7 +58,7 @@
         if (isSingleShift(shift) && (shift.noReport === true || shift[missingFlag] === true)) {
             return false;
         }
-        const reports = getFinancialReports(shift);
+        const reports = getFinancialReports(shift, missingFlag);
         return reports === null || reports.some((report) => report[missingFlag] !== true);
     }
 
@@ -61,7 +72,7 @@
             return 0;
         }
 
-        const reports = getFinancialReports(shift);
+        const reports = getFinancialReports(shift, "noSales");
         if (reports) {
             return round(reports.filter((report) => report.noSales !== true).reduce((sum, report) => sum
                 + (Number(report.foodSales) || 0)
@@ -85,7 +96,7 @@
             return 0;
         }
 
-        const reports = getFinancialReports(shift);
+        const reports = getFinancialReports(shift, "noTips");
         if (reports) {
             return round(reports.filter((report) => report.noTips !== true).reduce((sum, report) => sum
                 + (Number(report.ccTips) || 0)
@@ -109,7 +120,7 @@
             return 0;
         }
 
-        const reports = getFinancialReports(shift);
+        const reports = getFinancialReports(shift, "noTips");
         if (reports) {
             return round(reports.filter((report) => report.noTips !== true)
                 .reduce((sum, report) => sum + (Number(report.autoGratuity) || 0), 0));
@@ -123,12 +134,12 @@
     const REPORT_FIELDS = [...SALES_FIELDS, ...TIP_FIELDS, "noSales", "noTips"];
 
     function getFinancialBreakdown(shift) {
-        const sources = getFinancialReports(shift) || [shift];
         const breakdown = {};
         BREAKDOWN_FIELDS.forEach((field) => {
             const salesField = SALES_FIELDS.includes(field);
             const covered = salesField ? hasSalesReport(shift) : hasTipReport(shift);
             const missingFlag = salesField ? "noSales" : "noTips";
+            const sources = getFinancialReports(shift, missingFlag) || [shift];
             const availableSources = sources.filter((source) => source[missingFlag] !== true);
             breakdown[field] = covered
                 ? round(availableSources.reduce((sum, source) => sum + (Number(source[field]) || 0), 0))
@@ -173,6 +184,10 @@
             return null;
         }
 
+        if (Array.isArray(reports)) {
+            return inferGenericReport(reports);
+        }
+
         const { lunch, dinner, whole } = reports;
         const hasLunch = Boolean(lunch);
         const hasDinner = Boolean(dinner);
@@ -181,6 +196,40 @@
 
         if (reportCount !== 2) {
             return null;
+        }
+
+        function inferGenericReport(reports) {
+            const whole = reports.filter((report) => report.coverage === "whole");
+            const parts = reports.filter((report) => report.coverage === "part");
+            if (whole.length > 1) {
+                throw new Error("A shift can have only one whole-shift report.");
+            }
+            if (parts.length === 0 || (whole.length === 0 && parts.length < 2)) {
+                return null;
+            }
+
+            const sources = [...whole, ...parts];
+            const report = {};
+            const inconsistentFields = [];
+            for (const [missingFlag, fields] of [["noSales", SALES_FIELDS], ["noTips", TIP_FIELDS]]) {
+                if (sources.some((source) => source[missingFlag] === true)) {
+                    report[missingFlag] = true;
+                    continue;
+                }
+                fields.forEach((field) => {
+                    const sum = parts.reduce((total, part) => total + (Number(part[field]) || 0), 0);
+                    const value = whole.length ? round((Number(whole[0][field]) || 0) - sum) : round(sum);
+                    if (value < 0) {
+                        inconsistentFields.push(field);
+                    }
+                    report[field] = value;
+                });
+            }
+            return {
+                period: whole.length ? "remainder" : "whole",
+                report: inconsistentFields.length ? null : report,
+                inconsistentFields,
+            };
         }
 
         if (hasLunch && hasWhole && !hasDinner) {
