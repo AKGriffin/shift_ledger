@@ -983,6 +983,118 @@
             </form>
         </dialog>
 
+        <dialog id="add-report-dialog" class="history-filter-dialog" aria-labelledby="add-report-dialog-title">
+            <form id="add-report-form" novalidate>
+                <div class="filter-dialog-header">
+                    <div>
+                        <h3 id="add-report-dialog-title">Add Report</h3>
+                        <p id="add-report-dialog-hint">Enter numbers from your POS checkout slip.</p>
+                    </div>
+                    <button type="button" id="close-add-report-dialog" class="ghost-button" aria-label="Close add report">×</button>
+                </div>
+
+                <div id="add-report-dialog-steps" class="add-report-steps">
+                    <!-- Step 1: Report label and coverage -->
+                    <fieldset id="add-report-step-label" class="add-report-step" data-step-index="0" hidden>
+                        <legend id="add-report-step-label-title">Report label and coverage</legend>
+                        <div class="field">
+                            <label for="add-report-label">Report label (optional)</label>
+                            <input type="text" id="add-report-label" placeholder="e.g. Breakfast, Bar, Lunch">
+                        </div>
+                        <div class="field">
+                            <label id="add-report-presets-label">Quick labels</label>
+                            <div class="report-label-presets" id="add-report-presets" role="group" aria-labelledby="add-report-presets-label">
+                                <button type="button" class="secondary-button" data-preset="Lunch">Lunch</button>
+                                <button type="button" class="secondary-button" data-preset="Dinner">Dinner</button>
+                                <button type="button" class="secondary-button" data-preset="Bar">Bar</button>
+                                <button type="button" class="secondary-button" data-preset="Whole Shift">Whole Shift</button>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label for="add-report-coverage">Report covers</label>
+                            <select id="add-report-coverage" aria-describedby="add-report-coverage-error">
+                                <option value="part">One separate period</option>
+                                <option value="whole" selected>The whole shift</option>
+                                <option value="reference">Reference only (not counted)</option>
+                            </select>
+                            <span class="field-error" id="add-report-coverage-error" hidden></span>
+                        </div>
+                    </fieldset>
+
+                    <!-- Step 2: Sales Report -->
+                    <fieldset id="add-report-step-sales" class="add-report-step" data-step-index="1" data-report-type="sales" hidden>
+                        <legend id="add-report-step-sales-title">Sales</legend>
+                        <label class="report-toggle">
+                            <input type="checkbox" id="add-report-no-sales" aria-describedby="add-report-no-sales-hint">
+                            <span>No sales report</span>
+                        </label>
+                        <small id="add-report-no-sales-hint" class="field-hint">Skip this if you don't have sales numbers.</small>
+                        <div id="add-report-sales-fields" class="sub-card-grid">
+                            <label class="field">
+                                <span>Beer &amp; wine</span>
+                                <input type="number" id="add-report-baw-sales" min="0" step="0.01" value="0">
+                            </label>
+                            <label class="field">
+                                <span>Food</span>
+                                <input type="number" id="add-report-food-sales" min="0" step="0.01" value="0">
+                            </label>
+                            <label class="field">
+                                <span>Liquor</span>
+                                <input type="number" id="add-report-liquor-sales" min="0" step="0.01" value="0">
+                            </label>
+                            <label class="field">
+                                <span>NA beverage</span>
+                                <input type="number" id="add-report-na-sales" min="0" step="0.01" value="0">
+                            </label>
+                            <label class="field">
+                                <span>Additional</span>
+                                <input type="number" id="add-report-additional-sales" min="0" step="0.01" value="0">
+                            </label>
+                        </div>
+                    </fieldset>
+
+                    <!-- Step 3: Tips Report -->
+                    <fieldset id="add-report-step-tips" class="add-report-step" data-step-index="2" data-report-type="tips" hidden>
+                        <legend id="add-report-step-tips-title">Tips</legend>
+                        <label class="report-toggle">
+                            <input type="checkbox" id="add-report-no-tips" aria-describedby="add-report-no-tips-hint">
+                            <span>No tips report</span>
+                        </label>
+                        <small id="add-report-no-tips-hint" class="field-hint">Skip this if you don't have tip numbers.</small>
+                        <div id="add-report-tips-fields" class="sub-card-grid">
+                            <label class="field" id="add-report-cc-tips-field">
+                                <span>CC tips</span>
+                                <input type="number" id="add-report-cc-tips" min="0" step="0.01" value="0">
+                            </label>
+                            <label class="field" id="add-report-cash-tips-field">
+                                <span>Cash tips</span>
+                                <input type="number" id="add-report-cash-tips" min="0" step="0.01" value="0">
+                            </label>
+                            <label class="field" id="add-report-auto-gratuity-field">
+                                <span>Auto-gratuity</span>
+                                <input type="number" id="add-report-auto-gratuity" min="0" step="0.01" value="0">
+                            </label>
+                            <label class="field" id="add-report-tips-paid-out-field">
+                                <span>Tips paid out</span>
+                                <input type="number" id="add-report-tips-paid-out" min="0" step="0.01" value="0">
+                            </label>
+                            <label class="field" id="add-report-tip-out-received-field">
+                                <span>Tip out received</span>
+                                <input type="number" id="add-report-tip-out-received" min="0" step="0.01" value="0">
+                            </label>
+                        </div>
+                    </fieldset>
+                </div>
+
+                <div id="add-report-dialog-actions" class="filter-dialog-actions">
+                    <button type="button" id="add-report-back" class="ghost-button" hidden>Back</button>
+                    <button type="button" id="add-report-cancel" class="ghost-button">Cancel</button>
+                    <button type="button" id="add-report-next" class="primary-button" hidden>Next</button>
+                    <button type="submit" id="add-report-submit" class="primary-button" hidden>Add Report</button>
+                </div>
+            </form>
+        </dialog>
+
         <nav class="mobile-bottom-nav" aria-label="Quick navigation">
             <button type="button" class="mobile-bottom-nav-button" data-view="dashboard">
                 <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V21H3z"></path><path class="nav-icon-detail" d="M9 21v-7h6v7"></path></svg>

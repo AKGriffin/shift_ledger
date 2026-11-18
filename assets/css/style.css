@@ -2942,6 +2942,41 @@ main:focus,
     .settings-actions>* {
         flex: 1 1 100%;
     }
+}
+
+/* Report dialog styles */
+.add-report-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.add-report-step {
+    border: none;
+    padding: 0;
+    margin: 0;
+    display: contents;
+}
+
+.add-report-step > * {
+    margin-bottom: 1rem;
+}
+
+.add-report-step > *:last-child {
+    margin-bottom: 0;
+}
+
+.report-label-presets {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+@media (min-width: 480px) {
+    .report-label-presets {
+        grid-template-columns: repeat(4, 1fr);
+    }
 
     .settings-actions>* {
         flex: 0 0 auto;
