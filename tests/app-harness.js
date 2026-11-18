@@ -4,6 +4,7 @@ export const SETTINGS_STORAGE_KEY = "shift-ledger-settings-v1";
 export const RECOVERY_STORAGE_KEY = "shift-ledger-shifts-v1-recovery";
 export const WORKPLACES_STORAGE_KEY = "shift-ledger-workplaces-v1";
 export const PRE_WORKPLACES_STORAGE_KEY = "shift-ledger-shifts-v1-pre-workplaces";
+export const PRE_FLEXIBLE_REPORTS_STORAGE_KEY = "shift-ledger-shifts-v1-pre-flexible-reports";
 
 const FIELD_IDS = {
     date: "shift-date",
@@ -107,6 +108,9 @@ async function runWithApp({ width = 1200, height = 1000, shifts, settings, workp
         settings: localStorage.getItem(SETTINGS_STORAGE_KEY),
         workplaces: localStorage.getItem(WORKPLACES_STORAGE_KEY),
         preWorkplaces: localStorage.getItem(PRE_WORKPLACES_STORAGE_KEY),
+        preFlexibleReports: Object.keys(localStorage)
+            .filter((key) => key === PRE_FLEXIBLE_REPORTS_STORAGE_KEY || key.startsWith(`${PRE_FLEXIBLE_REPORTS_STORAGE_KEY}-`))
+            .map((key) => [key, localStorage.getItem(key)]),
         workplacesRecovery: localStorage.getItem(`${WORKPLACES_STORAGE_KEY}-recovery`),
     };
     const frame = document.createElement("iframe");
@@ -117,6 +121,7 @@ async function runWithApp({ width = 1200, height = 1000, shifts, settings, workp
     localStorage.removeItem(SHIFT_DRAFT_STORAGE_KEY);
     localStorage.removeItem(SETTINGS_STORAGE_KEY);
     localStorage.removeItem(PRE_WORKPLACES_STORAGE_KEY);
+    previous.preFlexibleReports.forEach(([key]) => localStorage.removeItem(key));
     localStorage.removeItem(`${WORKPLACES_STORAGE_KEY}-recovery`);
     // Tests start with first-run setup already dismissed unless they ask otherwise.
     if (workplaces === null) {
@@ -178,6 +183,10 @@ async function runWithApp({ width = 1200, height = 1000, shifts, settings, workp
         restoreItem(RECOVERY_STORAGE_KEY, previousRecovery);
         restoreItem(WORKPLACES_STORAGE_KEY, previous.workplaces);
         restoreItem(PRE_WORKPLACES_STORAGE_KEY, previous.preWorkplaces);
+        Object.keys(localStorage)
+            .filter((key) => key === PRE_FLEXIBLE_REPORTS_STORAGE_KEY || key.startsWith(`${PRE_FLEXIBLE_REPORTS_STORAGE_KEY}-`))
+            .forEach((key) => localStorage.removeItem(key));
+        previous.preFlexibleReports.forEach(([key, value]) => restoreItem(key, value));
         restoreItem(`${WORKPLACES_STORAGE_KEY}-recovery`, previous.workplacesRecovery);
     }
 }
