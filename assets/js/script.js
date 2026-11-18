@@ -485,14 +485,6 @@ function bindEvents() {
     cancelFormButton.addEventListener("click", cancelShiftEntry);
     document.getElementById("cancel-review").addEventListener("click", cancelShiftEntry);
     document.getElementById("edit-shift").addEventListener("click", editShiftFromReview);
-    document.getElementById("review-add-report").addEventListener("click", () => {
-        editShiftFromReview();
-        if (entryMode === "guided") {
-            guidedStep = { element: null, index: getGuidedSteps().length, review: true };
-            updateShiftFormProgression();
-        }
-        openAddReportDialog();
-    });
     document.getElementById("review-report-breakdown").addEventListener("click", (event) => {
         const button = event.target.closest("[data-review-report]");
         if (!button) return;
